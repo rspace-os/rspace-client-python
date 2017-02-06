@@ -35,7 +35,7 @@ class Client:
                 raise Client.AuthenticationError(response.json()['message'])
 
             if response.status_code != 200:
-                raise ValueError(response.json()['errors'])
+                raise ValueError(next(iter(response.json()['errors'] or []), None) or response.json()['message'])
 
             if content_type == 'application/json':
                 return response.json()

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from __future__ import print_function
 import argparse
 import rspace_client
 
@@ -13,10 +14,13 @@ client = rspace_client.Client(args.server, args.apiKey)
 
 document_id = input('Document ID to search for (for example, 123)? ')
 
-response = client.get_document(doc_id=document_id)
-for field in response['fields']:
-    for file in field['files']:
-        download_metadata_link = client.get_link_contents(file, 'self')
-        filename = '/tmp/' + download_metadata_link['name']
-        print('Downloading to file', filename)
-        client.download_link_to_file(download_metadata_link, 'enclosure', filename)
+try:
+    response = client.get_document(doc_id=document_id)
+    for field in response['fields']:
+        for file in field['files']:
+            download_metadata_link = client.get_link_contents(file, 'self')
+            filename = '/tmp/' + download_metadata_link['name']
+            print('Downloading to file', filename)
+            client.download_link_to_file(download_metadata_link, 'enclosure', filename)
+except ValueError:
+    print('Document with id %s not found' % str(document_id))
