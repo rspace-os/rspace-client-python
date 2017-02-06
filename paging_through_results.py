@@ -11,7 +11,7 @@ def print_document_names(response):
 
 # Parse command line parameters
 parser = argparse.ArgumentParser()
-parser.add_argument("server", help="RSpace server URL (for example, https://demo.researchspace.com)", type=str)
+parser.add_argument("server", help="RSpace server URL (for example, https://community.researchspace.com)", type=str)
 parser.add_argument("apiKey", help="RSpace API key can be found on 'My Profile'", type=str)
 args = parser.parse_args()
 
