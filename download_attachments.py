@@ -3,6 +3,7 @@
 from __future__ import print_function
 import argparse
 import rspace_client
+import sys
 
 # Parse command line parameters
 parser = argparse.ArgumentParser()
@@ -12,7 +13,8 @@ args = parser.parse_args()
 
 client = rspace_client.Client(args.server, args.apiKey)
 
-document_id = input('Document ID to search for (for example, 123)? ')
+print('Document ID to search for (for example, 123)?')
+document_id = sys.stdin.readline().strip()
 
 try:
     response = client.get_document(doc_id=document_id)

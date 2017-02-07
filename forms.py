@@ -3,6 +3,7 @@
 from __future__ import print_function
 import argparse
 import rspace_client
+import sys
 
 # Parse command line parameters
 parser = argparse.ArgumentParser()
@@ -12,7 +13,8 @@ args = parser.parse_args()
 
 client = rspace_client.Client(args.server, args.apiKey)
 
-form_id = input('Form ID to search for (for example, FM123)? ')
+print('Form ID to search for (for example, FM123)?')
+form_id = sys.stdin.readline().strip()
 
 advanced_query = {
     'operator': 'and',
