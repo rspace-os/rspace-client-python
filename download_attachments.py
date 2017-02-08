@@ -23,6 +23,6 @@ try:
             download_metadata_link = client.get_link_contents(file, 'self')
             filename = '/tmp/' + download_metadata_link['name']
             print('Downloading to file', filename)
-            client.download_link_to_file(download_metadata_link, 'enclosure', filename)
+            client.download_link_to_file(client.get_link(download_metadata_link, 'enclosure'), filename)
 except ValueError:
     print('Document with id %s not found' % str(document_id))

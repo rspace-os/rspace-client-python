@@ -52,25 +52,23 @@ class Client:
             raise Client.NoSuchLinkRel('There are no links!')
 
     def get_link_contents(self, response, link_rel):
+        return self.retrieve_api_results(self.get_link(response, link_rel))
+
+    def get_link(self, response, link_rel):
         for link in self._get_links(response):
             if link['rel'] == link_rel:
-                return self.retrieve_api_results(link['link'])
+                return link['link']
         raise Client.NoSuchLinkRel('Requested link rel "%s", available rel(s): %s' %
                                    (link_rel, ', '.join([x['rel'] for x in self._get_links(response)])))
 
-    def download_link_to_file(self, response, link_rel, filename):
+    def download_link_to_file(self, url, filename):
         headers = {
             'apiKey': self.api_key,
             'Accept': 'application/octet-stream'
         }
-        for link in self._get_links(response):
-            if link['rel'] == link_rel:
-                with open(filename, 'wb') as fd:
-                    for chunk in requests.get(link['link'], headers=headers).iter_content(chunk_size=128):
-                        fd.write(chunk)
-                return
-        raise Client.NoSuchLinkRel('Requested link rel "%s", available rel(s): %s' %
-                                   (link_rel, ', '.join([x['rel'] for x in self._get_links(response)])))
+        with open(filename, 'wb') as fd:
+            for chunk in requests.get(url, headers=headers).iter_content(chunk_size=128):
+                fd.write(chunk)
 
     @staticmethod
     def link_exists(response, link_rel):
