@@ -1,5 +1,4 @@
 import requests
-import json
 
 
 class Client:
@@ -158,7 +157,7 @@ class Client:
         :return: parsed response as a dictionary
         """
         params = {
-            'advancedQuery': json.dumps(advanced_query),
+            'advancedQuery': advanced_query,
             'orderBy': order_by,
             'pageSize': page_size,
             'pageNumber': page_number

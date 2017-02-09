@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 import argparse
+import json
 import rspace_client
 import sys
 
@@ -16,7 +17,7 @@ client = rspace_client.Client(args.server, args.apiKey)
 print('Form ID to search for (for example, FM123)?')
 form_id = sys.stdin.readline().strip()
 
-advanced_query = {
+advanced_query = json.dumps({
     'operator': 'and',
     'terms': [
         {
@@ -24,7 +25,7 @@ advanced_query = {
             'queryType': 'form'
         }
     ]
-}
+})
 
 # Alternatively, the same advanced query can be constructed
 

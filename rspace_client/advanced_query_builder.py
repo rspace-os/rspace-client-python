@@ -1,4 +1,5 @@
 from enum import Enum
+import json
 
 
 class AdvancedQueryBuilder:
@@ -44,16 +45,15 @@ class AdvancedQueryBuilder:
     def get_advanced_query(self):
         """
         Builds an advanced query.
-        :return: dictionary representing the advanced query
+        :return: JSON representation of the built advanced query
         """
-        # TODO: refactor to return a JSON
-        return {
+        return json.dumps({
             'operator': self.operand,
             'terms': self.terms
-        }
+        })
 
     def __str__(self):
         """
-        :return: textual representation of the built advanced query
+        :return: JSON representation of the built advanced query
         """
-        return str(self.get_advanced_query())
+        return self.get_advanced_query()
