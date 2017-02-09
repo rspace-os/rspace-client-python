@@ -2,7 +2,14 @@ from enum import Enum
 
 
 class AdvancedQueryBuilder:
+    """
+    AdvancedQueryBuilder helps to build an advanced query for /documents API endpoint.
+    """
     class QueryType(Enum):
+        """
+        Lists all query types available in /documents API endpoint. More information on
+        https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
+        """
         GLOBAL = 'global'
         FULL_TEXT = 'fullText'
         TAG = 'tag'
@@ -12,13 +19,20 @@ class AdvancedQueryBuilder:
         FORM = 'form'
         ATTACHMENT = 'attachment'
 
-    # Operand can be either 'and' or 'or'
     def __init__(self, operator='and'):
+        """
+        :param operator: either 'and' or 'or'
+        """
         self.operand = operator
         self.terms = []
 
-    # query_type is of type QueryType
     def add_term(self, query, query_type):
+        """
+        Adds an additional search term to the query.
+        :param query: query depending on the query_type can be either a text, date or Global ID
+        :param query_type: query type from the QueryType enum
+        :return: self
+        """
         if not isinstance(query_type, AdvancedQueryBuilder.QueryType):
             raise TypeError('query_type must be an instance of QueryType (for example, QueryType.GLOBAL)')
         self.terms.append({
@@ -28,10 +42,18 @@ class AdvancedQueryBuilder:
         return self
 
     def get_advanced_query(self):
+        """
+        Builds an advanced query.
+        :return: dictionary representing the advanced query
+        """
+        # TODO: refactor to return a JSON
         return {
             'operator': self.operand,
             'terms': self.terms
         }
 
     def __str__(self):
+        """
+        :return: textual representation of the built advanced query
+        """
         return str(self.get_advanced_query())
