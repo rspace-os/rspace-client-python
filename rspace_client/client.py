@@ -98,6 +98,23 @@ class Client:
     def get_document_csv(self, doc_id):
         return self.retrieve_api_results(self._get_api_url() + '/documents/' + str(doc_id), content_type='text/csv')
 
+    # File methods
+
+    def get_files(self, page_number=0, page_size=20, order_by="lastModified desc", media_type="image"):
+        params = {
+            'pageNumber': page_number,
+            'pageSize': page_size,
+            'orderBy': order_by,
+            'mediaType': media_type
+        }
+        return self.retrieve_api_results(self._get_api_url() + '/files', params)
+
+    def get_file_info(self, file_id):
+        return self.retrieve_api_results(self._get_api_url() + '/files/' + str(file_id))
+
+    def download_file(self, file_id, filename):
+        return self.download_link_to_file(self._get_api_url() + '/files/' + str(file_id) + '/file', filename)
+
     # Miscellaneous methods
     def get_status(self):
         return self.retrieve_api_results(self._get_api_url() + '/status')
