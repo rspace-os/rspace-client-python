@@ -8,7 +8,7 @@ import rspace_client
 def print_document_names(response):
     print('Documents in response:')
     for document in response['documents']:
-        print(document['name'])
+        print(document['name'], document['id'], document['lastModified'])
 
 # Parse command line parameters
 parser = argparse.ArgumentParser()
@@ -19,7 +19,7 @@ args = parser.parse_args()
 client = rspace_client.Client(args.server, args.apiKey)
 
 # Simple search
-response = client.get_documents(query='MyText', page_size=2)
+response = client.get_documents()
 print_document_names(response)
 
 # Creation date (documents created between 2017-01-01 and 2017-12-01

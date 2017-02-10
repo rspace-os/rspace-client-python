@@ -126,23 +126,25 @@ class Client:
         return link_rel in [x['rel'] for x in Client._get_links(response)]
 
     # Documents methods
-    def get_documents(self, query, order_by='lastModified desc', page_number=0, page_size=20):
+    def get_documents(self, query=None, order_by='lastModified desc', page_number=0, page_size=20):
         """
         The Documents endpoint returns a paginated list of summary information about Documents in the RSpace workspace.
         These can be individual documents or notebook entries. More information on
         https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
-        :param query: Global search for a term, works identically to the simple "All' search in RSpace Workspace.
+        :param (optional) query: Global search for a term, works identically to the simple "All' search in RSpace Workspace.
         :param order_by: Sort order for documents.
         :param page_number: For paginated results, this is the number of the page requested, 0 based.
         :param page_size: The maximum number of items to retrieve.
         :return: parsed response as a dictionary
         """
         params = {
-            'query': query,
             'orderBy': order_by,
             'pageSize': page_size,
             'pageNumber': page_number
         }
+        if query is not None:
+            params['query'] = query
+
         return self.retrieve_api_results(self._get_api_url() + '/documents', params)
 
     def get_documents_advanced_query(self, advanced_query, order_by='lastModified desc', page_number=0, page_size=20):

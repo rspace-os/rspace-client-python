@@ -12,7 +12,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='rspace-client',
-    version='0.0.1',
+    version='0.0.2',
     description='A client which helps calling RSpace APIs',
     long_description=long_description,
     url='https://github.com/rspace-os/rspace-client-python',
