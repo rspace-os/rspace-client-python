@@ -12,4 +12,10 @@ args = parser.parse_args()
 
 client = rspace_client.Client(args.server, args.apiKey)
 
-print('RSpace API server status:', client.get_status()['message'])
+status_response = client.get_status()
+print('RSpace API server status:', status_response['message'])
+try:
+    print('RSpace API server version:', status_response['rspaceVersion'])
+except KeyError:
+    # RSpace API version is returned only since 1.42
+    pass
