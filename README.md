@@ -149,3 +149,60 @@ try:
 except ValueError:
     print('Document with id %s not found' % str(document_id))
 ```
+
+### Creating / editing a new document
+
+A document can be created by sending a POST request to `/documents`. Document name, form from which the document is created, tags and field values can be specified. The example code is in `create_document.py`.
+
+```python
+# Creating a new Basic document in Api Inbox folder
+new_document = client.create_document(name='Python API Example Basic Document', tags=['Python', 'API', 'example'],
+                                      fields=[{'content': 'Some example text'}])
+```
+
+It is possible to edit a document by sending a PUT request to `/documents/{id}`, where {id} is a documentID. Document name, tags and field values can be edited.
+
+```python
+# Editing the document to link to the uploaded file
+client.update_document(document['id'], fields=[{'content': 'Edited example text.'}])
+```
+
+### Uploading a file to gallery
+
+Any file that can be uploaded by using the UI can be uploaded by sending a POST request to `/files`. Also, it is possible to link to the file from any document as shown in `create_document.py` example.
+
+```python
+# Uploading a file to the gallery
+with open('resources/2017-05-10_1670091041_CNVts.csv', 'rb') as f:
+    new_file = client.upload_file(f, caption='some caption')
+
+# Editing the document to link to the uploaded file
+client.update_document(new_document['id'], fields=[{
+    'content': 'Some example text. Link to the uploaded file: <fileId={}>'.format(new_file['id'])
+}])
+```
+
+### Activity
+
+Access to the information that is available from the RSpace audit trail. This provides logged information on 'who did what, when’.
+
+For example, to get all activity for a particular document:
+
+```python
+response = client.get_activity(global_id=document_id)
+
+print('Activities for document {}:'.format(document_id))
+for activity in response['activities']:
+    print(activity)
+```
+
+To get all activity related to documents being created or modified last week:
+
+```python
+date_from = date.today() - timedelta(days=7)
+response = client.get_activity(date_from=date_from, domains=['RECORD'], actions=['CREATE', 'WRITE'])
+
+print('All activity related to documents being created or modified from {} to now:'.format(date_from.isoformat()))
+for activity in response['activities']:
+    print(activity)
+```

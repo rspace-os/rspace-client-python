@@ -14,11 +14,11 @@ args = parser.parse_args()
 
 client = rspace_client.Client(args.server, args.apiKey)
 
-# Get documents created or modified last week
+# Get all activity related to documents being created or modified last week
 date_from = date.today() - timedelta(days=7)
-response = client.get_activity(date_from=date_from)
+response = client.get_activity(date_from=date_from, domains=['RECORD'], actions=['CREATE', 'WRITE'])
 
-print('All activities from {} to now:'.format(date_from.isoformat()))
+print('All activity related to documents being created or modified from {} to now:'.format(date_from.isoformat()))
 for activity in response['activities']:
     print(activity)
 
