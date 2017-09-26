@@ -1,0 +1,32 @@
+Chip Run Info,C:\Users\FLUIDIGM.EP1-50079\Desktop\GnomeOperations_FLUIDIGM\2-GnomeData\2017_CNV\2017-05-10_1670091041_CNV_PT\ChipRun.bml,1670091041,qdPCR 37K (167x),,ROX,FAM-MGB : VIC-MGB,5/10/2017 16:20,0:01:03,EP1-50079,,,,,,,,,,,,,
+Application Version,4.1.2,,,,,,,,,,,,,,,,,,,,,
+Application Build,20140108.11,,,,,,,,,,,,,,,,,,,,,
+Export Type,Summary Table Results,,,,,,,,,,,,,,,,,,,,,
+Quality Threshold,0.65,,,,,,,,,,,,,,,,,,,,,
+Intensity Threshold Method,User (Panel),,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,
+Panel Summary Information,Panel Summary Information,Panel Summary Information,Panel Summary Information,Panel Summary Information,Panel Summary Information,Panel Summary Information,Panel Summary Information,Panel Summary Information,Panel Summary Information,Panel Summary Information,Panel Summary Information,Panel Summary Information,Panel Summary Information,Panel Summary Information,Panel Summary Information,Panel Summary Information,Panel Summary Information,Panel Summary Information,Panel Summary Information,Probe Type Groups,Probe Type Groups,Probe Type Groups
+Panel,Sample Information,Sample Information,Sample Information,FAM-MGB,FAM-MGB,FAM-MGB,FAM-MGB,FAM-MGB,FAM-MGB,FAM-MGB,FAM-MGB,VIC-MGB,VIC-MGB,VIC-MGB,VIC-MGB,VIC-MGB,VIC-MGB,VIC-MGB,VIC-MGB,All,All,RATIO
+ID,Name,Type,rConc.,Name,Type,Threshold,Count,nVolume,Est. Targets,Est.T-95L,Est.T-95U,Name,Type,Threshold,Count,nVolume,Est. Targets,Est.T-95L,Est.T-95U,Intersection,Union,Est. Ratio (F/V)
+2,51150294_CPMH,Unknown,9,Hs00010001_cn,Test,0.394,615,1,1236,1132,1350,RnaseP,Test,0.776,570,1,1039,950,1135,456,729,1.19
+4,108170423,Unknown,9,Hs00010001_cn,Test,0.373,696,1,1808,1652,1991,RnaseP,Test,0.725,670,1,1575,1441,1726,607,759,1.148
+5,108170427,Unknown,9,Hs00010001_cn,Test,0.389,385,1,534,480,589,RnaseP,Test,0.731,368,1,501,449,553,181,572,1.066
+8,51150300_CPMH,Unknown,9,Hs00010001_cn,Test,0.366,643,1,1390,1273,1520,RnaseP,Test,0.719,593,1,1134,1037,1238,495,741,1.226
+14,51150311_CPMH,Unknown,9,Hs00010001_cn,Test,0.357,389,1,542,488,598,RnaseP,Test,0.699,387,1,538,484,593,197,579,1.007
+16,108170424,Unknown,9,Hs00010001_cn,Test,0.362,602,1,1174,1075,1282,RnaseP,Test,0.725,613,1,1226,1123,1339,475,740,0.958
+17,340160416,Unknown,9,Hs00010001_cn,Test,0.357,346,1,460,411,509,RnaseP,Test,0.71,529,1,896,817,979,242,633,0.513
+19,226140142_CPMH,Unknown,9,Hs00010001_cn,Test,0.353,472,1,732,664,802,RnaseP,Test,0.734,437,1,646,585,709,257,652,1.133
+20,262140170_CPMH,Unknown,9,Hs00010001_cn,Test,0.366,602,1,1174,1075,1282,RnaseP,Test,0.72,542,1,938,857,1025,428,716,1.252
+25,322140256_CPMH,Unknown,9,Hs00010001_cn,Test,0.341,391,1,546,491,602,RnaseP,Test,0.718,367,1,499,447,551,191,567,1.094
+26,51150302_CPMH,Unknown,9,Hs00010001_cn,Test,0.354,629,1,1309,1199,1431,RnaseP,Test,0.702,605,1,1188,1087,1297,494,740,1.102
+28,108170425,Unknown,9,Hs00010001_cn,Test,0.363,696,1,1808,1652,1991,RnaseP,Test,0.686,685,1,1701,1555,1868,620,761,1.063
+29,173160358,Unknown,9,Hs00010001_cn,Test,0.348,459,1,699,634,766,RnaseP,Test,0.696,405,1,575,519,633,243,621,1.216
+31,297140235_CPMH,Unknown,9,Hs00010001_cn,Test,0.344,529,1,896,817,979,RnaseP,Test,0.719,415,1,597,539,656,278,666,1.501
+37,226140150_CPMH,Unknown,9,Hs00010001_cn,Test,0.352,656,1,1474,1349,1613,RnaseP,Test,0.68,657,1,1481,1356,1620,562,751,0.995
+39,108170422,Unknown,9,Hs00010001_cn,Test,0.418,522,1,873,796,955,RnaseP,Test,0.714,632,1,1326,1214,1449,424,730,0.658
+40,108170426,Unknown,9,Hs00010001_cn,Test,0.383,486,1,769,699,842,RnaseP,Test,0.726,457,1,694,629,761,275,668,1.108
+43,48150263_CPMH,Unknown,9,Hs00010001_cn,Test,0.362,456,1,691,627,758,RnaseP,Test,0.719,477,1,745,677,816,289,644,0.928
+47,340160419,Unknown,9,Hs00010001_cn,Test,0.397,492,1,785,714,859,RnaseP,Test,0.748,438,1,648,587,712,273,657,1.211
+48,123170435,Unknown,9,Hs00010001_cn,Test,0.418,514,1,849,773,928,RnaseP,Test,0.717,474,1,737,669,807,319,669,1.152

@@ -1,4 +1,5 @@
 import requests
+import datetime
 
 
 class Client:
@@ -36,33 +37,51 @@ class Client:
         """
         return '%s/api/%s' % (self.rspace_url, Client.API_VERSION)
 
-    def retrieve_api_results(self, url, params=None, content_type='application/json'):
+    def _get_headers(self, content_type='application/json'):
+        return {
+            'apiKey': self.api_key,
+            'Accept': content_type
+        }
+
+    @staticmethod
+    def _handle_response(response):
+        # Check whether response includes UNAUTHORIZED response code
+        if response.status_code == 401:
+            raise Client.AuthenticationError(response.json()['message'])
+
+        if str(response.status_code)[0] != '2':
+            if 'application/json' in response.headers['Content-Type']:
+                print(response.status_code, response.text)
+                error = response.json()['message'] or next(iter(response.json()['errors'] or []), None)
+            else:
+                error = 'Error code: {}, error message: {}'.format(response.status_code, response.text)
+            return ValueError(error)
+
+        if 'application/json' in response.headers['Content-Type']:
+            return response.json()
+        else:
+            return response.text
+
+    def retrieve_api_results(self, url, params=None, content_type='application/json', request_type='GET'):
         """
         Makes the requested API call and returns either an exception or a parsed JSON response as a dictionary.
         Authentication header is automatically added. In most cases, a specialised method can be used instead.
         :param url: URL to retrieve
-        :param params: GET parameters to be added to the URL
+        :param request_type: 'GET', 'POST', 'PUT'
+        :param params: arguments to be added to the API request
         :param content_type: content type
         :return: parsed JSON response as a dictionary
         """
-        headers = {
-            'apiKey': self.api_key,
-            'Accept': content_type
-        }
+        headers = self._get_headers(content_type)
         try:
-            response = requests.get(url, params=params, headers=headers)
-
-            # Check whether response includes UNAUTHORIZED response code
-            if response.status_code == 401:
-                raise Client.AuthenticationError(response.json()['message'])
-
-            if response.status_code != 200:
-                raise ValueError(next(iter(response.json()['errors'] or []), None) or response.json()['message'])
-
-            if content_type == 'application/json':
-                return response.json()
+            if request_type == 'GET':
+                response = requests.get(url, params=params, headers=headers)
+            elif request_type == 'PUT' or request_type == 'POST':
+                response = requests.request(request_type, url, json=params, headers=headers)
             else:
-                return response.text
+                raise ValueError('Expected GET / PUT / POST request type, received {} instead' % request_type)
+
+            return self._handle_response(response)
         except requests.exceptions.ConnectionError as e:
             raise Client.ConnectionError(e)
 
@@ -131,7 +150,8 @@ class Client:
         The Documents endpoint returns a paginated list of summary information about Documents in the RSpace workspace.
         These can be individual documents or notebook entries. More information on
         https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
-        :param (optional) query: Global search for a term, works identically to the simple "All' search in RSpace Workspace.
+        :param (optional) query: Global search for a term, works identically to the simple "All' search in RSpace
+        Workspace.
         :param order_by: Sort order for documents.
         :param page_number: For paginated results, this is the number of the page requested, 0 based.
         :param page_size: The maximum number of items to retrieve.
@@ -186,6 +206,61 @@ class Client:
         """
         return self.retrieve_api_results(self._get_api_url() + '/documents/' + str(doc_id), content_type='text/csv')
 
+    def create_document(self, name=None, tags=None, form_id=None, fields=None):
+        """
+        Creates a new document in user’s Api Inbox folder. More information on
+        https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
+        :param name: name of the document (can be omitted)
+        :param tags: list of tags (['tag1', 'tag2']) or comma separated string of tags ('tag1,tag2')
+        :param form_id: numeric form ID (the same as Global ID, but just the numeric part)
+        :param fields: list of fields (dictionaries of (optionally) ids and contents). For example,
+        [{'content': 'some example text'}] or [{'id': 123, 'content': 'some example text'}].
+        :return:
+        """
+        data = {}
+
+        if name is not None:
+            data['name'] = name
+
+        if tags is not None:
+            if type(tags) == list:
+                tags = ','.join(tags)
+            data['tags'] = tags
+
+        if form_id is not None:
+            try:
+                data['form'] = {"id": int(form_id)}
+            except ValueError:
+                raise ValueError('Excepted a numeric form ID, received {}'.format(form_id))
+
+        if fields is not None and len(fields) > 0:
+            data['fields'] = fields
+
+        return self.retrieve_api_results(self._get_api_url() + '/documents', request_type='POST', params=data)
+
+    def update_document(self, document_id, name=None, tags=None, form_id=None, fields=None):
+        data = {}
+
+        if name is not None:
+            data['name'] = name
+
+        if tags is not None:
+            if type(tags) == list:
+                tags = ','.join(tags)
+            data['tags'] = tags
+
+        if form_id is not None:
+            try:
+                data['form'] = {"id": int(form_id)}
+            except ValueError:
+                raise ValueError('Excepted a numeric form ID, received {}'.format(form_id))
+
+        if fields is not None and len(fields) > 0:
+            data['fields'] = fields
+
+        return self.retrieve_api_results(self._get_api_url() + '/documents/' + str(int(document_id)),
+                                         request_type='PUT', params=data)
+
     # File methods
 
     def get_files(self, page_number=0, page_size=20, order_by="lastModified desc", media_type="image"):
@@ -224,6 +299,93 @@ class Client:
         :param filename: file path to save the file to
         """
         return self.download_link_to_file(self._get_api_url() + '/files/' + str(file_id) + '/file', filename)
+
+    def upload_file(self, file, folder_id=None, caption=None):
+        data = {}
+
+        if folder_id is not None:
+            try:
+                data['folderId'] = int(folder_id)
+            except ValueError:
+                raise ValueError('Excepted a numeric folder ID, received {}'.format(folder_id))
+
+        if caption is not None:
+            data['caption'] = caption
+
+        response = requests.post(self._get_api_url() + '/files', files={"file": file}, data=data,
+                                 headers=self._get_headers())
+        return self._handle_response(response)
+
+    # Activity methods
+    def get_activity(self, page_number=0, page_size=100, order_by=None, date_from=None, date_to=None, actions=None,
+                     domains=None, global_id=None, users=None):
+        """
+        Returns all activity for a particular document. More information on
+        https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
+        :param page_number: for paginated results, this is the number of the page requested, 0 based.
+        :param page_size: the maximum number of items to retrieve.
+        :param order_by: sort order for activities.
+        :param date_from: yyyy-mm-dd string or datetime.date object. The earliest date to retrieve activity from.
+        :param date_to: yyyy-mm-dd string or datetime.date object. The latest date to retrieve activity from.
+        :param actions: a comma separated string or list of strings. Actions to restrict the query.
+        :param domains: a comma separated string or list of strings. Domains to restrict the query.
+        :param global_id: the global ID of a resource, e.g. SD12345
+        :param users: a comma separated string or list of strings. Users to restrict the query.
+        :return:
+        """
+        params = {
+            'pageNumber': page_number,
+            'pageSize': page_size
+        }
+
+        if order_by is not None:
+            params['orderBy'] = order_by
+
+        if date_from is not None:
+            if type(date_from) == datetime.date:
+                params['dateFrom'] = date_from.isoformat()
+            elif type(date_from) == str:
+                params['dateFrom'] = date_from
+            else:
+                raise TypeError('Unexpected date_from type {}'.format(str(type(date_from))))
+
+        if date_to is not None:
+            if type(date_to) == datetime.date:
+                params['dateTo'] = date_to.isoformat()
+            elif type(date_to) == str:
+                params['dateTo'] = date_to
+            else:
+                raise TypeError('Unexpected date_from type {}'.format(str(type(date_to))))
+
+        if actions is not None:
+            if type(actions) == list:
+                params['actions'] = ','.join(actions)
+            elif type(actions) == str:
+                params['actions'] = actions
+            else:
+                raise TypeError('Unexpected actions type {}'.format(str(type(actions))))
+
+        if domains is not None:
+            if type(domains) == list:
+                params['domains'] = ','.join(domains)
+            elif type(domains) == str:
+                params['domains'] = domains
+            else:
+                raise TypeError('Unexpected domains type {}'.format(str(type(domains))))
+
+        if global_id is not None:
+            params['oid'] = str(global_id)
+
+        if users is not None:
+            if type(users) == list:
+                params['users'] = ','.join(users)
+            elif type(users) == str:
+                params['users'] = users
+            else:
+                raise TypeError('Unexpected users type {}'.format(str(type(users))))
+
+        return self.retrieve_api_results(self._get_api_url() + '/activity', params=params)
+
 
     # Miscellaneous methods
     def get_status(self):

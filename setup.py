@@ -12,7 +12,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='rspace-client',
-    version='0.0.2',
+    version='1.3.0',
     description='A client which helps calling RSpace APIs',
     long_description=long_description,
     url='https://github.com/rspace-os/rspace-client-python',
@@ -31,8 +31,9 @@ setup(
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ],
-    keywords='rspace api client',
+    keywords='rspace api client research space',
     packages=find_packages(exclude=['examples']),
     install_requires=['requests'],
     extras_require={
