@@ -206,3 +206,16 @@ print('All activity related to documents being created or modified from {} to no
 for activity in response['activities']:
     print(activity)
 ```
+
+# Export
+
+From RSpace 1.47 (API version 1.3) you can programmatically export your work in HTML or XML format. This might be useful if you want to make scheduled backups, for example. If you're an admin or PI you can export a particular user's work if you have permission.
+
+Because export can be quite time-consuming, this is an asynchronous operation. On initial export you will receive a link to a job that you can query for progress updates. When the export has completed there will be a link to access the exported file - which may be very large.
+
+This Python API client provides an easy to use method that handles starting an export, polling the job's status and downloading the exported archive once it's ready. For example, to export current user's work in XML format: 
+```python
+export_archive_file_path = client.download_export('xml', 'user', file_path='/tmp')
+```
+
+There are ```start_export(self, format, scope, id=None)``` and ```get_job_status(self, job_id)``` functions to start the export and check its status as well.

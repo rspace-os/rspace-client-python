@@ -1,5 +1,7 @@
 import requests
 import datetime
+import time
+import os.path
 
 
 class Client:
@@ -18,6 +20,17 @@ class Client:
 
     class NoSuchLinkRel(Exception):
         pass
+
+    class ApiError(Exception):
+        def __init__(self, *args, response_status_code=None, **kwargs):
+            Exception.__init__(self, *args, **kwargs)
+            self.response_status_code = response_status_code
+
+        def __str__(self):
+            if self.response_status_code is not None:
+                return Exception.__str__(self) + ', response status code: {}'.format(self.response_status_code)
+            else:
+                return Exception.__str__(self)
 
     API_VERSION = 'v1'
 
@@ -44,23 +57,31 @@ class Client:
         }
 
     @staticmethod
+    def _get_formated_error_message(json_error):
+        return 'error message: {}, errors: {}'.format(json_error.get('message', ''),
+                                                      ', '.join(json_error.get('errors', [])))
+
+    @staticmethod
     def _handle_response(response):
         # Check whether response includes UNAUTHORIZED response code
         if response.status_code == 401:
             raise Client.AuthenticationError(response.json()['message'])
 
-        if str(response.status_code)[0] != '2':
-            if 'application/json' in response.headers['Content-Type']:
-                print(response.status_code, response.text)
-                error = response.json()['message'] or next(iter(response.json()['errors'] or []), None)
-            else:
-                error = 'Error code: {}, error message: {}'.format(response.status_code, response.text)
-            return ValueError(error)
+        try:
+            response.raise_for_status()
 
-        if 'application/json' in response.headers['Content-Type']:
-            return response.json()
-        else:
-            return response.text
+            if 'application/json' in response.headers['Content-Type']:
+                return response.json()
+            else:
+                return response.text
+        except:
+            error = None
+            if 'application/json' in response.headers['Content-Type']:
+                error = 'Error code: {}, {}'.format(response.status_code,
+                                                    Client._get_formated_error_message(response.json()))
+            elif error is None:
+                error = 'Error code: {}, error message: {}'.format(response.status_code, response.text)
+            raise Client.ApiError(error, response_status_code=response.status_code) from None
 
     def retrieve_api_results(self, url, params=None, content_type='application/json', request_type='GET'):
         """
@@ -386,6 +407,73 @@ class Client:
 
         return self.retrieve_api_results(self._get_api_url() + '/activity', params=params)
 
+    # Export
+    def start_export(self, format, scope, id=None):
+        """
+        Starts an asynchronous export of user's or group's records. Currently export of selections of documents is
+        unsupported.
+        :param format: 'xml' or 'html'
+        :param scope: 'user' or 'group'
+        :param id: id of a user or a group depending on the scope (current user or group will be used if not provided)
+        :return: job id
+        """
+        if format != 'xml' and format != 'html':
+            raise ValueError('format must be either "xml" or "html", got "{}" instead'.format(format))
+
+        if scope != 'user' and scope != 'group':
+            raise ValueError('scope must be either "user" or "group", got "{}" instead'.format(scope))
+
+        if id is not None:
+            request_url = self._get_api_url() + '/export/{}/{}/{}'.format(format, scope, id)
+        else:
+            request_url = self._get_api_url() + '/export/{}/{}'.format(format, scope)
+
+        return self.retrieve_api_results(request_url, request_type='POST')
+
+    def download_export(self, format, scope, file_path, id=None, wait_between_requests=30):
+        """
+        Exports user's or group's records and downloads the exported archive to a specified location.
+        :param format: 'xml' or 'html'
+        :param scope: 'user' or 'group'
+        :param file_path: can be either a directory or a new file in an existing directory
+        :param id: id of a user or a group depending on the scope (current user or group will be used if not provided)
+        :param wait_between_requests: seconds to wait between job status requests (30 seconds default)
+        :return: file path to the downloaded export archive
+        """
+        job_id = self.start_export(format=format, scope=scope, id=id)['id']
+
+        while True:
+            status_response = self.get_job_status(job_id)
+
+            if status_response['status'] == 'COMPLETED':
+                download_url = self.get_link(status_response, 'enclosure')
+
+                if os.path.isdir(file_path):
+                    file_path = os.path.join(file_path, download_url.split('/')[-1])
+                self.download_link_to_file(download_url, file_path)
+
+                return file_path
+            elif status_response['status'] == 'FAILED':
+                raise Client.ApiError('Export job failed: ' +
+                                      Client._get_formated_error_message(status_response['result']))
+            elif status_response['status'] == 'ABANDONED':
+                raise Client.ApiError('Export job was abandoned: ' +
+                                      Client._get_formated_error_message(status_response['result']))
+            elif status_response['status'] == 'RUNNING' or status_response['status'] == 'STARTING' or \
+                    status_response['status'] == 'STARTED':
+                time.sleep(wait_between_requests)
+                continue
+            else:
+                raise Client.ApiError('Unknown job status: ' + status_response['status'])
+
+    def get_job_status(self, job_id):
+        """
+        Return a job status.
+        :param job_id: job id
+        :return: parsed response as a dictionary (most important field is 'status' which is supposed to one of:
+        'STARTED', 'STARTING', 'RUNNING', 'COMPLETED', 'FAILED', 'ABANDONED')
+        """
+        return self.retrieve_api_results(self._get_api_url() + '/jobs/{}'.format(job_id))
 
     # Miscellaneous methods
     def get_status(self):
