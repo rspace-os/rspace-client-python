@@ -207,7 +207,7 @@ for activity in response['activities']:
     print(activity)
 ```
 
-# Export
+### Export
 
 From RSpace 1.47 (API version 1.3) you can programmatically export your work in HTML or XML format. This might be useful if you want to make scheduled backups, for example. If you're an admin or PI you can export a particular user's work if you have permission.
 
