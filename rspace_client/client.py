@@ -247,7 +247,7 @@ class Client:
         :param form_id: numeric document ID or global ID
         :param fields: list of fields (dictionaries of (optionally) ids and contents). For example,
         [{'content': 'some example text'}] or [{'id': 123, 'content': 'some example text'}].
-        :return:
+        :return: parsed response as a dictionary
         """
         data = {}
 
@@ -269,6 +269,17 @@ class Client:
         return self.retrieve_api_results(self._get_api_url() + '/documents', request_type='POST', params=data)
 
     def update_document(self, document_id, name=None, tags=None, form_id=None, fields=None):
+        """
+        Updates a document with a given document id. More information on
+        https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
+        :param name: name of the document (can be omitted)
+        :param tags: list of tags (['tag1', 'tag2']) or comma separated string of tags ('tag1,tag2') (can be omitted)
+        :param form_id: numeric document ID or global ID (should be left None or otherwise should match the form id
+        of the document)
+        :param fields: list of fields (dictionaries of (optionally) ids and contents). For example,
+        [{'content': 'some example text'}] or [{'id': 123, 'content': 'some example text'}]. (can be omitted)
+        :return:
+        """
         data = {}
 
         if name is not None:
@@ -332,6 +343,14 @@ class Client:
         return self.download_link_to_file(self._get_api_url() + '/files/' + str(numeric_file_id) + '/file', filename)
 
     def upload_file(self, file, folder_id=None, caption=None):
+        """
+        Upload a file to the gallery. More information on
+        https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
+        :param file: open file object
+        :param folder_id: folder id of the destination folder
+        :param caption: optional caption
+        :return: parsed response as a dictionary
+        """
         data = {}
 
         if folder_id is not None:
