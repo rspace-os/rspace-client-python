@@ -15,12 +15,15 @@ client = rspace_client.Client(args.server, args.apiKey)
 # Creating a new Basic document in Api Inbox folder
 new_document = client.create_document(name='Python API Example Basic Document', tags=['Python', 'API', 'example'],
                        fields=[{'content': 'Some example text'}])
+print('New document was successfully created with global ID {}'.format(new_document['globalId']))
 
 # Uploading a file to the gallery
 with open('resources/2017-05-10_1670091041_CNVts.csv', 'rb') as f:
     new_file = client.upload_file(f, caption='some caption')
+    print('File "{}" was uploaded as {} ({})'.format(f.name, new_file['name'], new_file['globalId']))
 
 # Editing the document to link to the uploaded file
-client.update_document(new_document['id'], fields=[{
+updated_document = client.update_document(new_document['id'], fields=[{
     'content': 'Some example text. Link to the uploaded file: <fileId={}>'.format(new_file['id'])
 }])
+print('Document has been updated to link to the uploaded file.')
