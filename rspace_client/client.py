@@ -2,6 +2,7 @@ import requests
 import datetime
 import time
 import os.path
+import re
 
 
 class Client:
@@ -25,12 +26,6 @@ class Client:
         def __init__(self, *args, response_status_code=None, **kwargs):
             Exception.__init__(self, *args, **kwargs)
             self.response_status_code = response_status_code
-
-        def __str__(self):
-            if self.response_status_code is not None:
-                return Exception.__str__(self) + ', response status code: {}'.format(self.response_status_code)
-            else:
-                return Exception.__str__(self)
 
     API_VERSION = 'v1'
 
@@ -57,9 +52,23 @@ class Client:
         }
 
     @staticmethod
+    def _get_numeric_record_id(global_id):
+        """
+        Gets numeric part of a global ID.
+        :param global_id: global ID (for example, SD123 or FM12)
+        :return: numeric record id
+        """
+        if re.fullmatch(r'[a-zA-Z]{2}\d+', str(global_id)) is not None:
+            return int(global_id[2:])
+        elif re.fullmatch(r'\d+', str(global_id)) is not None:
+            return int(global_id)
+        else:
+            raise ValueError('{} is not a valid global ID'.format(global_id))
+
+    @staticmethod
     def _get_formated_error_message(json_error):
         return 'error message: {}, errors: {}'.format(json_error.get('message', ''),
-                                                      ', '.join(json_error.get('errors', [])))
+                                                      ', '.join(json_error.get('errors', [])) or 'no error list')
 
     @staticmethod
     def _handle_response(response):
@@ -211,21 +220,23 @@ class Client:
         """
         Gets information about a document. More information on
         https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
-        :param doc_id: numeric document ID (the same as Global ID, but just the numeric part)
+        :param doc_id: numeric document ID or global ID
         :return: a dictionary that includes: document metadata, field content, metadata about media items belonging to
         this document, links to download the content of media files
         """
-        return self.retrieve_api_results(self._get_api_url() + '/documents/' + str(doc_id))
+        numeric_doc_id = Client._get_numeric_record_id(doc_id)
+        return self.retrieve_api_results(self._get_api_url() + '/documents/' + str(numeric_doc_id))
 
     def get_document_csv(self, doc_id):
         """
         Gets information about a document. More information on
         https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
-        :param doc_id: numeric document ID (the same as Global ID, but just the numeric part)
+        :param doc_id: numeric document ID or global ID
         :return: CSV that includes: document metadata, field content, metadata about media items belonging to
         this document, links to download the content of media files
         """
-        return self.retrieve_api_results(self._get_api_url() + '/documents/' + str(doc_id), content_type='text/csv')
+        numeric_doc_id = Client._get_numeric_record_id(doc_id)
+        return self.retrieve_api_results(self._get_api_url() + '/documents/' + str(numeric_doc_id), content_type='text/csv')
 
     def create_document(self, name=None, tags=None, form_id=None, fields=None):
         """
@@ -233,7 +244,7 @@ class Client:
         https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
         :param name: name of the document (can be omitted)
         :param tags: list of tags (['tag1', 'tag2']) or comma separated string of tags ('tag1,tag2')
-        :param form_id: numeric form ID (the same as Global ID, but just the numeric part)
+        :param form_id: numeric document ID or global ID
         :param fields: list of fields (dictionaries of (optionally) ids and contents). For example,
         [{'content': 'some example text'}] or [{'id': 123, 'content': 'some example text'}].
         :return:
@@ -249,10 +260,8 @@ class Client:
             data['tags'] = tags
 
         if form_id is not None:
-            try:
-                data['form'] = {"id": int(form_id)}
-            except ValueError:
-                raise ValueError('Excepted a numeric form ID, received {}'.format(form_id))
+            numeric_form_id = Client._get_numeric_record_id(form_id)
+            data['form'] = {"id": int(numeric_form_id)}
 
         if fields is not None and len(fields) > 0:
             data['fields'] = fields
@@ -271,15 +280,14 @@ class Client:
             data['tags'] = tags
 
         if form_id is not None:
-            try:
-                data['form'] = {"id": int(form_id)}
-            except ValueError:
-                raise ValueError('Excepted a numeric form ID, received {}'.format(form_id))
+            numeric_form_id = Client._get_numeric_record_id(form_id)
+            data['form'] = {"id": int(numeric_form_id)}
 
         if fields is not None and len(fields) > 0:
             data['fields'] = fields
 
-        return self.retrieve_api_results(self._get_api_url() + '/documents/' + str(int(document_id)),
+        numeric_doc_id = Client._get_numeric_record_id(document_id)
+        return self.retrieve_api_results(self._get_api_url() + '/documents/' + str(numeric_doc_id),
                                          request_type='PUT', params=data)
 
     # File methods
@@ -307,28 +315,28 @@ class Client:
         """
         Gets metadata of a single file by its id. More information on
         https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
-        :param file_id: numeric document ID (the same as Global ID, but just the numeric part)
+        :param file_id: numeric document ID or global ID
         :return: parsed response as a dictionary
         """
-        return self.retrieve_api_results(self._get_api_url() + '/files/' + str(file_id))
+        numeric_file_id = Client._get_numeric_record_id(file_id)
+        return self.retrieve_api_results(self._get_api_url() + '/files/' + str(numeric_file_id))
 
     def download_file(self, file_id, filename):
         """
         Downloads file contents. More information on
         https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
-        :param file_id: numeric document ID (the same as Global ID, but just the numeric part)
+        :param file_id: numeric document ID or global ID
         :param filename: file path to save the file to
         """
-        return self.download_link_to_file(self._get_api_url() + '/files/' + str(file_id) + '/file', filename)
+        numeric_file_id = Client._get_numeric_record_id(file_id)
+        return self.download_link_to_file(self._get_api_url() + '/files/' + str(numeric_file_id) + '/file', filename)
 
     def upload_file(self, file, folder_id=None, caption=None):
         data = {}
 
         if folder_id is not None:
-            try:
-                data['folderId'] = int(folder_id)
-            except ValueError:
-                raise ValueError('Excepted a numeric folder ID, received {}'.format(folder_id))
+            numeric_folder_id = Client._get_numeric_record_id(folder_id)
+            data['folderId'] = numeric_folder_id
 
         if caption is not None:
             data['caption'] = caption

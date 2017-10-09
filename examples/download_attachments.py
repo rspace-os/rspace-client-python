@@ -13,16 +13,24 @@ args = parser.parse_args()
 
 client = rspace_client.Client(args.server, args.apiKey)
 
-print('Document ID to search for (for example, 123)?')
+print('Document ID to search for (for example, numeric id 123 or global ID SD123)?')
 document_id = sys.stdin.readline().strip()
 
 try:
     response = client.get_document(doc_id=document_id)
+
+    file_found = False
     for field in response['fields']:
         for file in field['files']:
             download_metadata_link = client.get_link_contents(file, 'self')
             filename = '/tmp/' + download_metadata_link['name']
             print('Downloading to file', filename)
             client.download_link_to_file(client.get_link(download_metadata_link, 'enclosure'), filename)
-except ValueError:
-    print('Document with id %s not found' % str(document_id))
+            file_found = True
+
+    if not file_found:
+        print('There are no attached files.')
+except ValueError as e:
+    print(e)
+except rspace_client.Client.ApiError as e:
+    print(e)
