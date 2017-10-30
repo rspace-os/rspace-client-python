@@ -3,6 +3,7 @@ import datetime
 import time
 import os.path
 import re
+import six
 
 
 class Client:
@@ -43,7 +44,7 @@ class Client:
         Returns an API server URL.
         :return: string URL
         """
-        return '%s/api/%s' % (self.rspace_url, Client.API_VERSION)
+        return '{}/api/{}'.format(self.rspace_url, self.API_VERSION)
 
     def _get_headers(self, content_type='application/json'):
         return {
@@ -84,11 +85,10 @@ class Client:
             else:
                 return response.text
         except:
-            error = None
             if 'application/json' in response.headers['Content-Type']:
                 error = 'Error code: {}, {}'.format(response.status_code,
                                                     Client._get_formated_error_message(response.json()))
-            elif error is None:
+            else:
                 error = 'Error code: {}, error message: {}'.format(response.status_code, response.text)
             raise Client.ApiError(error, response_status_code=response.status_code) from None
 
@@ -109,7 +109,7 @@ class Client:
             elif request_type == 'PUT' or request_type == 'POST':
                 response = requests.request(request_type, url, json=params, headers=headers)
             else:
-                raise ValueError('Expected GET / PUT / POST request type, received {} instead' % request_type)
+                raise ValueError('Expected GET / PUT / POST request type, received {} instead'.format(request_type))
 
             return self._handle_response(response)
         except requests.exceptions.ConnectionError as e:
@@ -147,8 +147,8 @@ class Client:
         for link in self._get_links(response):
             if link['rel'] == link_rel:
                 return link['link']
-        raise Client.NoSuchLinkRel('Requested link rel "%s", available rel(s): %s' %
-                                   (link_rel, ', '.join([x['rel'] for x in self._get_links(response)])))
+        raise Client.NoSuchLinkRel('Requested link rel "{}", available rel(s): {}'.format(
+            (link_rel, ', '.join(x['rel'] for x in self._get_links(response)))))
 
     def download_link_to_file(self, url, filename):
         """
@@ -164,15 +164,14 @@ class Client:
             for chunk in requests.get(url, headers=headers).iter_content(chunk_size=128):
                 fd.write(chunk)
 
-    @staticmethod
-    def link_exists(response, link_rel):
+    def link_exists(self, response, link_rel):
         """
         Checks whether there is a link with rel attribute equal to link_rel in the links section of the response.
         :param response: response from the API server
         :param link_rel: rel attribute value to look for
-        :return: True, iff the link exists
+        :return: True, if the link exists
         """
-        return link_rel in [x['rel'] for x in Client._get_links(response)]
+        return link_rel in [x['rel'] for x in self._get_links(response)]
 
     # Documents methods
     def get_documents(self, query=None, order_by='lastModified desc', page_number=0, page_size=20):
@@ -224,8 +223,8 @@ class Client:
         :return: a dictionary that includes: document metadata, field content, metadata about media items belonging to
         this document, links to download the content of media files
         """
-        numeric_doc_id = Client._get_numeric_record_id(doc_id)
-        return self.retrieve_api_results(self._get_api_url() + '/documents/' + str(numeric_doc_id))
+        numeric_doc_id = self._get_numeric_record_id(doc_id)
+        return self.retrieve_api_results(self._get_api_url() + '/documents/{}'.format(numeric_doc_id))
 
     def get_document_csv(self, doc_id):
         """
@@ -235,8 +234,8 @@ class Client:
         :return: CSV that includes: document metadata, field content, metadata about media items belonging to
         this document, links to download the content of media files
         """
-        numeric_doc_id = Client._get_numeric_record_id(doc_id)
-        return self.retrieve_api_results(self._get_api_url() + '/documents/' + str(numeric_doc_id), content_type='text/csv')
+        numeric_doc_id = self._get_numeric_record_id(doc_id)
+        return self.retrieve_api_results(self._get_api_url() + '/documents/{}'.format(numeric_doc_id), content_type='text/csv')
 
     def create_document(self, name=None, tags=None, form_id=None, fields=None):
         """
@@ -255,12 +254,12 @@ class Client:
             data['name'] = name
 
         if tags is not None:
-            if type(tags) == list:
+            if isinstance(tags, list):
                 tags = ','.join(tags)
             data['tags'] = tags
 
         if form_id is not None:
-            numeric_form_id = Client._get_numeric_record_id(form_id)
+            numeric_form_id = self._get_numeric_record_id(form_id)
             data['form'] = {"id": int(numeric_form_id)}
 
         if fields is not None and len(fields) > 0:
@@ -286,19 +285,19 @@ class Client:
             data['name'] = name
 
         if tags is not None:
-            if type(tags) == list:
+            if isinstance(tags, list):
                 tags = ','.join(tags)
             data['tags'] = tags
 
         if form_id is not None:
-            numeric_form_id = Client._get_numeric_record_id(form_id)
+            numeric_form_id = self._get_numeric_record_id(form_id)
             data['form'] = {"id": int(numeric_form_id)}
 
         if fields is not None and len(fields) > 0:
             data['fields'] = fields
 
-        numeric_doc_id = Client._get_numeric_record_id(document_id)
-        return self.retrieve_api_results(self._get_api_url() + '/documents/' + str(numeric_doc_id),
+        numeric_doc_id = self._get_numeric_record_id(document_id)
+        return self.retrieve_api_results(self._get_api_url() + '/documents/{}'.format(numeric_doc_id),
                                          request_type='PUT', params=data)
 
     # File methods
@@ -329,8 +328,8 @@ class Client:
         :param file_id: numeric document ID or global ID
         :return: parsed response as a dictionary
         """
-        numeric_file_id = Client._get_numeric_record_id(file_id)
-        return self.retrieve_api_results(self._get_api_url() + '/files/' + str(numeric_file_id))
+        numeric_file_id = self._get_numeric_record_id(file_id)
+        return self.retrieve_api_results(self._get_api_url() + '/files/{}'.format(numeric_file_id))
 
     def download_file(self, file_id, filename):
         """
@@ -339,8 +338,8 @@ class Client:
         :param file_id: numeric document ID or global ID
         :param filename: file path to save the file to
         """
-        numeric_file_id = Client._get_numeric_record_id(file_id)
-        return self.download_link_to_file(self._get_api_url() + '/files/' + str(numeric_file_id) + '/file', filename)
+        numeric_file_id = self._get_numeric_record_id(file_id)
+        return self.download_link_to_file(self._get_api_url() + '/files/{}/file'.format(numeric_file_id), filename)
 
     def upload_file(self, file, folder_id=None, caption=None):
         """
@@ -354,7 +353,7 @@ class Client:
         data = {}
 
         if folder_id is not None:
-            numeric_folder_id = Client._get_numeric_record_id(folder_id)
+            numeric_folder_id = self._get_numeric_record_id(folder_id)
             data['folderId'] = numeric_folder_id
 
         if caption is not None:
@@ -390,47 +389,47 @@ class Client:
             params['orderBy'] = order_by
 
         if date_from is not None:
-            if type(date_from) == datetime.date:
+            if isinstance(date_from, datetime.date):
                 params['dateFrom'] = date_from.isoformat()
-            elif type(date_from) == str:
+            elif isinstance(date_from, six.string_types):
                 params['dateFrom'] = date_from
             else:
-                raise TypeError('Unexpected date_from type {}'.format(str(type(date_from))))
+                raise TypeError('Unexpected date_from type {}'.format(type(date_from)))
 
         if date_to is not None:
-            if type(date_to) == datetime.date:
+            if isinstance(date_to, datetime.date):
                 params['dateTo'] = date_to.isoformat()
-            elif type(date_to) == str:
+            elif isinstance(date_to, six.string_types):
                 params['dateTo'] = date_to
             else:
-                raise TypeError('Unexpected date_from type {}'.format(str(type(date_to))))
+                raise TypeError('Unexpected date_from type {}'.format(type(date_to)))
 
         if actions is not None:
-            if type(actions) == list:
+            if isinstance(actions, list):
                 params['actions'] = ','.join(actions)
-            elif type(actions) == str:
+            elif isinstance(actions, six.string_types):
                 params['actions'] = actions
             else:
-                raise TypeError('Unexpected actions type {}'.format(str(type(actions))))
+                raise TypeError('Unexpected actions type {}'.format(type(actions)))
 
         if domains is not None:
-            if type(domains) == list:
+            if isinstance(domains, list):
                 params['domains'] = ','.join(domains)
-            elif type(domains) == str:
+            elif isinstance(domains, six.string_types):
                 params['domains'] = domains
             else:
-                raise TypeError('Unexpected domains type {}'.format(str(type(domains))))
+                raise TypeError('Unexpected domains type {}'.format(type(domains)))
 
         if global_id is not None:
             params['oid'] = str(global_id)
 
         if users is not None:
-            if type(users) == list:
+            if isinstance(users, list):
                 params['users'] = ','.join(users)
-            elif type(users) == str:
+            elif isinstance(users, six.string_types):
                 params['users'] = users
             else:
-                raise TypeError('Unexpected users type {}'.format(str(type(users))))
+                raise TypeError('Unexpected users type {}'.format(type(users)))
 
         return self.retrieve_api_results(self._get_api_url() + '/activity', params=params)
 
@@ -482,10 +481,10 @@ class Client:
                 return file_path
             elif status_response['status'] == 'FAILED':
                 raise Client.ApiError('Export job failed: ' +
-                                      Client._get_formated_error_message(status_response['result']))
+                                      self._get_formated_error_message(status_response['result']))
             elif status_response['status'] == 'ABANDONED':
                 raise Client.ApiError('Export job was abandoned: ' +
-                                      Client._get_formated_error_message(status_response['result']))
+                                      self._get_formated_error_message(status_response['result']))
             elif status_response['status'] == 'RUNNING' or status_response['status'] == 'STARTING' or \
                     status_response['status'] == 'STARTED':
                 time.sleep(wait_between_requests)
