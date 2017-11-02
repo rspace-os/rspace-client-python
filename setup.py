@@ -35,7 +35,7 @@ setup(
     ],
     keywords='rspace api client research space',
     packages=find_packages(exclude=['examples']),
-    install_requires=['requests'],
+    install_requires=['requests', 'six'],
     extras_require={
         'dev': [],
         'test': [],
