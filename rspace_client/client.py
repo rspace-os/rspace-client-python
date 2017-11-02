@@ -24,8 +24,8 @@ class Client:
         pass
 
     class ApiError(Exception):
-        def __init__(self, *args, response_status_code=None, **kwargs):
-            Exception.__init__(self, *args, **kwargs)
+        def __init__(self, error_message, response_status_code=None):
+            Exception.__init__(self, error_message)
             self.response_status_code = response_status_code
 
     API_VERSION = 'v1'
@@ -59,9 +59,9 @@ class Client:
         :param global_id: global ID (for example, SD123 or FM12)
         :return: numeric record id
         """
-        if re.fullmatch(r'[a-zA-Z]{2}\d+', str(global_id)) is not None:
+        if re.match(r'[a-zA-Z]{2}\d+$', str(global_id)) is not None:
             return int(global_id[2:])
-        elif re.fullmatch(r'\d+', str(global_id)) is not None:
+        elif re.match(r'\d+$', str(global_id)) is not None:
             return int(global_id)
         else:
             raise ValueError('{} is not a valid global ID'.format(global_id))
@@ -90,7 +90,7 @@ class Client:
                                                     Client._get_formated_error_message(response.json()))
             else:
                 error = 'Error code: {}, error message: {}'.format(response.status_code, response.text)
-            raise Client.ApiError(error, response_status_code=response.status_code) from None
+            raise Client.ApiError(error, response_status_code=response.status_code)
 
     def retrieve_api_results(self, url, params=None, content_type='application/json', request_type='GET'):
         """
@@ -148,7 +148,7 @@ class Client:
             if link['rel'] == link_rel:
                 return link['link']
         raise Client.NoSuchLinkRel('Requested link rel "{}", available rel(s): {}'.format(
-            (link_rel, ', '.join(x['rel'] for x in self._get_links(response)))))
+            link_rel, (', '.join(x['rel'] for x in self._get_links(response)))))
 
     def download_link_to_file(self, url, filename):
         """
@@ -235,11 +235,12 @@ class Client:
         this document, links to download the content of media files
         """
         numeric_doc_id = self._get_numeric_record_id(doc_id)
-        return self.retrieve_api_results(self._get_api_url() + '/documents/{}'.format(numeric_doc_id), content_type='text/csv')
+        return self.retrieve_api_results(self._get_api_url() + '/documents/{}'.format(numeric_doc_id),
+                                         content_type='text/csv')
 
     def create_document(self, name=None, tags=None, form_id=None, fields=None):
         """
-        Creates a new document in user’s Api Inbox folder. More information on
+        Creates a new document in user's Api Inbox folder. More information on
         https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
         :param name: name of the document (can be omitted)
         :param tags: list of tags (['tag1', 'tag2']) or comma separated string of tags ('tag1,tag2')
@@ -271,6 +272,7 @@ class Client:
         """
         Updates a document with a given document id. More information on
         https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
+        :param document_id: numeric document ID or global ID
         :param name: name of the document (can be omitted)
         :param tags: list of tags (['tag1', 'tag2']) or comma separated string of tags ('tag1,tag2') (can be omitted)
         :param form_id: numeric document ID or global ID (should be left None or otherwise should match the form id
