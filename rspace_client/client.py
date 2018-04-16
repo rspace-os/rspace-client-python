@@ -609,6 +609,41 @@ class Client:
         return self.retrieve_api_results(self._get_api_url() + '/forms/{}/unshare'.format(numeric_doc_id),
                                          request_type='PUT')
 
+    # Folder / notebook methods
+
+    def create_folder(self, name, parent_folder_id=None, notebook=False):
+        """
+        Creates containers to hold RSpace documents and notebook entries. You can create folders in your Workspace and
+        Gallery folders, and notebooks in your Workspace. More information on
+        https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
+        :param name: name of the folder or notebook
+        :param parent_folder_id: numeric form ID or global ID
+        :param notebook: True to create a notebook, False to create a folder
+        :return: metadata about the created notebook or folder
+        """
+        data = {
+            'notebook': notebook
+        }
+
+        if name is None or len(name) == 0:
+            raise ValueError('Name is a required argument')
+        data['name'] = name
+
+        if parent_folder_id is not None:
+            numeric_folder_id = self._get_numeric_record_id(parent_folder_id)
+            data['parentFolderId'] = numeric_folder_id
+
+        return self.retrieve_api_results(self._get_api_url() + '/folders', request_type='POST', params=data)
+
+    def get_folder(self, folder_id):
+        """
+        Getter for a Folder or notebook that you are authorised to view.
+        :param folder_id: numeric folder ID or global ID
+        :return: metadata about the folder or notebook
+        """
+        numeric_folder_id = self._get_numeric_record_id(folder_id)
+        return self.retrieve_api_results(self._get_api_url() + '/folders/{}'.format(numeric_folder_id))
+
     # Miscellaneous methods
     def get_status(self):
         """
