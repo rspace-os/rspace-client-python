@@ -207,6 +207,91 @@ for activity in response['activities']:
     print(activity)
 ```
 
+### Creating a Folder / Notebook
+
+A folder can be created by sending a POST request to `/folders`. All arguments are optional. Name, parent folder id and whether to create a notebook can be specified. For example, to create a folder named 'Testing Folder', `create_folder` method can be used:
+
+```python
+# Creating a folder named 'Testing Folder'
+new_folder = client.create_folder('Testing Folder')
+```
+
+Notebooks can be created by setting `notebook=True`. To create a new notebook inside the previously created folder:
+
+```python
+# Creating a notebook named 'Testing Notebook' inside the previously created folder:
+new_notebook = client.create_folder('Testing Notebook', parent_folder_id=new_folder['globalId'], notebook=True)
+```
+
+There are some restrictions on where you can create folders and notebooks, which are required to maintain consistent behaviour with the web application.
+
+* You can't create folders or notebooks inside notebooks
+* You can't create notebooks inside the Shared Folder; create them in a User folder first, then share. (Sharing is not yet supported in the API, but you can do this in the web application).
+
+
+### Getting Information About a Folder / Notebook
+
+Folder or notebook information can be retrieved by sending a GET request to `/folders/{folderId}` where folder id is a numerical ID of a folder or a notebook. Python client accepts both numerical IDs and global IDs. Method `get_folder` can be used to get information about a folder:
+
+```python
+# Get information about a folder
+folder_info = client.get_folder('FL123')  # or client.get_folder(123)
+print(folder_info['globalId'], folder_info['name'])
+```
+
+### Forms
+
+Published forms can be listed by sending a GET request to `/forms`. The results might be paginated if there are too many forms (see `create_form.py` example for a more in depth usage example).
+
+```python
+# Listing all published forms
+response = client.get_forms()
+for form in response['forms']:
+    print(form['globalId'], form['name'])
+```
+
+A new form can be created by sending a POST request to `/forms`. Name, tags (optionally) and fields can be specified. Currently, supported types of form fields are: 'String', 'Text', 'Number', 'Radio', 'Date'. More information about the available parameters can be found in [API documentation](https://community.researchspace.com/public/apiDocs) or by looking at `create_form.py` source code.
+
+```python
+# Creating a new form
+fields = [
+    {
+      "name": "A String Field",
+      "type": "String",
+      "defaultValue": "An optional default value"
+    }
+]
+client.create_form('Test Form', tags=['testing', 'example'], fields=fields)
+```
+
+Form information can be retrieved by sending a GET request to `/forms/{formId}` where formId is a numerical ID of a form. Python client accepts both numerical IDs and global IDs. 
+```python
+# Getting information about a form
+response = client.get_form('FM3')  # or client.get_form(3)
+print('Retrieved information about a form:', response['globalId'], response['name'])
+print('Fields:')
+for field in response['fields']:
+    print(field['type'], field['name'])
+```
+
+A newly created form is not available to create documents from until it has been published. Sending a POST request to `/forms/{formId}/publish` publishes a form.
+```python
+# Publishing form FM123
+client.publish_form('FM123')  # or client.publish_form(123)
+
+# Unpublish the form
+client.unpublish_form('FM123')  # or client.unpublish_form(123)
+```
+
+It is possible to share a form with your groups. Once it is shared the `accessControl.groupPermissionType` property is `READ`.
+```python
+# Sharing form FM123
+client.share_form('FM123')
+
+# Unsharing the form
+client.unshare_form('FM123')
+```
+
 ### Export
 
 From RSpace 1.47 (API version 1.3) you can programmatically export your work in HTML or XML format. This might be useful if you want to make scheduled backups, for example. If you're an admin or PI you can export a particular user's work if you have permission.

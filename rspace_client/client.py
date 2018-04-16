@@ -503,6 +503,147 @@ class Client:
         """
         return self.retrieve_api_results(self._get_api_url() + '/jobs/{}'.format(job_id))
 
+    # Form related methods
+    def get_forms(self, query=None, order_by='lastModified desc', page_number=0, page_size=20):
+        """
+        Provides a paginated list of Forms. You can use this endpoint to retrieve the IDs of the forms from which you
+        want to create documents. More information on
+        https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
+        :param (optional) query: Whole or part of a Form's name or tag.
+        :param order_by: Sort order for Forms.
+        :param page_number: For paginated results, this is the number of the page requested, 0 based.
+        :param page_size: The maximum number of items to retrieve.
+        :return: parsed response as a dictionary
+        """
+        params = {
+            'orderBy': order_by,
+            'pageSize': page_size,
+            'pageNumber': page_number
+        }
+        if query is not None:
+            params['query'] = query
+
+        return self.retrieve_api_results(self._get_api_url() + '/forms', params)
+
+    def create_form(self, name, tags=None, fields=None):
+        """
+        Create a new Form, supplying the field definitions. More information on
+        https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
+        :param name: name of the form
+        :param tags: list of tags (['tag1', 'tag2']) or comma separated string of tags ('tag1,tag2') (optional)
+        :param fields: list of fields (dictionaries of 'name', 'type' and optionally other parameters). Currently,
+        supported types of Form fields are: 'String', 'Text', 'Number', 'Radio', 'Date'. More information can be found
+        on /public/apiDocs.
+        :return: parsed response as a dictionary
+        """
+        data = {}
+
+        if name is None or len(name) == 0:
+            raise ValueError('Name is a required argument')
+        data['name'] = name
+
+        if tags is not None:
+            if isinstance(tags, list):
+                tags = ','.join(tags)
+            data['tags'] = tags
+
+        if fields is not None and len(fields) > 0:
+            data['fields'] = fields
+        else:
+            raise ValueError('There has to be at least one field')
+
+        return self.retrieve_api_results(self._get_api_url() + '/forms', request_type='POST', params=data)
+
+    def get_form(self, form_id):
+        """
+        Gets information about a Form. More information on
+        https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
+        :param form_id: numeric form ID or global ID
+        :return: a dictionary that includes: form metadata, fields
+        """
+        numeric_doc_id = self._get_numeric_record_id(form_id)
+        return self.retrieve_api_results(self._get_api_url() + '/forms/{}'.format(numeric_doc_id))
+
+    def publish_form(self, form_id):
+        """
+        A newly created form is not available to create documents from until it has been published. More information on
+        https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
+        :param form_id: numeric form ID or global ID
+        :return: a dictionary that includes: form metadata, fields
+        """
+        numeric_doc_id = self._get_numeric_record_id(form_id)
+        return self.retrieve_api_results(self._get_api_url() + '/forms/{}/publish'.format(numeric_doc_id),
+                                         request_type='PUT')
+
+    def unpublish_form(self, form_id):
+        """
+        Unpublishing a form hides it from being available to create documents. More information on
+        https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
+        :param form_id: numeric form ID or global ID
+        :return: a dictionary that includes: form metadata, fields
+        """
+        numeric_doc_id = self._get_numeric_record_id(form_id)
+        return self.retrieve_api_results(self._get_api_url() + '/forms/{}/unpublish'.format(numeric_doc_id),
+                                         request_type='PUT')
+
+    def share_form(self, form_id):
+        """
+        Shares this form with your groups. More information on
+        https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
+        :param form_id: numeric form ID or global ID
+        :return: a dictionary that includes: form metadata, fields
+        """
+        numeric_doc_id = self._get_numeric_record_id(form_id)
+        return self.retrieve_api_results(self._get_api_url() + '/forms/{}/share'.format(numeric_doc_id),
+                                         request_type='PUT')
+
+    def unshare_form(self, form_id):
+        """
+        Unshares this form with your groups. Only the owner of the Form (its creator) will be able to read or modify
+        this Form after this action is performed. More information on
+        https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
+        :param form_id: numeric form ID or global ID
+        :return: a dictionary that includes: form metadata, fields
+        """
+        numeric_doc_id = self._get_numeric_record_id(form_id)
+        return self.retrieve_api_results(self._get_api_url() + '/forms/{}/unshare'.format(numeric_doc_id),
+                                         request_type='PUT')
+
+    # Folder / notebook methods
+
+    def create_folder(self, name, parent_folder_id=None, notebook=False):
+        """
+        Creates containers to hold RSpace documents and notebook entries. You can create folders in your Workspace and
+        Gallery folders, and notebooks in your Workspace. More information on
+        https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
+        :param name: name of the folder or notebook
+        :param parent_folder_id: numeric form ID or global ID
+        :param notebook: True to create a notebook, False to create a folder
+        :return: metadata about the created notebook or folder
+        """
+        data = {
+            'notebook': notebook
+        }
+
+        if name is None or len(name) == 0:
+            raise ValueError('Name is a required argument')
+        data['name'] = name
+
+        if parent_folder_id is not None:
+            numeric_folder_id = self._get_numeric_record_id(parent_folder_id)
+            data['parentFolderId'] = numeric_folder_id
+
+        return self.retrieve_api_results(self._get_api_url() + '/folders', request_type='POST', params=data)
+
+    def get_folder(self, folder_id):
+        """
+        Getter for a Folder or notebook that you are authorised to view.
+        :param folder_id: numeric folder ID or global ID
+        :return: metadata about the folder or notebook
+        """
+        numeric_folder_id = self._get_numeric_record_id(folder_id)
+        return self.retrieve_api_results(self._get_api_url() + '/folders/{}'.format(numeric_folder_id))
+
     # Miscellaneous methods
     def get_status(self):
         """
