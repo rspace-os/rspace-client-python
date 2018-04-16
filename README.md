@@ -207,6 +207,38 @@ for activity in response['activities']:
     print(activity)
 ```
 
+### Creating a Folder / Notebook
+
+A folder can be created by sending a POST request to `/folders`. All arguments are optional. Name, parent folder id and whether to create a notebook can be specified. For example, to create a folder named 'Testing Folder', `create_folder` method can be used:
+
+```python
+# Creating a folder named 'Testing Folder'
+new_folder = client.create_folder('Testing Folder')
+```
+
+Notebooks can be created by setting `notebook=True`. To create a new notebook inside the previously created folder:
+
+```python
+# Creating a notebook named 'Testing Notebook' inside the previously created folder:
+new_notebook = client.create_folder('Testing Notebook', parent_folder_id=new_folder['globalId'], notebook=True)
+```
+
+There are some restrictions on where you can create folders and notebooks, which are required to maintain consistent behaviour with the web application.
+
+* You can't create folders or notebooks inside notebooks
+* You can't create notebooks inside the Shared Folder; create them in a User folder first, then share. (Sharing is not yet supported in the API, but you can do this in the web application).
+
+
+### Getting Information About a Folder / Notebook
+
+Folder or notebook information can be retrieved by sending a GET request to `/folders/{folderId}` where folder id is a numerical ID of a folder or a notebook. Python client accepts both numerical IDs and global IDs. Method `get_folder` can be used to get information about a folder:
+
+```python
+# Get information about a folder
+folder_info = client.get_folder('FL123')  # or client.get_folder(123)
+print(folder_info['globalId'], folder_info['name'])
+```
+
 ### Export
 
 From RSpace 1.47 (API version 1.3) you can programmatically export your work in HTML or XML format. This might be useful if you want to make scheduled backups, for example. If you're an admin or PI you can export a particular user's work if you have permission.
