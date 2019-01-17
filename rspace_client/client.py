@@ -74,13 +74,14 @@ class Client:
     @staticmethod
     def _handle_response(response):
         # Check whether response includes UNAUTHORIZED response code
+        # print("status: {}, header: {}".format(response.headers, response.status_code))
         if response.status_code == 401:
             raise Client.AuthenticationError(response.json()['message'])
 
         try:
             response.raise_for_status()
 
-            if 'application/json' in response.headers['Content-Type']:
+            if 'Content-Type' in response.headers and 'application/json' in response.headers['Content-Type']:
                 return response.json()
             else:
                 return response.text
@@ -97,7 +98,7 @@ class Client:
         Makes the requested API call and returns either an exception or a parsed JSON response as a dictionary.
         Authentication header is automatically added. In most cases, a specialised method can be used instead.
         :param url: URL to retrieve
-        :param request_type: 'GET', 'POST', 'PUT'
+        :param request_type: 'GET', 'POST', 'PUT', 'DELETE'
         :param params: arguments to be added to the API request
         :param content_type: content type
         :return: parsed JSON response as a dictionary
@@ -106,10 +107,10 @@ class Client:
         try:
             if request_type == 'GET':
                 response = requests.get(url, params=params, headers=headers)
-            elif request_type == 'PUT' or request_type == 'POST':
+            elif request_type == 'PUT' or request_type == 'POST' or  request_type == 'DELETE':
                 response = requests.request(request_type, url, json=params, headers=headers)
             else:
-                raise ValueError('Expected GET / PUT / POST request type, received {} instead'.format(request_type))
+                raise ValueError('Expected GET / PUT / POST / DELETE request type, received {} instead'.format(request_type))
 
             return self._handle_response(response)
         except requests.exceptions.ConnectionError as e:
@@ -225,7 +226,16 @@ class Client:
         """
         numeric_doc_id = self._get_numeric_record_id(doc_id)
         return self.retrieve_api_results(self._get_api_url() + '/documents/{}'.format(numeric_doc_id))
-
+    
+    def delete_document(self, doc_id):
+        """
+         Marks document as deleted.
+         :param doc_id: numeric document ID or global ID
+        """
+        numeric_doc_id = self._get_numeric_record_id(doc_id)
+        return self.retrieve_api_results(self._get_api_url() + '/documents/{}'.format(numeric_doc_id),
+                                         content_type=None, request_type='DELETE')
+        
     def get_document_csv(self, doc_id):
         """
         Gets information about a document. More information on
@@ -564,6 +574,15 @@ class Client:
         numeric_doc_id = self._get_numeric_record_id(form_id)
         return self.retrieve_api_results(self._get_api_url() + '/forms/{}'.format(numeric_doc_id))
 
+    def delete_form(self, form_id):
+        """
+         Deletes form by its ID, if it is in 'NEW' state or has not been deleted.
+         :param form_id: numeric Form ID or global ID
+        """
+        numeric_doc_id = self._get_numeric_record_id(form_id)
+        return self.retrieve_api_results(self._get_api_url() + '/forms/{}'.format(numeric_doc_id),
+                                         content_type=None, request_type='DELETE')
+    
     def publish_form(self, form_id):
         """
         A newly created form is not available to create documents from until it has been published. More information on

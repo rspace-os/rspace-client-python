@@ -27,3 +27,11 @@ updated_document = client.update_document(new_document['id'], fields=[{
     'content': 'Some example text. Link to the uploaded file: <fileId={}>'.format(new_file['id'])
 }])
 print('Document has been updated to link to the uploaded file.')
+
+# Creating a document to show deletion
+print("Creating a new document which will be deleted")
+new_document2 = client.create_document(name='Python API Document for deletion', tags=['Python', 'API', 'example'],
+                       fields=[{'content': 'Some example text'}])
+deletedDoc = client.delete_document(new_document2['id'])
+print('Document {} was deleted'.format(new_document2['id']))
+print("You can see or restore the deleted document in web application in MyRSpace->Deleted Items")
