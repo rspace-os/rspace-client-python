@@ -29,3 +29,11 @@ print('Notebook has been created:', response['globalId'], response['name'])
 print('Getting information about the parent folder:')
 response = client.get_folder(response['parentFolderId'])
 print(response['globalId'], response['name'])
+
+print('Creating a folder to delete:')
+response = client.create_folder('Testing Folder to delete')
+folder_id=response['globalId']
+print('Folder id [{}] with name "{}" has been created:'.format(folder_id , response['name']))
+print("Deleting folder")
+response=client.delete_folder( response['globalId'])
+print("deleted folder {}".format(folder_id))

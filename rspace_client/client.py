@@ -93,6 +93,15 @@ class Client:
                 error = 'Error code: {}, error message: {}'.format(response.status_code, response.text)
             raise Client.ApiError(error, response_status_code=response.status_code)
 
+    def doDelete(self, path, resource_id):
+        """
+        Performs a delete operation for a given resource
+        """
+        numeric_id = self._get_numeric_record_id(resource_id)
+        return self.retrieve_api_results(self._get_api_url() + '/{}/{}'.format(path,numeric_id),
+                                          content_type=None, request_type='DELETE')
+        
+    
     def retrieve_api_results(self, url, params=None, content_type='application/json', request_type='GET'):
         """
         Makes the requested API call and returns either an exception or a parsed JSON response as a dictionary.
@@ -232,9 +241,7 @@ class Client:
          Marks document as deleted.
          :param doc_id: numeric document ID or global ID
         """
-        numeric_doc_id = self._get_numeric_record_id(doc_id)
-        return self.retrieve_api_results(self._get_api_url() + '/documents/{}'.format(numeric_doc_id),
-                                         content_type=None, request_type='DELETE')
+        return self.doDelete( "documents", doc_id)
         
     def get_document_csv(self, doc_id):
         """
@@ -579,9 +586,7 @@ class Client:
          Deletes form by its ID, if it is in 'NEW' state or has not been deleted.
          :param form_id: numeric Form ID or global ID
         """
-        numeric_doc_id = self._get_numeric_record_id(form_id)
-        return self.retrieve_api_results(self._get_api_url() + '/forms/{}'.format(numeric_doc_id),
-                                         content_type=None, request_type='DELETE')
+        return self.doDelete( "forms", form_id)
     
     def publish_form(self, form_id):
         """
@@ -653,7 +658,14 @@ class Client:
             data['parentFolderId'] = numeric_folder_id
 
         return self.retrieve_api_results(self._get_api_url() + '/folders', request_type='POST', params=data)
-
+    
+    def delete_folder(self, folder_id):
+        """
+         Deletes a folder or notebook by its ID.
+         :param form_id: numeric Folder/Notebook ID or global ID
+        """
+        return self.doDelete( "folders", folder_id)
+    
     def get_folder(self, folder_id):
         """
         Getter for a Folder or notebook that you are authorised to view.

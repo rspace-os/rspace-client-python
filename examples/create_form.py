@@ -113,7 +113,7 @@ print ("Creating a new form to show form deletion")
 response = create_form(fields)
 print('Newly created form info:', response['globalId'], response['name'])
 
-print ("Deleting the form")
+print ("Deleting the NEW form")
 deleted = client.delete_form(response['globalId'])
 print('Form {} is now deleted'.format(response['globalId']))
 
