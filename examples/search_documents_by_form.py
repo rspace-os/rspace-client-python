@@ -6,13 +6,9 @@ import json
 import rspace_client
 import sys
 
-# Parse command line parameters
-parser = argparse.ArgumentParser()
-parser.add_argument("server", help="RSpace server URL (for example, https://community.researchspace.com)", type=str)
-parser.add_argument("apiKey", help="RSpace API key can be found on 'My Profile'", type=str)
-args = parser.parse_args()
+import rspace_client
 
-client = rspace_client.Client(args.server, args.apiKey)
+client = rspace_client.utils.createClient()
 
 print('Form ID to search for (for example, FM123)?')
 form_id = sys.stdin.readline().strip()

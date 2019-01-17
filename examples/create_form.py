@@ -15,12 +15,8 @@ def create_form(fields):
 
 
 # Parse command line parameters
-parser = argparse.ArgumentParser()
-parser.add_argument("server", help="RSpace server URL (for example, https://community.researchspace.com)", type=str)
-parser.add_argument("apiKey", help="RSpace API key can be found on 'My Profile'", type=str)
-args = parser.parse_args()
-
-client = rspace_client.Client(args.server, args.apiKey)
+# Parse command line parameters
+client = rspace_client.utils.createClient()
 
 print('Listing all forms:')
 response = client.get_forms()
