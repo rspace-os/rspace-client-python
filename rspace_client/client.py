@@ -319,7 +319,7 @@ class Client:
         return self.retrieve_api_results(self._get_api_url() + '/documents/{}'.format(numeric_doc_id),
                                          request_type='PUT', params=data)
 
-    
+    # Sharing methods
     def shareDocuments(self, itemsToShare, groupIds, permission="READ"):
         """
         Shares 1 or more notebooks or documents with 1 or more Groups
@@ -339,6 +339,8 @@ class Client:
         sharePost["groups"]=groups
         return self.retrieve_api_results(self._get_api_url() 
                                          + '/share', request_type='POST', params=sharePost)
+    def unshareItem(self, sharingId):
+        return self.doDelete("share", sharingId)
     
     # File methods
 
