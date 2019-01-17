@@ -319,6 +319,27 @@ class Client:
         return self.retrieve_api_results(self._get_api_url() + '/documents/{}'.format(numeric_doc_id),
                                          request_type='PUT', params=data)
 
+    
+    def shareDocuments(self, itemsToShare, groupIds, permission="READ"):
+        """
+        Shares 1 or more notebooks or documents with 1 or more Groups
+         with read permission into
+        :param itemsToShare: A list of document/notebook IDs to share
+        :param groupIds: A list of groupIds to share with
+        :param permission: The permission to use, default is "READ", or "EDIT"
+        
+        """
+        if len(itemsToShare) == 0:
+            raise ValueError("Must be at least 1 item to share")
+        if (len(groupIds) == 0):
+            raise ValueError ("Must supply at least 1 group ID")
+        sharePost = dict()
+        sharePost['itemsToShare']=itemsToShare
+        groups = [ {"id":gid, "permission":permission} for gid in groupIds]
+        sharePost["groups"]=groups
+        return self.retrieve_api_results(self._get_api_url() 
+                                         + '/share', request_type='POST', params=sharePost)
+    
     # File methods
 
     def get_files(self, page_number=0, page_size=20, order_by="lastModified desc", media_type="image"):
@@ -675,6 +696,14 @@ class Client:
         numeric_folder_id = self._get_numeric_record_id(folder_id)
         return self.retrieve_api_results(self._get_api_url() + '/folders/{}'.format(numeric_folder_id))
 
+    # Groups methods
+    def get_groups(self):
+        """ 
+        Gets a list of groups that you belong to. May be empty if you are not
+        in any groups.
+        """
+        return self.retrieve_api_results(self._get_api_url()+'/groups')
+    
     # Miscellaneous methods
     def get_status(self):
         """
