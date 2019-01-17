@@ -8,6 +8,10 @@ import rspace_client
 def print_forms(response):
     for form in response['forms']:
         print(form['globalId'], form['name'])
+        
+def create_form(fields):
+    response = client.create_form('Test Form', tags=['testing', 'example'], fields=fields)
+    return response
 
 
 # Parse command line parameters
@@ -77,7 +81,7 @@ fields = [
       "max": "2018-04-21"
     }
 ]
-response = client.create_form('Test Form', tags=['testing', 'example'], fields=fields)
+response = create_form(fields)
 print('Newly created form info:', response['globalId'], response['name'])
 
 # Get form details (these are also returned when creating a new form)
@@ -103,3 +107,14 @@ client.unshare_form(response['globalId'])
 # Unpublish the form
 print('Unpublishing form:', response['globalId'])
 client.unpublish_form(response['globalId'])
+
+## Creating a new form for deletion
+print ("Creating a new form to show form deletion")
+response = create_form(fields)
+print('Newly created form info:', response['globalId'], response['name'])
+
+print ("Deleting the form")
+deleted = client.delete_form(response['globalId'])
+print('Form {} is now deleted'.format(response['globalId']))
+
+
