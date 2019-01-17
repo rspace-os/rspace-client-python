@@ -704,6 +704,23 @@ class Client:
         """
         return self.retrieve_api_results(self._get_api_url()+'/groups')
     
+    # Import methods
+    def import_word(self, file, folder_id=None):
+        """
+         Imports a Word file into RSpace and creates an RSpace document from it.
+         :param file: The Word file to import
+         :param folder_id: Optionally, the ID of a folder in which to create the
+          new document
+        """
+        data = {}
+        if folder_id is not None:
+            numeric_folder_id = self._get_numeric_record_id(folder_id)
+            data['folderId'] = numeric_folder_id
+
+        response = requests.post(self._get_api_url() + '/import/word', files={"file": file}, data=data,
+                                 headers=self._get_headers())
+        return self._handle_response(response)
+    
     # Miscellaneous methods
     def get_status(self):
         """
