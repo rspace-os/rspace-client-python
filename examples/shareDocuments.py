@@ -42,6 +42,7 @@ printSharedItemNames(sharedlist)
 while client.link_exists(sharedlist, 'next'):
     print('Retrieving next page...')
     sharedlist = client.get_link_contents(shared, 'next')
+    printSharedItemNames(sharedlist)
     
     
 
