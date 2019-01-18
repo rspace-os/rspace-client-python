@@ -7,6 +7,10 @@ so that you can share items
 from __future__ import print_function
 import rspace_client
 
+def printSharedItemNames(response):
+    names = [l['shareItemName'] for l in response['shares']]
+    print(",".join(names))
+
 # Parse command line parameters
 client = rspace_client.utils.createClient()
 
@@ -30,6 +34,16 @@ print ("The shared resource ID is {}".format(shared['shareInfos'][0]['id']))
 print ("""You can see the shared item in RSpace webapp\
  in Shared->Lab Groups->{}_SHARED
  """.format(groups[0]['name']))
+
+print("Listing shared items")
+sharedlist = client.get_shared_items()
+
+printSharedItemNames(sharedlist)
+while client.link_exists(sharedlist, 'next'):
+    print('Retrieving next page...')
+    sharedlist = client.get_link_contents(shared, 'next')
+    
+    
 
 # print ("Unsharing....")
 # client.unshareItem(shared['shareInfos'][0]['id'])

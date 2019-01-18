@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from __future__ import print_function
-import argparse
 import rspace_client
 
 
@@ -13,8 +12,6 @@ def create_form(fields):
     response = client.create_form('Test Form', tags=['testing', 'example'], fields=fields)
     return response
 
-
-# Parse command line parameters
 # Parse command line parameters
 client = rspace_client.utils.createClient()
 

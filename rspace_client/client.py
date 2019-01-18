@@ -72,6 +72,10 @@ class Client:
                                                       ', '.join(json_error.get('errors', [])) or 'no error list')
 
     @staticmethod
+    def _responseContainsJson(response):
+        return 'Content-Type' in response.headers and 'application/json' in response.headers['Content-Type']
+
+    @staticmethod
     def _handle_response(response):
         # Check whether response includes UNAUTHORIZED response code
         # print("status: {}, header: {}".format(response.headers, response.status_code))
@@ -81,7 +85,7 @@ class Client:
         try:
             response.raise_for_status()
 
-            if 'Content-Type' in response.headers and 'application/json' in response.headers['Content-Type']:
+            if Client._responseContainsJson(response):
                 return response.json()
             else:
                 return response.text
@@ -341,6 +345,24 @@ class Client:
                                          + '/share', request_type='POST', params=sharePost)
     def unshareItem(self, sharingId):
         return self.doDelete("share", sharingId)
+    
+    def get_shared_items(self,query=None, order_by='name asc', page_number=0, page_size=20):
+        """
+         Paginated listing of shared items; default ordering is by document/notebook name.
+        :param page_number: For paginated results, this is the number of the page requested, 0 based.
+        :param page_size: The maximum number of items to retrieve.
+        :param order_by: Sort order for sharedItems - either 'name' or 'sharee' - the name of user
+         or group item is shared with.
+         
+        """
+        params = {
+            'orderBy': order_by,
+            'pageSize': page_size,
+            'pageNumber': page_number
+        }
+        if query is not None:
+            params['query'] = query
+        return self.retrieve_api_results(self._get_api_url() + '/share', params)
     
     # File methods
 
