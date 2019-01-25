@@ -498,7 +498,7 @@ class Client:
         return self.retrieve_api_results(self._get_api_url() + '/activity', params=params)
 
     # Export
-    def start_export(self, format, scope, id=None):
+    def start_export(self, export_format, scope, uid=None):
         """
         Starts an asynchronous export of user's or group's records. Currently export of selections of documents is
         unsupported.
@@ -507,20 +507,20 @@ class Client:
         :param id: id of a user or a group depending on the scope (current user or group will be used if not provided)
         :return: job id
         """
-        if format != 'xml' and format != 'html':
-            raise ValueError('format must be either "xml" or "html", got "{}" instead'.format(format))
+        if export_format != 'xml' and export_format != 'html':
+            raise ValueError('format must be either "xml" or "html", got "{}" instead'.format(export_format))
 
         if scope != 'user' and scope != 'group':
             raise ValueError('scope must be either "user" or "group", got "{}" instead'.format(scope))
 
         if id is not None:
-            request_url = self._get_api_url() + '/export/{}/{}/{}'.format(format, scope, id)
+            request_url = self._get_api_url() + '/export/{}/{}/{}'.format(export_format, scope, uid)
         else:
-            request_url = self._get_api_url() + '/export/{}/{}'.format(format, scope)
+            request_url = self._get_api_url() + '/export/{}/{}'.format(export_format, scope)
 
         return self.retrieve_api_results(request_url, request_type='POST')
 
-    def download_export(self, format, scope, file_path, id=None, wait_between_requests=30):
+    def download_export(self, export_format, scope, file_path, uid=None, wait_between_requests=30):
         """
         Exports user's or group's records and downloads the exported archive to a specified location.
         :param format: 'xml' or 'html'
@@ -530,7 +530,7 @@ class Client:
         :param wait_between_requests: seconds to wait between job status requests (30 seconds default)
         :return: file path to the downloaded export archive
         """
-        job_id = self.start_export(format=format, scope=scope, id=id)['id']
+        job_id = self.start_export(format=export_format, scope=scope, uid=uid)['id']
 
         while True:
             status_response = self.get_job_status(job_id)
