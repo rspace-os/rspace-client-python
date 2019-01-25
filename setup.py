@@ -12,12 +12,12 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='rspace-client',
-    version='1.4.0',
+    version='1.5.0',
     description='A client which helps calling RSpace APIs',
     long_description=long_description,
     url='https://github.com/rspace-os/rspace-client-python',
     author='Research Innovations Ltd',
-    author_email='s1310787@sms.ed.ac.uk',
+    author_email='richard@researchspace.com',
     license='Apache Software License',
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -33,7 +33,7 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
-    keywords='rspace api client research space',
+    keywords='rspace api client researchspace eln',
     packages=find_packages(exclude=['examples']),
     install_requires=['requests', 'six'],
     extras_require={
