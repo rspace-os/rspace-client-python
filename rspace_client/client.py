@@ -324,23 +324,27 @@ class Client:
                                          request_type='PUT', params=data)
 
     # Sharing methods
-    def shareDocuments(self, itemsToShare, groupIds, permission="READ"):
+    def shareDocuments(self, itemsToShare, groupId, sharedFolderId=None, permission="READ"):
         """
-        Shares 1 or more notebooks or documents with 1 or more Groups
+        Shares 1 or more notebooks or documents with 1 group. You can optionally
+         specify the id of a folder to share into. If not set will share into the 
+          top level of the group shared folder.
          with read permission into
         :param itemsToShare: A list of document/notebook IDs to share
-        :param groupIds: A list of groupIds to share with
+        :param groupId: The ID of a group to share with
+        :param sharedFolderId: The ID of a subfolder of the group's shared folder.
         :param permission: The permission to use, default is "READ", or "EDIT"
         
         """
         if len(itemsToShare) == 0:
             raise ValueError("Must be at least 1 item to share")
-        if (len(groupIds) == 0):
-            raise ValueError ("Must supply at least 1 group ID")
+        
         sharePost = dict()
         sharePost['itemsToShare']=itemsToShare
-        groups = [ {"id":gid, "permission":permission} for gid in groupIds]
-        sharePost["groups"]=groups
+        groupShare= {"id":groupId, "permission":permission}
+        if(sharedFolderId is not None):
+            groupShare['sharedFolderId']=sharedFolderId
+        sharePost["groups"]=[groupShare]
         return self.retrieve_api_results(self._get_api_url() 
                                          + '/share', request_type='POST', params=sharePost)
     def unshareItem(self, sharingId):
