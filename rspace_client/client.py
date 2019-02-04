@@ -259,13 +259,14 @@ class Client:
         return self.retrieve_api_results(self._get_api_url() + '/documents/{}'.format(numeric_doc_id),
                                          content_type='text/csv')
 
-    def create_document(self, name=None, tags=None, form_id=None, fields=None):
+    def create_document(self, name=None, tags=None, form_id=None, parentFolderId=None, fields=None):
         """
         Creates a new document in user's Api Inbox folder. More information on
         https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
         :param name: name of the document (can be omitted)
-        :param tags: list of tags (['tag1', 'tag2']) or comma separated string of tags ('tag1,tag2')
-        :param form_id: numeric document ID or global ID
+        :param tags: list of tags (['tag1', 'tag2']) or comma separated string of tags ('tag1,tag2'); optional
+        :param form_id: numeric document ID or global ID' optional; defaults to BasicDocument
+        :param parentFolderID: ID of workspace folder or subfolder; optional; defaults to ApiInbox folder
         :param fields: list of fields (dictionaries of (optionally) ids and contents). For example,
         [{'content': 'some example text'}] or [{'id': 123, 'content': 'some example text'}].
         :return: parsed response as a dictionary
@@ -283,6 +284,9 @@ class Client:
         if form_id is not None:
             numeric_form_id = self._get_numeric_record_id(form_id)
             data['form'] = {"id": int(numeric_form_id)}
+        
+        if parentFolderId is not None:
+            data['parentFolderId'] = parentFolderId
 
         if fields is not None and len(fields) > 0:
             data['fields'] = fields

@@ -11,6 +11,13 @@ new_document = client.create_document(name='Python API Example Basic Document', 
                        fields=[{'content': 'Some example text'}])
 print('New document was successfully created with global ID {}'.format(new_document['globalId']))
 
+# Creating a document in a specific Workspace folder:
+folder= client.create_folder("subfolder");
+new_document2 = client.create_document(name='Basic Document in subfolder', parentFolderId=folder['id'],
+                       fields=[{'content': 'Some example text'}])
+print ("Created document id [{}] in folder id [{}]".format(new_document2['id'], folder['id']))
+
+
 # Uploading a file to the gallery
 with open('resources/2017-05-10_1670091041_CNVts.csv', 'rb') as f:
     new_file = client.upload_file(f, caption='some caption')
