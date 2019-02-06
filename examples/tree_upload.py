@@ -52,10 +52,6 @@ def api_call(callname, f):
     print('API call {} took {:.1f} seconds'.format(callname, finish - start))
     return returnval
 
-def print_API_time(start, type):
-    return
-    # print('API call {} took {:.1f} seconds'.format(type, time.time() - start))
-    
 def create_dir_and_ancestors(fdict, dir):
     if dir in fdict:  # recursion termination
         return
@@ -67,7 +63,6 @@ def create_dir_and_ancestors(fdict, dir):
     response = api_call('create_folder', lambda: client.create_folder(os.path.basename(dir), parent_folder_id=fdict[parent]))
     fdict[dir] = response['id']
 
-    
 def share_document(docId, groupId, folderId):
     print("Sharing document {} with group {} into folder {}".format(docId, groupId, folderId))
     shared = api_call('shareDocuments', lambda: client.shareDocuments([docId], groupId, sharedFolderId=folderId))
