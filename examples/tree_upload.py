@@ -40,15 +40,21 @@ def isFolder(odtfname):
         return (count == 2)
 
 simulated_response = {'id': 123,'globalId': 456,'name': "No Name"}
-def api_call(f):
+def api_call(callname, f):
+    returnval = ''
+    start = time.time()
     if not api_simulate:
+        returnval = f()
         time.sleep(0.5)
-        return f()
     else:
-        return simulated_response
+        returnval = simulated_response
+    finish = time.time()
+    print('API call {} took {:.1f} seconds'.format(callname, finish - start))
+    return returnval
 
 def print_API_time(start, type):
-    print('API call {} took {:.1f} seconds'.format(type, time.time() - start))
+    return
+    # print('API call {} took {:.1f} seconds'.format(type, time.time() - start))
     
 def create_dir_and_ancestors(fdict, dir):
     if dir in fdict:  # recursion termination
@@ -58,18 +64,13 @@ def create_dir_and_ancestors(fdict, dir):
     # create folder for dir in parent and store id in dictionary
     print ('creating folder for {child} in {par} ({parentid})'.format(
         child = dir, par = parent, parentid = fdict[parent]))
-    t = time.time()
-    response = api_call(lambda: client.create_folder(os.path.basename(dir), parent_folder_id=fdict[parent]))
-    print_API_time(t, 'create_folder')
+    response = api_call('create_folder', lambda: client.create_folder(os.path.basename(dir), parent_folder_id=fdict[parent]))
     fdict[dir] = response['id']
 
     
 def share_document(docId, groupId, folderId):
     print("Sharing document {} with group {} into folder {}".format(docId, groupId, folderId))
-    t = time.time()
-    shared = api_call(lambda: client.shareDocuments([docId], groupId, sharedFolderId=folderId))
-    print_API_time(t, 'shareDocuments')
-
+    shared = api_call('shareDocuments', lambda: client.shareDocuments([docId], groupId, sharedFolderId=folderId))
 
 parser = argparse.ArgumentParser()
 parser.add_argument("server", help="RSpace server URL (for example, https://community.researchspace.com)", type=str)
@@ -112,16 +113,12 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
             dirname = os.path.basename(dirName)
             parname = os.path.dirname(dirName)
             if not dirName in wfolders: #folders does not exist yet
-                t = time.time()
-                response = api_call(lambda: client.create_folder(dirname, parent_folder_id=wfolders[parname]))
-                print_API_time(t, 'create_folder')
+                response = api_call('create_folder', lambda: client.create_folder(dirname, parent_folder_id=wfolders[parname]))
                 wfolders[dirName] = response['id']
                 print('Created workspacefolder {dir} ({dirnum}) in {par} ({parnum})'.format(
                     dir = dirname, dirnum = wfolders[dirName], par = os.path.basename(parname), parnum = wfolders[parname]))
             if not dirName in sfolders: #folder does not exist yet
-                t = time.time()
-                response = api_call(lambda: client.create_folder(dirname, parent_folder_id=sfolders[parname]))
-                print_API_time(t, 'create_folder')
+                response = api_call('create_folder', lambda: client.create_folder(dirname, parent_folder_id=sfolders[parname]))
                 sfolders[dirName] = response['id']
                 print('Created shared folder {dir} ({dirnum}) in {par} ({parnum})'.format(
                     dir = dirname, dirnum = sfolders[dirName], par = os.path.basename(parname), parnum = sfolders[parname]))
@@ -140,7 +137,7 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                         print('importing %s to workspace and sharing' % docxname)
                         with open(docxname, 'rb') as f:
                             t = time.time()
-                            new_document = api_call(lambda: client.import_word(f, wfolders[dirName]))
+                            new_document = api_call('import_word', lambda: client.import_word(f, wfolders[dirName]))
                             print_API_time(t, 'import_word')
                             docCount += 1
                             print('Document "{}" was imported to  folder {} as {} ({})'
@@ -154,24 +151,20 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                     # upload to gdfolders[dirName]
                     print('uploading %s to Gallery Docs' % os.path.join(dirName,filename))
                     with open(os.path.join(dirName, filename), 'rb') as f:
-                        t = time.time()
-                        new_file = api_call(lambda: client.upload_file(f, caption=filename, folder_id=gdfolders[dirName]))
-                        print_API_time(t, 'upload_file')
+                        new_file = api_call('upload_file', lambda: client.upload_file(f, caption=filename, folder_id=gdfolders[dirName]))
                         print('File "{}" was uploaded as {} ({})'.format(f.name, new_file['name'], new_file['id']))
                         fileCount += 1
                     # create a basic document with the same name and a link to the uploaded gallery file.
                     print('creating basic document, should be in {}'.format(wfolders[dirName]))
-                    t = time.time()
-                    new_document = api_call(lambda: client.create_document(name=filename, parent_folder_id=wfolders[dirName], fields=[{'content': 'Link to gallery file'}]))
-                    print_API_time(t, 'create_document')
+                    new_document = api_call('create_document', lambda: client.create_document(
+                        name=filename, parent_folder_id=wfolders[dirName], fields=[{'content': 'Link to gallery file'}]
+                    ))
                     print('New document was successfully created with global ID {}'.format(new_document['id']))
 
                     print('linking to gallery file')
-                    t = time.time()
-                    updated_document = api_call(lambda: client.update_document(new_document['id'], fields=[{
+                    updated_document = api_call('update_document', lambda: client.update_document(new_document['id'], fields=[{
                         'content': 'Link to the gallery file: <fileId={}>'.format(new_file['id'])
                     }]))
-                    print_API_time(t, 'update_document')
                     print('sharing into {}'.format(sfolders[dirName]))
                     share_document(new_document['id'], sharingGroupId, sfolders[dirName])
         else: # images folder
@@ -184,18 +177,16 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                 # upload filename to gifolders[parentDir]
                 print('uploading %s to GalleryImages' % filename)
                 with open(os.path.join(dirName, filename), 'rb') as f:
-                    t = time.time()
-                    new_file = api_call(lambda: client.upload_file(f, folder_id=gifolders[parentDir]))
-                    print_API_time(t, 'upload_file')
+                    new_file = api_call('upload_file', lambda: client.upload_file(f, folder_id=gifolders[parentDir]))
                     print('Image "{}" was uploaded as {} ({})'.format(f.name, new_file['name'], new_file['id']))
                     imgCount += 1
             # create imageDoc = "eCAT gallery images" basic document in wfolders[parentDir]
             print('creating basic document for link to gallery images folder, should be in {}'.format(wfolders[parentDir]))
             docname = 'eCAT gallery images for documents in ' + os.path.basename(parentDir)
             folder_link = 'Gallery Images in Documents in this folder:\n<docId={}>\n'.format(gifolders[parentDir])
-            t = time.time()
-            new_document = api_call(lambda: client.create_document(name=docname, parent_folder_id=wfolders[parentDir], fields=[{'content': folder_link}]))
-            print_API_time(t, 'create_document')
+            new_document = api_call('create_document', lambda: client.create_document(
+                name=docname, parent_folder_id=wfolders[parentDir], fields=[{'content': folder_link}]
+            ))
             print('New document was successfully created with global ID {}'.format(new_document['id']))
             print('sharing into {}'.format(sfolders[parentDir]))
             share_document(new_document['id'], sharingGroupId, sfolders[parentDir])
