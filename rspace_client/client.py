@@ -257,13 +257,16 @@ class Client:
         return self.retrieve_api_results(self._get_api_url() + '/documents/{}'.format(numeric_doc_id),
                                          content_type='text/csv')
 
+
     def create_document(self, name=None, parent_folder_id=None, tags=None, form_id=None, fields=None):
+
         """
         Creates a new document in user's Api Inbox folder. More information on
         https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
         :param name: name of the document (can be omitted)
-        :param tags: list of tags (['tag1', 'tag2']) or comma separated string of tags ('tag1,tag2')
-        :param form_id: numeric document ID or global ID
+        :param tags: list of tags (['tag1', 'tag2']) or comma separated string of tags ('tag1,tag2'); optional
+        :param form_id: numeric document ID or global ID' optional; defaults to BasicDocument
+        :param parent_folder_id: ID of workspace folder or subfolder; optional; defaults to ApiInbox folder
         :param fields: list of fields (dictionaries of (optionally) ids and contents). For example,
         [{'content': 'some example text'}] or [{'id': 123, 'content': 'some example text'}].
         :return: parsed response as a dictionary
