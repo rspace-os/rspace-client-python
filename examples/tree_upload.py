@@ -52,16 +52,17 @@ def isFolder(odtfname):
         return (count == 2)
 
 simulated_response = {'id': 123,'globalId': 456,'name': "No Name"}
-def api_call(callname, f):
+def api_call(callname, apiCall):
     returnval = ''
     start = time.time()
-    if not api_simulate:
-        returnval = f()
-        time.sleep(0.5)
-    else:
+    if api_simulate:
         returnval = simulated_response
+    else:
+        returnval = apiCall()
     finish = time.time()
     print('API call {} took {:.1f} seconds'.format(callname, finish - start))
+    if not api_simulate:
+        time.sleep(0.5)
     return returnval
 
 def create_dir_and_ancestors(fdict, dir):
