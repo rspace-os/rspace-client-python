@@ -738,17 +738,24 @@ class Client:
         return self.retrieve_api_results(self._get_api_url()+'/groups')
     
     # Import methods
-    def import_word(self, file, folder_id=None):
+    def import_word(self, file, folder_id=None ,image_folder_id=None):
         """
          Imports a Word file into RSpace and creates an RSpace document from it.
          :param file: The Word file to import
          :param folder_id: Optionally, the ID of a folder in which to create the
           new document
+         :param folder_id: Optionally, the ID of a folder in the image gallery
+          into which images extracted from Word documents will be placed. By default, these
+           will be placed in the top-level of the Gallery. 
         """
         data = {}
         if folder_id is not None:
             numeric_folder_id = self._get_numeric_record_id(folder_id)
             data['folderId'] = numeric_folder_id
+        if image_folder_id is not None:
+            numeric_imagefolder_id = self._get_numeric_record_id(image_folder_id)
+            data['imageFolderId'] = numeric_imagefolder_id
+            
 
         response = requests.post(self._get_api_url() + '/import/word', files={"file": file}, data=data,
                                  headers=self._get_headers())
