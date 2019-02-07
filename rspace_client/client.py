@@ -8,10 +8,8 @@ import six
 
 class Client:
     """Client for RSpace API v1.
-
     Most methods return a dictionary with fields described in the API documentation. The documentation can be found at
     https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
-
     For authentication, an API key must be provided. It can be found by logging in and navigating to 'My Profile' page.
     """
     class ConnectionError(Exception):
@@ -259,7 +257,7 @@ class Client:
         return self.retrieve_api_results(self._get_api_url() + '/documents/{}'.format(numeric_doc_id),
                                          content_type='text/csv')
 
-    def create_document(self, name=None, tags=None, form_id=None, fields=None):
+    def create_document(self, name=None, parent_folder_id=None, tags=None, form_id=None, fields=None):
         """
         Creates a new document in user's Api Inbox folder. More information on
         https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
@@ -274,6 +272,10 @@ class Client:
 
         if name is not None:
             data['name'] = name
+
+        if parent_folder_id is not None:
+            numeric_folder_id = self._get_numeric_record_id(parent_folder_id)
+            data['parentFolderId'] = numeric_folder_id
 
         if tags is not None:
             if isinstance(tags, list):
@@ -324,23 +326,27 @@ class Client:
                                          request_type='PUT', params=data)
 
     # Sharing methods
-    def shareDocuments(self, itemsToShare, groupIds, permission="READ"):
+    def shareDocuments(self, itemsToShare, groupId, sharedFolderId=None, permission="READ"):
         """
-        Shares 1 or more notebooks or documents with 1 or more Groups
+        Shares 1 or more notebooks or documents with 1 group. You can optionally
+         specify the id of a folder to share into. If not set will share into the 
+          top level of the group shared folder.
          with read permission into
         :param itemsToShare: A list of document/notebook IDs to share
-        :param groupIds: A list of groupIds to share with
+        :param groupId: The ID of a group to share with
+        :param sharedFolderId: The ID of a subfolder of the group's shared folder.
         :param permission: The permission to use, default is "READ", or "EDIT"
         
         """
         if len(itemsToShare) == 0:
             raise ValueError("Must be at least 1 item to share")
-        if (len(groupIds) == 0):
-            raise ValueError ("Must supply at least 1 group ID")
+        
         sharePost = dict()
         sharePost['itemsToShare']=itemsToShare
-        groups = [ {"id":gid, "permission":permission} for gid in groupIds]
-        sharePost["groups"]=groups
+        groupShare= {"id":groupId, "permission":permission}
+        if(sharedFolderId is not None):
+            groupShare['sharedFolderId']=sharedFolderId
+        sharePost["groups"]=[groupShare]
         return self.retrieve_api_results(self._get_api_url() 
                                          + '/share', request_type='POST', params=sharePost)
     def unshareItem(self, sharingId):

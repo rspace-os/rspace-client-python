@@ -18,7 +18,19 @@ In API simulate mode it still needs all the command line parameters, but it won'
 interact with the RSpace specified (and that may not need to be a valid RSpace)
 '''
 
-api_simulate = True
+parser = argparse.ArgumentParser()
+parser.add_argument("server", help="RSpace server URL (for example, https://community.researchspace.com)", type=str)
+parser.add_argument("apiKey", help="RSpace API key can be found on 'My Profile'", type=str)
+parser.add_argument("srcDir", help="Root of uplod, for example 'eCAT''", type=str)
+parser.add_argument("workspaceFolder", help="Folder ID in Workspace (number only)", type=int)
+parser.add_argument("sharedFolder", help="Folder ID in Shared area (number only)", type=int)
+parser.add_argument("galleryDocFolder", help="Folder ID in Gallery Docs area (number only)", type=int)
+parser.add_argument("galleryImageFolder", help="Folder ID in Gallery Images area (number only)", type=int)
+
+args = parser.parse_args()
+
+api_simulate = False
+
 def isFolder(odtfname):
     print ('checking %s for folder' % odtfname)
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -67,17 +79,7 @@ def share_document(docId, groupId, folderId):
     print("Sharing document {} with group {} into folder {}".format(docId, groupId, folderId))
     shared = api_call('shareDocuments', lambda: client.shareDocuments([docId], groupId, sharedFolderId=folderId))
 
-parser = argparse.ArgumentParser()
-parser.add_argument("server", help="RSpace server URL (for example, https://community.researchspace.com)", type=str)
-parser.add_argument("apiKey", help="RSpace API key can be found on 'My Profile'", type=str)
-parser.add_argument("srcDir", help="Root of uplod, for example 'eCAT''", type=str)
-parser.add_argument("workspaceFolder", help="Folder ID in Workspace (number only)", type=int)
-parser.add_argument("sharedFolder", help="Folder ID in Shared area (number only)", type=int)
-parser.add_argument("galleryDocFolder", help="Folder ID in Gallery Docs area (number only)", type=int)
-parser.add_argument("galleryImageFolder", help="Folder ID in Gallery Images area (number only)", type=int)
-
-args = parser.parse_args()
-
+      
 client = rspace_client.Client(args.server, args.apiKey)
 
 sharingGroupId = 0
@@ -131,9 +133,7 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                         docxname = os.path.join(dirName, os.path.splitext(filename)[0] + '.docx')
                         print('importing %s to workspace and sharing' % docxname)
                         with open(docxname, 'rb') as f:
-                            t = time.time()
                             new_document = api_call('import_word', lambda: client.import_word(f, wfolders[dirName]))
-                            print_API_time(t, 'import_word')
                             docCount += 1
                             print('Document "{}" was imported to  folder {} as {} ({})'
                                   .format(f.name,wfolders[dirName], new_document['name'], new_document['globalId']))
