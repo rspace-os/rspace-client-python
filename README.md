@@ -3,6 +3,7 @@
 This project contains a client which helps calling RSpace APIs. There are some example Python scripts.
 
 To begin with you'll need an account on an RSpace server and an API key which you can get from your profile page.
+You can sign up for a free RSpace account at https://community.researchspace.com
 
 In these examples we'll be using the rspace_client package (code is in rspace_client folder) which provides an abstraction over lower-level libraries. It's compatible with both Python 2 and Python 3.
 
