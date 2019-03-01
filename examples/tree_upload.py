@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 import tempfile
 import zipfile
 import time
+import re
 
 '''
 This code imports to RSpace an eCAT export that has already had its .odt files converted to .docx files.
@@ -16,12 +17,14 @@ By default it simulates the API calls rather than running them, so you can gener
 file with listings of what it will do when run with api_simulate set to False
 In API simulate mode it still needs all the command line parameters, but it won't actually
 interact with the RSpace specified (and that may not need to be a valid RSpace)
+
+This script will log progress in a log file. Please do not delete this file while the script is running.
 '''
 # initial timestamp string to use as default log folder
-default_log_folder  = "ecat_to_rspace_" + time.asctime().replace(" ", "_")
+default_log_file  = "ecat_to_rspace_" + time.asctime().replace(" ", "_") +".log"
 parser = argparse.ArgumentParser()
-parser.add_argument("--logFolder", "-l", help="abs or relative path to folder to log progress, will be created if not exists",
-                     type=str, default=default_log_folder)
+parser.add_argument("--logFile", "-l", help="abs or relative path to a log file, will be created if not exists",
+                     type=str, default=default_log_file)
 parser.add_argument("server", help="RSpace server URL (for example, https://community.researchspace.com)", type=str)
 parser.add_argument("apiKey", help="RSpace API key can be found on 'My Profile'", type=str)
 parser.add_argument("srcDir", help="Root of uplod, for example 'eCAT''", type=str)
@@ -33,28 +36,33 @@ parser.add_argument("galleryImageFolder", help="Folder ID in Gallery Images area
 
 args = parser.parse_args()
 
-
-
 api_simulate = True
-log_folder_path = args.logFolder
-logs = {}
+log_file_path = args.logFile
 
-def log_folder(workspace_or_shared, localPath, rspaceId):
-    if workspace_or_shared != "S" and workspace_or_shared != "W":
-        raise ValueError("workspace or shared must be 'W' or 'S'")
-    print(logs['folder'])
-    with open(logs['folder'], 'a+') as folder_log:
-        folder_log.write("{ftype}|{localPath}|{rspace_id}\n"
+def log_api_success(workspace_or_shared,  rspaceId, localPath="none"):
+    """
+        Logs successful completion of an API call to RSpace.
+        :param workspace_or_shared: A code for the type of API call: SD (document creation),
+          GF (Gallery folder), FLW (Workspace folder), FLS (Shared folder),
+          GL (Gallery item) or SDS (document shared)
+        :param rspaceId: The ID of the RSpace instance
+        :param localPath: The full path to a local resource that was uploaed to RSpace. If the API 
+         call is unrelated to a local resource, this argument can be left blank and "none" will be set in logs
+    """
+    if not re.match("^(SD)|(GF)|(FLW)|(FLS)|(GL)|(SDS)$", workspace_or_shared):
+        raise ValueError("workspace or shared must match (SD)|(GF)|(FLW)|(FLS)|(GL)|(SDS)")
+   
+    with open(log_file_path, 'a+') as folder_log:
+        folder_log.write("{ftype}|{rspace_id}|{localPath}\n"
                          .format(ftype=workspace_or_shared,localPath=localPath,rspace_id=rspaceId))
+
+
         
 
-def setUpProgressLogFolder():
-    if not os.path.exists(log_folder_path):
-        print ("Creating log folder {}".format(log_folder_path))
-        os.makedirs(log_folder_path)
-        logs['folder']=os.path.join(log_folder_path, "folders.log")
-        logs['gallery']=os.path.join(log_folder_path,"gallery.log")
-        logs['word']=os.path.join(log_folder_path,"converted_word.log")
+# def setUpProgressLogFolder():
+#     if not os.path.exists(log_folder_path):
+#         print ("Creating log folder {}".format(log_folder_path))
+#         os.makedirs(log_folder_path)
         
 
 def isFolder(odtfname):
@@ -79,11 +87,16 @@ def isFolder(odtfname):
 simulated_id=1000
 simulated_response = {'id': simulated_id,'globalId': simulated_id,'name': "No Name"}
 def api_call(callname, apiCall):
+    """
+     MAkes API call. Is running in 'simulate' mode returns a simulated response
+      with auto-incrementing IDs for creation methods
+    """
     returnval = ''
     start = time.time()
     if api_simulate:
-        simulated_response['id']+=1
-        simulated_response['globalId']+=1
+        if callname != 'shareDocuments':
+            simulated_response['id']+=1
+            simulated_response['globalId']+=1
         returnval = simulated_response
     else:
         returnval = apiCall()
@@ -103,12 +116,14 @@ def create_dir_and_ancestors(fdict, dir):
         child = dir, par = parent, parentid = fdict[parent]))
     response = api_call('create_folder', lambda: client.create_folder(os.path.basename(dir), parent_folder_id=fdict[parent]))
     fdict[dir] = response['id']
+    log_api_success('GF',  response['id'], dir )
 
-def share_document(docId, groupId, folderId):
+def share_document(docId, groupId, folderId, origFilePath="None"):
     print("Sharing document {} with group {} into folder {}".format(docId, groupId, folderId))
     shared = api_call('shareDocuments', lambda: client.shareDocuments([docId], groupId, sharedFolderId=folderId))
+    log_api_success('SDS',  response['id'],origFilePath )
 
-setUpProgressLogFolder()
+
 client = rspace_client.Client(args.server, args.apiKey)
 
 sharingGroupId = 0
@@ -143,14 +158,14 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                 wfolders[dirName] = response['id']
                 print('Created workspacefolder {dir} ({dirnum}) in {par} ({parnum})'.format(
                     dir = dirname, dirnum = wfolders[dirName], par = os.path.basename(parname), parnum = wfolders[parname]))
-                log_folder('W', dirName, response['id'])
+                log_api_success('FLW',  response['id'],dirName)
                 
             if not dirName in sfolders: #folder does not exist yet
                 response = api_call('create_folder', lambda: client.create_folder(dirname, parent_folder_id=sfolders[parname]))
                 sfolders[dirName] = response['id']
                 print('Created shared folder {dir} ({dirnum}) in {par} ({parnum})'.format(
                     dir = dirname, dirnum = sfolders[dirName], par = os.path.basename(parname), parnum = sfolders[parname]))
-                log_folder('S', dirName, response['id'])
+                log_api_success('FLS',  response['id'],dirName)
             for filename in fileList:
                 print ('considering: %s' % os.path.join(dirName, filename))
                 if filename[-4:] == '.pdf' or filename[-5:] == '.docx':
@@ -169,29 +184,31 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                             docCount += 1
                             print('Document "{}" was imported to  folder {} as {} ({})'
                                   .format(f.name,wfolders[dirName], new_document['name'], new_document['globalId']))
+                            log_api_success('SD',  response['id'],docxname)
                             print('sharing into {}'.format(sfolders[dirName]))
-                            share_document(new_document['id'], sharingGroupId, sfolders[dirName])
+                            share_document(new_document['id'], sharingGroupId, sfolders[dirName], docxname)
                 else: # some other kind of file, to go in document gallery
                     # create gdfolders[dirName] and parents if needed
                     print('creating Gallery Docs folder and parents for %s' % dirName)
                     create_dir_and_ancestors(gdfolders, dirName)
                     # upload to gdfolders[dirName]
-                    print('uploading %s to Gallery Docs' % os.path.join(dirName,filename))
-                    with open(os.path.join(dirName, filename), 'rb') as f:
+                    galleryItemPath = os.path.join(dirName,filename)
+                    print('uploading %s to Gallery Docs' % galleryItemPath)
+                    with open(galleryItemPath, 'rb') as f:
                         new_file = api_call('upload_file', lambda: client.upload_file(f, caption=filename, folder_id=gdfolders[dirName]))
-                        print('File "{}" was uploaded as {} ({})'.format(f.name, new_file['name'], new_file['id']))
+                        print('File "{}" was uploaded to Gallery as {} ({})'.format(f.name, new_file['name'], new_file['id']))
+                        log_api_success('GL',  response['id'],galleryItemPath )
                         fileCount += 1
                     # create a basic document with the same name and a link to the uploaded gallery file.
                     print('creating basic document, should be in {}'.format(wfolders[dirName]))
                     new_document = api_call('create_document', lambda: client.create_document(
-                        name=filename, parent_folder_id=wfolders[dirName], fields=[{'content': 'Link to gallery file'}]
+                        name=filename, parent_folder_id=wfolders[dirName], fields=[
+                            {'content': 'Link to the gallery file: <fileId={}>'.format(new_file['id'])}
+                            ]
                     ))
                     print('New document was successfully created with global ID {}'.format(new_document['id']))
-
-                    print('linking to gallery file')
-                    updated_document = api_call('update_document', lambda: client.update_document(new_document['id'], fields=[{
-                        'content': 'Link to the gallery file: <fileId={}>'.format(new_file['id'])
-                    }]))
+                    log_api_success('SD',  new_document['id'] )
+                  
                     print('sharing into {}'.format(sfolders[dirName]))
                     share_document(new_document['id'], sharingGroupId, sfolders[dirName])
         else: # images folder
@@ -203,10 +220,12 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
             for filename in fileList:
                 # upload filename to gifolders[parentDir]
                 print('uploading %s to GalleryImages' % filename)
-                with open(os.path.join(dirName, filename), 'rb') as f:
+                galleryItemPath = os.path.join(dirName, filename)
+                with open(galleryItemPath, 'rb') as f:
                     new_file = api_call('upload_file', lambda: client.upload_file(f, folder_id=gifolders[parentDir]))
                     print('Image "{}" was uploaded as {} ({})'.format(f.name, new_file['name'], new_file['id']))
                     imgCount += 1
+                    log_api_success('GL',  new_file['id'], galleryItemPath)
             # create imageDoc = "eCAT gallery images" basic document in wfolders[parentDir]
             print('creating basic document for link to gallery images folder, should be in {}'.format(wfolders[parentDir]))
             docname = 'eCAT gallery images for documents in ' + os.path.basename(parentDir)
@@ -214,6 +233,7 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
             new_document = api_call('create_document', lambda: client.create_document(
                 name=docname, parent_folder_id=wfolders[parentDir], fields=[{'content': folder_link}]
             ))
+            log_api_success('SD',  new_file['id'], galleryItemPath)
             print('New document was successfully created with global ID {}'.format(new_document['id']))
             print('sharing into {}'.format(sfolders[parentDir]))
             share_document(new_document['id'], sharingGroupId, sfolders[parentDir])
