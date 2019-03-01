@@ -17,8 +17,11 @@ file with listings of what it will do when run with api_simulate set to False
 In API simulate mode it still needs all the command line parameters, but it won't actually
 interact with the RSpace specified (and that may not need to be a valid RSpace)
 '''
-
+# initial timestamp string to use as default log folder
+default_log_folder  = "ecat_to_rspace_" + time.asctime().replace(" ", "_")
 parser = argparse.ArgumentParser()
+parser.add_argument("--logFolder", "-l", help="abs or relative path to folder to log progress, will be created if not exists",
+                     type=str, default=default_log_folder)
 parser.add_argument("server", help="RSpace server URL (for example, https://community.researchspace.com)", type=str)
 parser.add_argument("apiKey", help="RSpace API key can be found on 'My Profile'", type=str)
 parser.add_argument("srcDir", help="Root of uplod, for example 'eCAT''", type=str)
@@ -27,9 +30,32 @@ parser.add_argument("sharedFolder", help="Folder ID in Shared area (number only)
 parser.add_argument("galleryDocFolder", help="Folder ID in Gallery Docs area (number only)", type=int)
 parser.add_argument("galleryImageFolder", help="Folder ID in Gallery Images area (number only)", type=int)
 
+
 args = parser.parse_args()
 
-api_simulate = False
+
+
+api_simulate = True
+log_folder_path = args.logFolder
+logs = {}
+
+def log_folder(workspace_or_shared, localPath, rspaceId):
+    if workspace_or_shared != "S" and workspace_or_shared != "W":
+        raise ValueError("workspace or shared must be 'W' or 'S'")
+    print(logs['folder'])
+    with open(logs['folder'], 'a+') as folder_log:
+        folder_log.write("{ftype}|{localPath}|{rspace_id}\n"
+                         .format(ftype=workspace_or_shared,localPath=localPath,rspace_id=rspaceId))
+        
+
+def setUpProgressLogFolder():
+    if not os.path.exists(log_folder_path):
+        print ("Creating log folder {}".format(log_folder_path))
+        os.makedirs(log_folder_path)
+        logs['folder']=os.path.join(log_folder_path, "folders.log")
+        logs['gallery']=os.path.join(log_folder_path,"gallery.log")
+        logs['word']=os.path.join(log_folder_path,"converted_word.log")
+        
 
 def isFolder(odtfname):
     print ('checking %s for folder' % odtfname)
@@ -50,12 +76,14 @@ def isFolder(odtfname):
         else:
             print ('Not folder!!')
         return (count == 2)
-
-simulated_response = {'id': 123,'globalId': 456,'name': "No Name"}
+simulated_id=1000
+simulated_response = {'id': simulated_id,'globalId': simulated_id,'name': "No Name"}
 def api_call(callname, apiCall):
     returnval = ''
     start = time.time()
     if api_simulate:
+        simulated_response['id']+=1
+        simulated_response['globalId']+=1
         returnval = simulated_response
     else:
         returnval = apiCall()
@@ -80,7 +108,7 @@ def share_document(docId, groupId, folderId):
     print("Sharing document {} with group {} into folder {}".format(docId, groupId, folderId))
     shared = api_call('shareDocuments', lambda: client.shareDocuments([docId], groupId, sharedFolderId=folderId))
 
-      
+setUpProgressLogFolder()
 client = rspace_client.Client(args.server, args.apiKey)
 
 sharingGroupId = 0
@@ -115,11 +143,14 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                 wfolders[dirName] = response['id']
                 print('Created workspacefolder {dir} ({dirnum}) in {par} ({parnum})'.format(
                     dir = dirname, dirnum = wfolders[dirName], par = os.path.basename(parname), parnum = wfolders[parname]))
+                log_folder('W', dirName, response['id'])
+                
             if not dirName in sfolders: #folder does not exist yet
                 response = api_call('create_folder', lambda: client.create_folder(dirname, parent_folder_id=sfolders[parname]))
                 sfolders[dirName] = response['id']
                 print('Created shared folder {dir} ({dirnum}) in {par} ({parnum})'.format(
                     dir = dirname, dirnum = sfolders[dirName], par = os.path.basename(parname), parnum = sfolders[parname]))
+                log_folder('S', dirName, response['id'])
             for filename in fileList:
                 print ('considering: %s' % os.path.join(dirName, filename))
                 if filename[-4:] == '.pdf' or filename[-5:] == '.docx':
