@@ -48,13 +48,13 @@ def log_api_success(workspace_or_shared,  rspaceId, localPath="none"):
     """
         Logs successful completion of an API call to RSpace.
         :param workspace_or_shared: A code for the type of API call: SD (document creation),
-          GF (Gallery folder), FLW (Workspace folder), FLS (Shared folder),
+          GFD (Gallery doc folder), GFI (Gallery image folder), FLW (Workspace folder), FLS (Shared folder),
           GL (Gallery item) or SDS (document shared)
         :param rspaceId: The ID of the RSpace instance
         :param localPath: The full path to a local resource that was uploaed to RSpace. If the API 
          call is unrelated to a local resource, this argument can be left blank and "none" will be set in logs
     """
-    if not re.match("^(SD)|(GF)|(FLW)|(FLS)|(GL)|(SDS)$", workspace_or_shared):
+    if not re.match("^(SD)|(GFD)|(GFI)|(FLW)|(FLS)|(GL)|(SDS)$", workspace_or_shared): 
         raise ValueError("workspace or shared must match (SD)|(GF)|(FLW)|(FLS)|(GL)|(SDS)")
    
     with open(log_file_path, 'a+') as folder_log:
