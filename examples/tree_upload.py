@@ -41,7 +41,7 @@ parser.add_argument("galleryImageFolder", help="Folder ID in Gallery Images area
 ResumeMode = False
 args = parser.parse_args()
 ResumeMode = args.resume
-api_simulate = True
+api_simulate = args.simulate
 log_file_path = args.logfile
 
 def log_api_success(workspace_or_shared,  rspaceId, localPath="none"):
@@ -274,20 +274,24 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                         print('ignoring Folder odt %s' % os.path.join(dirName, filename))
                     else:
                         docxname = os.path.join(dirName, os.path.splitext(filename)[0] + '.docx')
-                        # if not already created
-                        if not docxname in sdocs:
-                            print('importing %s to workspace and sharing' % docxname)
-                            with open(docxname, 'rb') as f:
+                        
+                        print('importing %s to workspace and sharing' % docxname)
+                        with open(docxname, 'rb') as f:
+                            # if not already created
+                            docId = -1
+                            if not docxname in sdocs:
                                 new_document = api_call('import_word', lambda: client.import_word(f, wfolders[dirName]))
                                 docCount += 1
                                 print('Document "{}" was imported to  folder {} as {} ({})'
                                   .format(f.name,wfolders[dirName], new_document['name'], new_document['globalId']))
                                 log_api_success('SD',  new_document['id'],docxname)
                                 sdocs[docxname] = new_document['id']
+                                docId = new_document['id']
+                            else:
+                                docId = sdocs[docxname]   ## resume mode
                                 
-                                
-                                print('sharing into {}'.format(sfolders[dirName]))
-                                share_document(new_document['id'], sharingGroupId, sfolders[dirName], docxname)
+                            print('sharing into {}'.format(sfolders[dirName]))
+                            share_document(docId, sharingGroupId, sfolders[dirName], docxname)
                                 
                 else: # some other kind of file, to go in document gallery
                     # create gdfolders[dirName] and parents if needed
@@ -295,34 +299,39 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                     create_dir_and_ancestors(gdfolders, dirName,'GFD')
                     # upload to gdfolders[dirName]
                     galleryItemPath = os.path.join(dirName,filename)
-                    if not galleryItemPath in glfiles:
-                        print('uploading %s to Gallery Docs' % galleryItemPath)
-                        with open(galleryItemPath, 'rb') as f:
-                            new_file = api_call('upload_file', lambda: client.upload_file(f, caption=filename, folder_id=gdfolders[dirName]))
-                            print('File "{}" was uploaded to Gallery as {} ({})'.format(f.name, new_file['name'], new_file['id']))
-                            log_api_success('GL',  new_file['id'],galleryItemPath )
-                            glfiles[galleryItemPath] = new_file['id']
-                            fileCount += 1
+                    
+                    print('uploading %s to Gallery Docs' % galleryItemPath)
+                    with open(galleryItemPath, 'rb') as f:
+                            new_file_id=-1
+                            if not galleryItemPath in glfiles:
+                                new_file = api_call('upload_file', lambda: client.upload_file(f, caption=filename, folder_id=gdfolders[dirName]))
+                                new_file_id = new_file['id']
+                                print('File "{}" was uploaded to Gallery as {} ({})'.format(f.name, new_file['name'], new_file_id))
+                                log_api_success('GL',  new_file_id,galleryItemPath )
+                                glfiles[galleryItemPath] = new_file_id
+                                fileCount += 1
+                            else:
+                                new_file_id = glfiles[galleryItemPath]
+                                print ("File  {} was already uploaded".format(galleryItemPath))
                             # create a basic document with the same name and a link to the uploaded gallery file.
-                            if not new_file['id'] in sdocs:
+                            if not new_file_id in sdocs:
                                 print('creating basic document, should be in {}'.format(wfolders[dirName]))
                                 new_document = api_call('create_document', lambda: client.create_document(
                                     name=filename, parent_folder_id=wfolders[dirName], fields=[
-                                        {'content': 'Link to the gallery file: <fileId={}>'.format(new_file['id'])}
+                                        {'content': 'Link to the gallery file: <fileId={}>'.format(new_file_id)}
                                         ]))
-                                sdocs[new_file['id']] = new_document['id']
+                                sdocs[new_file_id] = new_document['id']
                                 ## we log the new file ID and the linked doc. We use this so as to know if 
                                 ## this doc was previously created, if resuming
-                                log_api_success('SD',  new_document['id'], new_file['id'] )
+                                log_api_success('SD',  new_document['id'], new_file_id)
                                 print('New document was successfully created with global ID {}'.format(new_document['id']))
                   
                                 print('sharing into {}'.format(sfolders[dirName]))
-                                share_document(new_document['id'], sharingGroupId, sfolders[dirName], new_file['id'])
+                                share_document(new_document['id'], sharingGroupId, sfolders[dirName], new_file_id)
                             else:
                                 print ("Document linking to {} was already created".format(new_file['id']))
                                 
-                    else:
-                        print ("File  {} was already uploaded".format(galleryItemPath))
+                    
         else: # images folder
             ## TODO complete resume code
             parentDir = os.path.dirname(dirName)
@@ -344,18 +353,24 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                 else:
                     print ("Image '{}' was already uploaded".format(galleryItemPath))
             # create imageDoc = "eCAT gallery images" basic document in wfolders[parentDir]
+           
+            print('creating basic document for link to gallery images folder, should be in {}'.format(wfolders[parentDir]))
+            docname = 'eCAT gallery images for documents in ' + os.path.basename(parentDir)
+            folder_link = 'Gallery Images in Documents in this folder:\n<docId={}>\n'.format(gifolders[parentDir])
+            new_document_id = -1
             if not dirName in sdocs:
-                print('creating basic document for link to gallery images folder, should be in {}'.format(wfolders[parentDir]))
-                docname = 'eCAT gallery images for documents in ' + os.path.basename(parentDir)
-                folder_link = 'Gallery Images in Documents in this folder:\n<docId={}>\n'.format(gifolders[parentDir])
                 new_document = api_call('create_document', lambda: client.create_document(
                     name=docname, parent_folder_id=wfolders[parentDir], fields=[{'content': folder_link}]
                 ))
-                log_api_success('SD',  new_document['id'], dirName)
-                sdocs[dirName] =  new_document['id'];
-                print('New document was successfully created with global ID {}'.format(new_document['id']))
-                print('sharing into {}'.format(sfolders[parentDir]))
-                share_document(new_document['id'], sharingGroupId, sfolders[parentDir], dirName)
+                new_document_id =  new_document['id']
+                log_api_success('SD',new_document_id , dirName)
+                sdocs[dirName] =  new_document_id;
+                print('New document was successfully created with global ID {}'.format(new_document_id))
+            else:
+                new_document_id = sdocs[dirName]
+                print ("Folder link doc was already created")
+            print('sharing into {}'.format(sfolders[parentDir]))
+            share_document(new_document_id, sharingGroupId, sfolders[parentDir], dirName)
 
 print ("Done!")
 print('Processed (folders/instances): Docs {}/{}; Images {}/{}; Files {}/{}'.format(
