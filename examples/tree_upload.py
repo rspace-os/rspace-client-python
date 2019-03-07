@@ -19,10 +19,19 @@ In API simulate mode it still needs all the command line parameters, but it won'
 interact with the RSpace specified (and that may not need to be a valid RSpace)
 
 This script will log progress in a log file. Please do not delete this file while the script is running.
+This log file can be used to resume an import in the case that an initial import was interrupted by network error
+ or server error. 
+ 
+If you want to resume a run, add --resume --logfile /path/to/logfile.log. This will ensure that previously uploaded
+ items won't be uploaded again. In order for this to work properly, don't tamper with log files.
+
 '''
-# initial timestamp string to use as default log folder
+# initial timestamp string to use as default log file
 default_log_file  = "ecat_to_rspace_" + time.asctime().replace(" ", "_") +".log"
+
+## Header for a log file to identify a log file as relarign to this script
 LOG_FILE_HEADER="EcatToRSpaceFolderLog"
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--logfile", "--l", help="abs or relative path to a log file, will be created if not exists",
                      type=str, default=default_log_file)
@@ -37,6 +46,7 @@ parser.add_argument("workspaceFolder", help="Folder ID in Workspace (number only
 parser.add_argument("sharedFolder", help="Folder ID in Shared area (number only)", type=int)
 parser.add_argument("galleryDocFolder", help="Folder ID in Gallery Docs area (number only)", type=int)
 parser.add_argument("galleryImageFolder", help="Folder ID in Gallery Images area (number only)", type=int)
+parser.add_argument("wordImportImageFolder", help="Folder ID in Gallery Images  for embedded images", type=int)
 
 ResumeMode = False
 args = parser.parse_args()
@@ -234,7 +244,8 @@ gdfolders = _init_gdfolders() # gallery document folders dictionary, keyed on so
 gifolders = _init_gifolders() # gallery image folders dictionary, keyed on source path
 sdocs = _init_sdocs() # documents already converted
 shared_sdocs = _init_shared_sdocs()
-glfiles= _init_glfiles()
+glfiles = _init_glfiles()
+embedded_image_folder_id = args.wordImportImageFolder
 
 docCount = 0
 imgCount = 0
@@ -280,7 +291,7 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                             # if not already created
                             docId = -1
                             if not docxname in sdocs:
-                                new_document = api_call('import_word', lambda: client.import_word(f, wfolders[dirName]))
+                                new_document = api_call('import_word', lambda: client.import_word(f, wfolders[dirName], embedded_image_folder_id))
                                 docCount += 1
                                 print('Document "{}" was imported to  folder {} as {} ({})'
                                   .format(f.name,wfolders[dirName], new_document['name'], new_document['globalId']))
@@ -288,7 +299,8 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                                 sdocs[docxname] = new_document['id']
                                 docId = new_document['id']
                             else:
-                                docId = sdocs[docxname]   ## resume mode
+                                docId = sdocs[docxname]
+                                print("{} was ready uploaded".format(sdocs[docxname]))   ## resume mode
                                 
                             print('sharing into {}'.format(sfolders[dirName]))
                             share_document(docId, sharingGroupId, sfolders[dirName], docxname)
@@ -313,6 +325,9 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                             else:
                                 new_file_id = glfiles[galleryItemPath]
                                 print ("File  {} was already uploaded".format(galleryItemPath))
+                            if new_file_id == -1:
+                                print("ERROR - file ID not determined")
+                                exit
                             # create a basic document with the same name and a link to the uploaded gallery file.
                             if not new_file_id in sdocs:
                                 print('creating basic document, should be in {}'.format(wfolders[dirName]))
@@ -329,7 +344,7 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                                 print('sharing into {}'.format(sfolders[dirName]))
                                 share_document(new_document['id'], sharingGroupId, sfolders[dirName], new_file_id)
                             else:
-                                print ("Document linking to {} was already created".format(new_file['id']))
+                                print ("Document linking to {} was already created".format(new_file_id))
                                 
                     
         else: # images folder
@@ -375,3 +390,4 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
 print ("Done!")
 print('Processed (folders/instances): Docs {}/{}; Images {}/{}; Files {}/{}'.format(
     len(wfolders), docCount, len(gifolders), imgCount, len(gdfolders), fileCount))
+## TODO check resume of shared docs and conditionals.
