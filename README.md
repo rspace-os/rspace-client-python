@@ -161,6 +161,15 @@ new_document = client.create_document(name='Python API Example Basic Document', 
                                       fields=[{'content': 'Some example text'}])
 ```
 
+You can also supply the `parentFolderId` of the workspace folder you want the document created in:
+
+
+```python
+# Creating a new Basic document in specified folder:
+new_document = client.create_document(name='Python API Example Basic Document', tags=['Python', 'API', 'example'],
+                                      fields=[{'content': 'Some example text'}], parent_folder_id=21);
+```
+
 It is possible to edit a document by sending a PUT request to `/documents/{id}`, where {id} is a documentID. Document name, tags and field values can be edited.
 
 ```python
