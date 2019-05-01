@@ -85,8 +85,10 @@ class Client:
 
             if Client._responseContainsJson(response):
                 return response.json()
-            else:
+            elif response.text:
                 return response.text
+            else:
+                return response
         except:
             if 'application/json' in response.headers['Content-Type']:
                 error = 'Error code: {}, {}'.format(response.status_code,
@@ -769,3 +771,21 @@ class Client:
         :return: parsed response as a dictionary (most important field is 'message' which is supposed to be 'OK')
         """
         return self.retrieve_api_results(self._get_api_url() + '/status')
+    
+    ##### Non - documented, non public API methods:
+    # Sysadmin methods
+    def get_users(self, page_number=0, page_size=20, created_before="2018-04-30"):
+        """
+        Gets list of temporary users
+        """
+        params = {
+            'pageSize': page_size,
+            'pageNumber': page_number,
+            'createdBefore' : created_before
+        }     
+
+        return self.retrieve_api_results(self._get_api_url() + '/sysadmin/users', params)
+    
+    def deleteTempUser(self, user_id):
+        return self.doDelete( "sysadmin/users", user_id)
+        

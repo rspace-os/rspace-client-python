@@ -22,8 +22,10 @@ This script will log progress in a log file. Please do not delete this file whil
 This log file can be used to resume an import in the case that an initial import was interrupted by network error
  or server error. 
  
-If you want to resume a run, add --resume --logfile /path/to/logfile.log. This will ensure that previously uploaded
- items won't be uploaded again. In order for this to work properly, don't tamper with log files.
+If you want to resume a run, add --resume --logfile /path/to/logfile.log to the command line.
+ This will ensure that previously uploaded  items won't be uploaded again. In order for this to work properly, don't tamper with log files.
+Log file records are keyed by the absolute file path of the word files. So it's important not to alter any files or folders
+ in the source folder in between runs.
 
 '''
 # initial timestamp string to use as default log file
