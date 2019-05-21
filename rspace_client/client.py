@@ -774,15 +774,18 @@ class Client:
     
     ##### Non - documented, non public API methods:
     # Sysadmin methods
-    def get_users(self, page_number=0, page_size=20, created_before="2018-04-30"):
+    def get_users(self, page_number=0, page_size=20, tempaccount_only=True, created_before="2018-04-30",last_login_before=None):
         """
         Gets list of temporary users
         """
         params = {
             'pageSize': page_size,
             'pageNumber': page_number,
-            'createdBefore' : created_before
-        }     
+            'createdBefore' : created_before,
+            'tempAccountsOnly': tempaccount_only
+        }
+        if last_login_before is not None:
+            params['lastLoginBefore'] = last_login_before
 
         return self.retrieve_api_results(self._get_api_url() + '/sysadmin/users', params)
     

@@ -6,14 +6,14 @@ import time
 
 def print_users(response):
     print('Users in response:')
-    with open("toDelete.txt", 'a+') as toDelete:     
+    with open("toDelete-8087.txt", 'a+') as toDelete:     
         for user in response['users']:
             print(user['id']) 
             toDelete.write("{0}\n".format(user['id']))
             
 def delete_users(): 
-    with open("toDelete.txt", "r") as toDelete:
-        with open("log.txt", "a+") as log:
+    with open("toDelete-8087.txt", "r") as toDelete:
+        with open("log-8087.txt", "a+") as log:
             lines = toDelete.readlines()
             for line in lines:
                 userId = line.rstrip("\r\n")
@@ -33,7 +33,7 @@ def delete_users():
 client = rspace_client.utils.createClient()
 
 #Simple search
-response = client.get_users(page_size=50,created_before="2018-04-30")
+response = client.get_users(page_size=50,tempaccount_only="false", last_login_before="2017-05-01",  created_before="2017-05-01")
 print_users(response)
      
  
