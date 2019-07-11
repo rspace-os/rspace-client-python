@@ -435,6 +435,18 @@ class Client:
         response = requests.post(self._get_api_url() + '/files', files={"file": file}, data=data,
                                  headers=self._get_headers())
         return self._handle_response(response)
+    
+    def update_file(self, file, fileId):
+        """
+        Upload a file to the gallery. More information on
+        https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
+        :param file: open file object
+        :param fileId: Id of the file to replace
+        :return: updated File response as a dictionary
+        """
+        response = requests.post(self._get_api_url() + '/files/{}/file'.format(fileId), files={"file": file}, 
+                                 headers=self._get_headers())
+        return self._handle_response(response)
 
     # Activity methods
     def get_activity(self, page_number=0, page_size=100, order_by=None, date_from=None, date_to=None, actions=None,

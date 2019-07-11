@@ -23,6 +23,11 @@ with open('resources/2017-05-10_1670091041_CNVts.csv', 'rb') as f:
     new_file = client.upload_file(f, caption='some caption')
     print('File "{}" was uploaded as {} ({})'.format(f.name, new_file['name'], new_file['globalId']))
 
+with open('resources/2017-05-10_1243111032_GT_DetailedTS_E.csv', 'rb') as f2:
+    print ("updating file with a new version")
+    updatedFile = client.update_file(f2, new_file['id'] )
+    print  ('File "{}" has replaced "{}" and is now version {}'.format(updatedFile['name'],
+                     new_file['name'], updatedFile['version']))
 # Editing the document to link to the uploaded file
 updated_document = client.update_document(new_document['id'], fields=[{
     'content': 'Some example text. Link to the uploaded file: <fileId={}>'.format(new_file['id'])
