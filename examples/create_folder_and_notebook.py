@@ -32,3 +32,15 @@ print('Folder id [{}] with name "{}" has been created:'.format(folder_id , respo
 print("Deleting folder")
 response=client.delete_folder( response['globalId'])
 print("deleted folder {}".format(folder_id))
+
+print("Listing all contents of home folder")
+response=client.list_folder_tree()
+print('Found {} items '.format(response['totalHits']))
+for item in response['records']:
+    print('{}, (id = {}), type = {}'.format(item['name'], item['id'], item['type']))
+
+print ("Listing only documents and notebooks...")
+response=client.list_folder_tree(None, ['document', 'notebook'])
+print('Found {} items '.format(response['totalHits']))
+for item in response['records']:
+    print('{}, (id = {}), type = {}'.format(item['name'], item['id'], item['type']))

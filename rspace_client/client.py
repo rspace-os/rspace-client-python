@@ -741,6 +741,27 @@ class Client:
         numeric_folder_id = self._get_numeric_record_id(folder_id)
         return self.retrieve_api_results(self._get_api_url() + '/folders/{}'.format(numeric_folder_id))
 
+    def list_folder_tree (self, folder_id=None, typesToInclude=[]):
+        """
+         Lists contents of a folder by its ID.
+         :param folder_id. Optional folderId. If none, will return listing of Home Folder
+         :param typesToInclude: An optional list of any of 'folder', 'notebook' or 'document'. Results
+          will be restricted to these types
+         :return a paginated folder listing
+        """
+        url = ""
+        if folder_id is not None:
+            url = self._get_api_url() + '/folders/tree/{}'.format(folder_id)
+        else:
+            url = self._get_api_url() + '/folders/tree'
+        params = {}
+        if len(typesToInclude) > 0:
+            if 'document' not in typesToInclude and 'notebook' not in typesToInclude and 'folder' not in typesToInclude:
+                raise ValueError('typesToInclude must be contain "document", "notebook" and/or "folder"')
+            params['typesToInclude'] =",".join(typesToInclude)
+        return self.retrieve_api_results(url, params)
+        
+                 
     # Groups methods
     def get_groups(self):
         """ 
