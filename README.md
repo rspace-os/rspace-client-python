@@ -185,10 +185,31 @@ Any file that can be uploaded by using the UI can be uploaded by sending a POST 
 # Uploading a file to the gallery
 with open('resources/2017-05-10_1670091041_CNVts.csv', 'rb') as f:
     new_file = client.upload_file(f, caption='some caption')
+```
 
-# Editing the document to link to the uploaded file
+
+### Linking to files and other RSpace documents
+
+There is a convenient syntax to link to either files or other RSpace documents.
+
+To include links to files in your document content, you can use the syntax <fileId=12345> where '12345' is the ID of a file uploaded through the
+`files/` endpoint.
+
+
+```python
+# Editing a document to link to an uploaded file
 client.update_document(new_document['id'], fields=[{
     'content': 'Some example text. Link to the uploaded file: <fileId={}>'.format(new_file['id'])
+}])
+```
+
+To include links to RSpace documents, folders or notebooks in your document content, you can use the syntax <docId=12345> where '12345' is the ID of an RSpace document,folder or notebook. E.g.
+
+
+```python
+# Editing a document to link to another RSpace document
+client.update_document(new_document['id'], fields=[{
+    'content': 'Some example text. Link to another document: <docId={}>'.format(anotherDocument['id'])
 }])
 ```
 
