@@ -16,6 +16,11 @@ To install rspace-client and its dependencies, run
 pip3 install rspace-client
 ```
 
+You may need to install `six` and `requests` modules:
+``` bash
+pip3 install six requests
+```
+
 To run the example scripts in the examples folder, cd to that folder, then run
 
 ```bash
