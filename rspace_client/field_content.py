@@ -16,8 +16,6 @@ class DataTable:
         return len(self.calculation_table)
     
         
-        
-
 class FieldContent:
     
     def __init__(self, html_content) :
