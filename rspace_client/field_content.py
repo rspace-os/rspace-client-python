@@ -8,21 +8,37 @@ Created on Thu Jun  3 09:50:47 2021
 
 from bs4 import BeautifulSoup
 import re
-class DataTable:
+
     
-    def __init__(self, array_2d) :
-        self.calculation_table = array_2d
-    def row_count(self):
-        return len(self.calculation_table)
-    
-        
 class FieldContent:
+    """
+      Encapsulates HTML content of text fields and provides methods to pull
+      out features of interest such as tables, links etc
+    """
     
     def __init__(self, html_content) :
         self.html = html_content
         self.soup = BeautifulSoup(self.html, 'html.parser')
         
     def get_datatables(self, search_term=None, ignore_empty_rows=True, ignore_empty_columns=True):
+        """
+        Parses  HTML content to identify and return CalculationTables as 2d arrays
+        Parameters
+        ----------
+        search_term : A query string, optional
+            Use as a filter to return only data-tabes containing this string. The default is None.
+        ignore_empty_rows : Boolean, optional
+              The default is True.
+        ignore_empty_columns : Boolean, optional
+              The default is True.
+
+        Returns
+        -------
+        all_tables : A List of 2d arrays
+            A possibly empty list of 2d arrays in format [row][column]
+            containing the data-set values. Formulas are not included
+
+        """
         divs = self.soup.find_all('div', class_ ='rsCalcTableDiv')
         all_tables= []
         for div in divs:
@@ -52,11 +68,3 @@ class FieldContent:
             all_tables.append(all_r_data)
         ## a list of 2d arrays. Each row has same number of columns
         return all_tables
-    
-
-
-with open('table.html') as f:
-    text = f.read()
-    field=FieldContent(text)
-    print (field.get_datatables(search_term='nov',ignore_empty_columns=True))
-
