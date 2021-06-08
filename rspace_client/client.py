@@ -585,6 +585,7 @@ class Client:
         'STARTED', 'STARTING', 'RUNNING', 'COMPLETED', 'FAILED', 'ABANDONED')
         """
         return self.retrieve_api_results(self._get_api_url() + '/jobs/{}'.format(job_id))
+    
 
     # Form related methods
     def get_forms(self, query=None, order_by='lastModified desc', page_number=0, page_size=20):

@@ -330,7 +330,9 @@ client.unshare_form('FM123')
 
 ### Export
 
-From RSpace 1.47 (API version 1.3) you can programmatically export your work in HTML or XML format. This might be useful if you want to make scheduled backups, for example. If you're an admin or PI you can export a particular user's work if you have permission.
+You can programmatically export your work in HTML or XML format. This might be useful if you want to make scheduled backups, for example. If you're an admin or PI you can export a particular user's work if you have permission.
+
+You can also export specific documents, notebooks or folders. _Note_ this requires RSpace 1.69.19 or later.
 
 Because export can be quite time-consuming, this is an asynchronous operation. On initial export you will receive a link to a job that you can query for progress updates. When the export has completed there will be a link to access the exported file - which may be very large.
 
