@@ -9,11 +9,13 @@ Created on Mon Jun  7 08:38:55 2021
 
 import rspace_client as cli
 import unittest
+import os
 
 class TestBasicFunction(unittest.TestCase):
 
     def setUp(self):
-        with open('table.html') as f:
+        dataDir=os.path.join(os.path.dirname(__file__), 'data/calculation_table.html')
+        with open(dataDir) as f:
             text = f.read()
             field = cli.field_content.FieldContent(text)
             self.field = field
