@@ -296,6 +296,75 @@ class Client:
 
         return self.retrieve_api_results(self._get_api_url() + '/documents', request_type='POST', params=data)
 
+    def prepend_content(self, document_id, html_content, field_index=0):
+        """
+         Prepends content to the beginning of a field. If the field_id is omitted,
+         this will prepend content to the first field.  
+         
+        If field_id is set, this must be a field_id that belongs to  the document.
+
+        Parameters
+        ----------
+        document_id : Integer
+            The id of the document that is being modified.
+        htmlContent : String
+            HTML snippet.
+        field_index : Integer, optional, default = 0
+            Index of the field ( 0-based)
+
+        Returns
+        -------
+        The updated document
+        """
+        return self._add_content(document_id, html_content, field_index, False)
+    
+    def append_content(self, document_id, html_content, field_index=0):
+        """
+         Appends content to the end of a field. If the field_id is omitted,
+         this will append content to the end of the first field.  
+         
+        If field_id is set, this must be a field_id that belongs to  the document.
+
+        Parameters
+        ----------
+        document_id : Integer
+            The id of the document that is being modified.
+        htmlContent : String
+            HTML snippet.
+        field_index : Integer, optional - default = 0
+            Index of the field ( 0-based)
+
+        Returns
+        -------
+        The updated document
+        """
+        return self._add_content(document_id, html_content, field_index, True)
+     
+    
+    def _add_content (self, document_id, html_content, field_index=0, append=True):
+        if document_id is None:
+            raise ValueError("No document ID was set")
+        if html_content is None:
+            raise ValueError("No HTML content was set")
+        doc = self.get_document(document_id)
+        field = None
+        
+        if  field_index > 0:
+            fields = doc['fields']
+            if field_index >= len(fields):
+                raise ValueError("Field at index {} doesn't exist, document {} has {} fields".format(field_index, document_id, len(fields)))
+            field = fields[field_index]
+        
+        else:
+            field = doc['fields'][0]
+        if append:
+            new_content = field['content'] + html_content
+        else:
+            new_content = html_content + field['content'] 
+        to_update = [{'id': field['id'], 'content': new_content}]
+        return self.update_document(document_id, form_id=doc['form']['id'], fields=to_update)
+        
+        
     def update_document(self, document_id, name=None, tags=None, form_id=None, fields=None):
         """
         Updates a document with a given document id. More information on
@@ -325,7 +394,7 @@ class Client:
 
         if fields is not None and len(fields) > 0:
             data['fields'] = fields
-
+        print(data)
         numeric_doc_id = self._get_numeric_record_id(document_id)
         return self.retrieve_api_results(self._get_api_url() + '/documents/{}'.format(numeric_doc_id),
                                          request_type='PUT', params=data)
@@ -792,3 +861,7 @@ class Client:
     def deleteTempUser(self, user_id):
         return self.doDelete( "sysadmin/users", user_id)
         
+key="abcdefghijklmnop9"
+url = "https://pangolin8086.researchspace.com"
+
+
