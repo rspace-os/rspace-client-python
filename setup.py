@@ -14,7 +14,7 @@ setup(
     name='rspace-client',
     version='1.6.0-alpha',
     description='A client which helps calling RSpace APIs',
-    long_description=long_description,
+    long_description_content_type='text/markdown',
     url='https://github.com/rspace-os/rspace-client-python',
     author='Research Innovations Ltd',
     author_email='richard@researchspace.com',
