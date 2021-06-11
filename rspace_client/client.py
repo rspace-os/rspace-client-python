@@ -394,7 +394,6 @@ class Client:
 
         if fields is not None and len(fields) > 0:
             data['fields'] = fields
-        print(data)
         numeric_doc_id = self._get_numeric_record_id(document_id)
         return self.retrieve_api_results(self._get_api_url() + '/documents/{}'.format(numeric_doc_id),
                                          request_type='PUT', params=data)
@@ -861,7 +860,5 @@ class Client:
     def deleteTempUser(self, user_id):
         return self.doDelete( "sysadmin/users", user_id)
         
-key="abcdefghijklmnop9"
-url = "https://pangolin8086.researchspace.com"
 
 
