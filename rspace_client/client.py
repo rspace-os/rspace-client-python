@@ -85,8 +85,10 @@ class Client:
 
             if Client._responseContainsJson(response):
                 return response.json()
-            else:
+            elif response.text:
                 return response.text
+            else:
+                return response
         except:
             if 'application/json' in response.headers['Content-Type']:
                 error = 'Error code: {}, {}'.format(response.status_code,
@@ -294,6 +296,75 @@ class Client:
 
         return self.retrieve_api_results(self._get_api_url() + '/documents', request_type='POST', params=data)
 
+    def prepend_content(self, document_id, html_content, field_index=0):
+        """
+         Prepends content to the beginning of a field. If the field_id is omitted,
+         this will prepend content to the first field.  
+         
+        If field_id is set, this must be a field_id that belongs to  the document.
+
+        Parameters
+        ----------
+        document_id : Integer
+            The id of the document that is being modified.
+        htmlContent : String
+            HTML snippet.
+        field_index : Integer, optional, default = 0
+            Index of the field ( 0-based)
+
+        Returns
+        -------
+        The updated document
+        """
+        return self._add_content(document_id, html_content, field_index, False)
+    
+    def append_content(self, document_id, html_content, field_index=0):
+        """
+         Appends content to the end of a field. If the field_id is omitted,
+         this will append content to the end of the first field.  
+         
+        If field_id is set, this must be a field_id that belongs to  the document.
+
+        Parameters
+        ----------
+        document_id : Integer
+            The id of the document that is being modified.
+        htmlContent : String
+            HTML snippet.
+        field_index : Integer, optional - default = 0
+            Index of the field ( 0-based)
+
+        Returns
+        -------
+        The updated document
+        """
+        return self._add_content(document_id, html_content, field_index, True)
+     
+    
+    def _add_content (self, document_id, html_content, field_index=0, append=True):
+        if document_id is None:
+            raise ValueError("No document ID was set")
+        if html_content is None:
+            raise ValueError("No HTML content was set")
+        doc = self.get_document(document_id)
+        field = None
+        
+        if  field_index > 0:
+            fields = doc['fields']
+            if field_index >= len(fields):
+                raise ValueError("Field at index {} doesn't exist, document {} has {} fields".format(field_index, document_id, len(fields)))
+            field = fields[field_index]
+        
+        else:
+            field = doc['fields'][0]
+        if append:
+            new_content = field['content'] + html_content
+        else:
+            new_content = html_content + field['content'] 
+        to_update = [{'id': field['id'], 'content': new_content}]
+        return self.update_document(document_id, form_id=doc['form']['id'], fields=to_update)
+        
+        
     def update_document(self, document_id, name=None, tags=None, form_id=None, fields=None):
         """
         Updates a document with a given document id. More information on
@@ -323,7 +394,6 @@ class Client:
 
         if fields is not None and len(fields) > 0:
             data['fields'] = fields
-
         numeric_doc_id = self._get_numeric_record_id(document_id)
         return self.retrieve_api_results(self._get_api_url() + '/documents/{}'.format(numeric_doc_id),
                                          request_type='PUT', params=data)
@@ -803,3 +873,26 @@ class Client:
         :return: parsed response as a dictionary (most important field is 'message' which is supposed to be 'OK')
         """
         return self.retrieve_api_results(self._get_api_url() + '/status')
+    
+    ##### Non - documented, non public API methods:
+    # Sysadmin methods
+    def get_users(self, page_number=0, page_size=20, tempaccount_only=True, created_before="2018-04-30",last_login_before=None):
+        """
+        Gets list of temporary users
+        """
+        params = {
+            'pageSize': page_size,
+            'pageNumber': page_number,
+            'createdBefore' : created_before,
+            'tempAccountsOnly': tempaccount_only
+        }
+        if last_login_before is not None:
+            params['lastLoginBefore'] = last_login_before
+
+        return self.retrieve_api_results(self._get_api_url() + '/sysadmin/users', params)
+    
+    def deleteTempUser(self, user_id):
+        return self.doDelete( "sysadmin/users", user_id)
+        
+
+
