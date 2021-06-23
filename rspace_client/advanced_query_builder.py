@@ -6,21 +6,23 @@ class AdvancedQueryBuilder:
     """
     AdvancedQueryBuilder helps to build an advanced query for /documents API endpoint.
     """
+
     class QueryType(Enum):
         """
         Lists all query types available in /documents API endpoint. More information on
         https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
         """
-        GLOBAL = 'global'
-        FULL_TEXT = 'fullText'
-        TAG = 'tag'
-        NAME = 'name'
-        CREATED = 'created'
-        LAST_MODIFIED = 'lastModified'
-        FORM = 'form'
-        ATTACHMENT = 'attachment'
 
-    def __init__(self, operator='and'):
+        GLOBAL = "global"
+        FULL_TEXT = "fullText"
+        TAG = "tag"
+        NAME = "name"
+        CREATED = "created"
+        LAST_MODIFIED = "lastModified"
+        FORM = "form"
+        ATTACHMENT = "attachment"
+
+    def __init__(self, operator="and"):
         """
         :param operator: either 'and' or 'or'
         """
@@ -35,11 +37,10 @@ class AdvancedQueryBuilder:
         :return: self
         """
         if not isinstance(query_type, AdvancedQueryBuilder.QueryType):
-            raise TypeError('query_type must be an instance of QueryType (for example, QueryType.GLOBAL)')
-        self.terms.append({
-            'query': query,
-            'queryType': query_type.value
-        })
+            raise TypeError(
+                "query_type must be an instance of QueryType (for example, QueryType.GLOBAL)"
+            )
+        self.terms.append({"query": query, "queryType": query_type.value})
         return self
 
     def get_advanced_query(self):
@@ -47,10 +48,7 @@ class AdvancedQueryBuilder:
         Builds an advanced query.
         :return: JSON representation of the built advanced query
         """
-        return json.dumps({
-            'operator': self.operand,
-            'terms': self.terms
-        })
+        return json.dumps({"operator": self.operand, "terms": self.terms})
 
     def __str__(self):
         """

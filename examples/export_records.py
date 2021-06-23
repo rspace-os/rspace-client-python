@@ -8,4 +8,7 @@ import rspace_client
 client = rspace_client.utils.createClient()
 
 # Export current user's records in XML format
-print('Export archive was downloaded to:', client.download_export('xml', 'user', file_path='/tmp'))
+print(
+    "Export archive was downloaded to:",
+    client.download_export("xml", "user", file_path="/tmp"),
+)

@@ -7,38 +7,71 @@ import rspace_client
 client = rspace_client.utils.createClient()
 
 # Creating a new Basic document in Api Inbox folder
-new_document = client.create_document(name='Python API Example Basic Document', tags=['Python', 'API', 'example'],
-                       fields=[{'content': 'Some example text'}])
-print('New document was successfully created with global ID {}'.format(new_document['globalId']))
+new_document = client.create_document(
+    name="Python API Example Basic Document",
+    tags=["Python", "API", "example"],
+    fields=[{"content": "Some example text"}],
+)
+print(
+    "New document was successfully created with global ID {}".format(
+        new_document["globalId"]
+    )
+)
 
 # Creating a document in a specific Workspace folder:
-folder= client.create_folder("subfolder");
-new_document2 = client.create_document(name='Basic Document in subfolder', parent_folder_id=folder['id'],
-                       fields=[{'content': 'Some example text'}])
-print ("Created document id [{}] in folder id [{}]".format(new_document2['id'], folder['id']))
+folder = client.create_folder("subfolder")
+new_document2 = client.create_document(
+    name="Basic Document in subfolder",
+    parent_folder_id=folder["id"],
+    fields=[{"content": "Some example text"}],
+)
+print(
+    "Created document id [{}] in folder id [{}]".format(
+        new_document2["id"], folder["id"]
+    )
+)
 
 
 # Uploading a file to the gallery
-with open('resources/2017-05-10_1670091041_CNVts.csv', 'rb') as f:
-    new_file = client.upload_file(f, caption='some caption')
-    print('File "{}" was uploaded as {} ({})'.format(f.name, new_file['name'], new_file['globalId']))
+with open("resources/2017-05-10_1670091041_CNVts.csv", "rb") as f:
+    new_file = client.upload_file(f, caption="some caption")
+    print(
+        'File "{}" was uploaded as {} ({})'.format(
+            f.name, new_file["name"], new_file["globalId"]
+        )
+    )
 
-with open('resources/2017-05-10_1243111032_GT_DetailedTS_E.csv', 'rb') as f2:
-    print ("updating file with a new version")
-    updatedFile = client.update_file(f2, new_file['id'] )
-    print  ('File "{}" has replaced "{}" and is now version {}'.format(updatedFile['name'],
-                     new_file['name'], updatedFile['version']))
+with open("resources/2017-05-10_1243111032_GT_DetailedTS_E.csv", "rb") as f2:
+    print("updating file with a new version")
+    updatedFile = client.update_file(f2, new_file["id"])
+    print(
+        'File "{}" has replaced "{}" and is now version {}'.format(
+            updatedFile["name"], new_file["name"], updatedFile["version"]
+        )
+    )
 # Editing the document to link to the uploaded file
-updated_document = client.update_document(new_document['id'], fields=[{
-    'content': 'Some example text. Link to the uploaded file: <fileId={}>'.format(new_file['id'])
-}])
-print('Document has been updated to link to the uploaded file.')
+updated_document = client.update_document(
+    new_document["id"],
+    fields=[
+        {
+            "content": "Some example text. Link to the uploaded file: <fileId={}>".format(
+                new_file["id"]
+            )
+        }
+    ],
+)
+print("Document has been updated to link to the uploaded file.")
 
 # Creating a document to show deletion
 print("Creating a new document which will be deleted")
-new_document2 = client.create_document(name='Python API Document for deletion', tags=['Python', 'API', 'example'],
-                       fields=[{'content': 'Some example text'}])
-deletedDoc = client.delete_document(new_document2['id'])
-print('Document {} was deleted'.format(new_document2['id']))
-print("You can see or restore the deleted document in web application in MyRSpace->Deleted Items")
-print ("Finished")
+new_document2 = client.create_document(
+    name="Python API Document for deletion",
+    tags=["Python", "API", "example"],
+    fields=[{"content": "Some example text"}],
+)
+deletedDoc = client.delete_document(new_document2["id"])
+print("Document {} was deleted".format(new_document2["id"]))
+print(
+    "You can see or restore the deleted document in web application in MyRSpace->Deleted Items"
+)
+print("Finished")
