@@ -660,9 +660,9 @@ class Client:
         """
         Starts an asynchronous export of user's or group's records. Currently export of selections of documents is
         unsupported.
-        :param format: 'xml' or 'html'
+        :param export_format: 'xml' or 'html'
         :param scope: 'user' or 'group'
-        :param id: id of a user or a group depending on the scope (current user or group will be used if not provided)
+        :param uid: id of a user or a group depending on the scope (current user or group will be used if not provided)
         :return: job id
         """
         if export_format != "xml" and export_format != "html":
@@ -677,7 +677,7 @@ class Client:
                 'scope must be either "user" or "group", got "{}" instead'.format(scope)
             )
 
-        if id is not None:
+        if uid is not None:
             request_url = self._get_api_url() + "/export/{}/{}/{}".format(
                 export_format, scope, uid
             )
@@ -693,14 +693,16 @@ class Client:
     ):
         """
         Exports user's or group's records and downloads the exported archive to a specified location.
-        :param format: 'xml' or 'html'
+        :param export_format: 'xml' or 'html'
         :param scope: 'user' or 'group'
         :param file_path: can be either a directory or a new file in an existing directory
-        :param id: id of a user or a group depending on the scope (current user or group will be used if not provided)
+        :param uid: id of a user or a group depending on the scope (current user or group will be used if not provided)
         :param wait_between_requests: seconds to wait between job status requests (30 seconds default)
         :return: file path to the downloaded export archive
         """
-        job_id = self.start_export(format=export_format, scope=scope, uid=uid)["id"]
+        job_id = self.start_export(export_format=export_format, scope=scope, uid=uid)[
+            "id"
+        ]
 
         while True:
             status_response = self.get_job_status(job_id)
