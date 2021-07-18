@@ -589,13 +589,13 @@ class Client:
         return self.retrieve_api_results(self._get_api_url() + '/activity', params=params)
 
     # Export selection
-    def start_export_selection(self, export_format, item_ids =[], includeRevisionHistory=False):
+    def start_export_selection(self, export_format, item_ids =[], include_revisions=False):
         """
         Starts an asynchronous of  selection of items.
         :param export_format: 'xml' or 'html'
         :param item_ids: One more IDs of documents, notebooks, folders\
              or attachments
-        :param includeRevisionHistory: A Boolean as to whether items' previous\
+        :param include_revisions: A Boolean as to whether items' previous\
             versions should be included in the export. Default is False
         :return: job id
         """ 
@@ -603,18 +603,18 @@ class Client:
         itemsToExport = ''.join(item_ids)
         request_url = self._get_api_url() \
                  + '/export/{}/selection?selections={}&includeRevisionHistory={}'\
-                .format(export_format, item_ids, includeRevisionHistory)
+                .format(export_format, item_ids, include_revisions)
 
         return self.retrieve_api_results(request_url, request_type='POST')
 
     # Export
-    def start_export(self, export_format, scope, uid=None, includeRevisionHistory=False):
+    def start_export(self, export_format, scope, uid=None, include_revisions=False):
         """
         Starts an asynchronous export of user's or group's records.
         :param export_format: 'xml' or 'html'
         :param scope: 'user' or 'group'
         :param uid: id of a user or a group depending on the scope (current user or group will be used if not provided)
-        :param includeRevisionHistory: A Boolean as to whether items' previous\
+        :param include_revisions: A Boolean as to whether items' previous\
             versions should be included in the export, default is False
         :return: job id
         """
@@ -626,11 +626,11 @@ class Client:
         if uid is not None:
             request_url = self._get_api_url() \
                 + '/export/{}/{}/{}?includeRevisionHistory={}' \
-                .format(export_format, scope, uid, includeRevisionHistory)
+                .format(export_format, scope, uid, include_revisions)
         else:
             request_url = self._get_api_url() \
                  + '/export/{}/{}?includeRevisionHistory={}'\
-                .format(export_format, scope, includeRevisionHistory)
+                .format(export_format, scope, include_revisions)
 
         return self.retrieve_api_results(request_url, request_type='POST')
 
@@ -638,18 +638,36 @@ class Client:
         if export_format != 'xml' and export_format != 'html':
             raise ValueError('format must be either "xml" or "html", got "{}" instead'.format(export_format))
 
-    def download_export(self, export_format, scope, file_path, uid=None, wait_between_requests=30):
+    def download_export_selection(self, export_format, file_path,item_ids=[], include_revision_history=False, wait_between_requests=30):
+        """
+        Exports  record selection and downloads the exported archive to a specified location.
+        :param export_format: 'xml' or 'html'
+        :param file_path: can be either a directory or a new file in an existing directory
+        :param uid: id of a user or a group depending on the scope (current user or group will be used if not provided)
+        :param include_revision_history: whether to include all revisions
+        :param wait_between_requests: seconds to wait between job status requests (30 seconds default)
+        :return: file path to the downloaded export archive
+        """
+        job_id=self.start_export_selection(export_format, item_ids, include_revision_history)['id']
+        return self._wait_till_complete_then_download(job_id, file_path, wait_between_requests)    
+    
+    def download_export(self, export_format, scope, file_path, uid=None, include_revisions=False, wait_between_requests=30):
         """
         Exports user's or group's records and downloads the exported archive to a specified location.
         :param export_format: 'xml' or 'html'
         :param scope: 'user' or 'group'
         :param file_path: can be either a directory or a new file in an existing directory
         :param uid: id of a user or a group depending on the scope (current user or group will be used if not provided)
+        :param include_revision_history: whether to include all revisions
         :param wait_between_requests: seconds to wait between job status requests (30 seconds default)
         :return: file path to the downloaded export archive
         """
-        job_id = self.start_export(export_format=export_format, scope=scope, uid=uid)['id']
+        job_id = self.start_export(export_format=export_format, scope=scope,
+            uid=uid, include_revisions=include_revisions)['id']
+        return self._wait_till_complete_then_download(job_id, file_path, wait_between_requests)
+        
 
+    def _wait_till_complete_then_download(self, job_id, file_path, wait_between_requests=30):
         while True:
             status_response = self.get_job_status(job_id)
 
@@ -659,7 +677,6 @@ class Client:
                 if os.path.isdir(file_path):
                     file_path = os.path.join(file_path, download_url.split('/')[-1])
                 self.download_link_to_file(download_url, file_path)
-
                 return file_path
             elif status_response['status'] == 'FAILED':
                 raise Client.ApiError('Export job failed: ' +
@@ -673,7 +690,7 @@ class Client:
                 continue
             else:
                 raise Client.ApiError('Unknown job status: ' + status_response['status'])
-
+    
     def get_job_status(self, job_id):
         """
         Return a job status.
