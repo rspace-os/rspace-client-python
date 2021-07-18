@@ -588,28 +588,55 @@ class Client:
 
         return self.retrieve_api_results(self._get_api_url() + '/activity', params=params)
 
-    # Export
-    def start_export(self, export_format, scope, uid=None):
+    # Export selection
+    def start_export_selection(self, export_format, item_ids =[], includeRevisionHistory=False):
         """
-        Starts an asynchronous export of user's or group's records. Currently export of selections of documents is
-        unsupported.
+        Starts an asynchronous of  selection of items.
+        :param export_format: 'xml' or 'html'
+        :param item_ids: One more IDs of documents, notebooks, folders\
+             or attachments
+        :param includeRevisionHistory: A Boolean as to whether items' previous\
+            versions should be included in the export. Default is False
+        :return: job id
+        """ 
+        self._check_export_format(export_format)
+        itemsToExport = ''.join(item_ids)
+        request_url = self._get_api_url() \
+                 + '/export/{}/selection?selections={}&includeRevisionHistory={}'\
+                .format(export_format, item_ids, includeRevisionHistory)
+
+        return self.retrieve_api_results(request_url, request_type='POST')
+
+    # Export
+    def start_export(self, export_format, scope, uid=None, includeRevisionHistory=False):
+        """
+        Starts an asynchronous export of user's or group's records.
         :param export_format: 'xml' or 'html'
         :param scope: 'user' or 'group'
         :param uid: id of a user or a group depending on the scope (current user or group will be used if not provided)
+        :param includeRevisionHistory: A Boolean as to whether items' previous\
+            versions should be included in the export, default is False
         :return: job id
         """
-        if export_format != 'xml' and export_format != 'html':
-            raise ValueError('format must be either "xml" or "html", got "{}" instead'.format(export_format))
+        self._check_export_format(export_format)
 
         if scope != 'user' and scope != 'group':
             raise ValueError('scope must be either "user" or "group", got "{}" instead'.format(scope))
 
         if uid is not None:
-            request_url = self._get_api_url() + '/export/{}/{}/{}'.format(export_format, scope, uid)
+            request_url = self._get_api_url() \
+                + '/export/{}/{}/{}?includeRevisionHistory={}' \
+                .format(export_format, scope, uid, includeRevisionHistory)
         else:
-            request_url = self._get_api_url() + '/export/{}/{}'.format(export_format, scope)
+            request_url = self._get_api_url() \
+                 + '/export/{}/{}?includeRevisionHistory={}'\
+                .format(export_format, scope, includeRevisionHistory)
 
         return self.retrieve_api_results(request_url, request_type='POST')
+
+    def _check_export_format(self, export_format):
+        if export_format != 'xml' and export_format != 'html':
+            raise ValueError('format must be either "xml" or "html", got "{}" instead'.format(export_format))
 
     def download_export(self, export_format, scope, file_path, uid=None, wait_between_requests=30):
         """
