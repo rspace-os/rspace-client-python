@@ -603,7 +603,7 @@ class Client:
         itemsToExport = ''.join(item_ids)
         request_url = self._get_api_url() \
                  + '/export/{}/selection?selections={}&includeRevisionHistory={}'\
-                .format(export_format, item_ids, include_revisions)
+                .format(export_format, itemsToExport, include_revisions)
 
         return self.retrieve_api_results(request_url, request_type='POST')
 
