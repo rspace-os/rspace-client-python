@@ -5,14 +5,9 @@ import os.path
 import re
 import six
 
-
-class Client:
-    """Client for RSpace API v1.
-    Most methods return a dictionary with fields described in the API documentation. The documentation can be found at
-    https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
-    For authentication, an API key must be provided. It can be found by logging in and navigating to 'My Profile' page.
-    """
-
+class BaseClient:
+    """ Base class of common methods for all API clients """
+    
     class ConnectionError(Exception):
         pass
 
@@ -26,6 +21,13 @@ class Client:
         def __init__(self, error_message, response_status_code=None):
             Exception.__init__(self, error_message)
             self.response_status_code = response_status_code
+
+class ELNClient(BaseClient) :
+    """Client for RSpace API v1.
+    Most methods return a dictionary with fields described in the API documentation. The documentation can be found at
+    https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
+    For authentication, an API key must be provided. It can be found by logging in and navigating to 'My Profile' page.
+    """
 
     API_VERSION = "v1"
 
@@ -81,12 +83,12 @@ class Client:
         # Check whether response includes UNAUTHORIZED response code
         # print("status: {}, header: {}".format(response.headers, response.status_code))
         if response.status_code == 401:
-            raise Client.AuthenticationError(response.json()["message"])
+            raise BaseClient.AuthenticationError(response.json()["message"])
 
         try:
             response.raise_for_status()
 
-            if Client._responseContainsJson(response):
+            if ELNClient._responseContainsJson(response):
                 return response.json()
             elif response.text:
                 return response.text
@@ -96,13 +98,13 @@ class Client:
             if "application/json" in response.headers["Content-Type"]:
                 error = "Error code: {}, {}".format(
                     response.status_code,
-                    Client._get_formated_error_message(response.json()),
+                    ELNClient._get_formated_error_message(response.json()),
                 )
             else:
                 error = "Error code: {}, error message: {}".format(
                     response.status_code, response.text
                 )
-            raise Client.ApiError(error, response_status_code=response.status_code)
+            raise BaseClient.ApiError(error, response_status_code=response.status_code)
 
     def doDelete(self, path, resource_id):
         """
@@ -148,7 +150,7 @@ class Client:
 
             return self._handle_response(response)
         except requests.exceptions.ConnectionError as e:
-            raise Client.ConnectionError(e)
+            raise BaseClient.ConnectionError(e)
 
     @staticmethod
     def _get_links(response):
@@ -161,7 +163,7 @@ class Client:
         try:
             return response["_links"]
         except KeyError:
-            raise Client.NoSuchLinkRel("There are no links!")
+            raise BaseClient.NoSuchLinkRel("There are no links!")
 
     def get_link_contents(self, response, link_rel):
         """
@@ -182,7 +184,7 @@ class Client:
         for link in self._get_links(response):
             if link["rel"] == link_rel:
                 return link["link"]
-        raise Client.NoSuchLinkRel(
+        raise BaseClient.NoSuchLinkRel(
             'Requested link rel "{}", available rel(s): {}'.format(
                 link_rel, (", ".join(x["rel"] for x in self._get_links(response)))
             )
@@ -716,12 +718,12 @@ class Client:
 
                 return file_path
             elif status_response["status"] == "FAILED":
-                raise Client.ApiError(
+                raise BaseClient.ApiError(
                     "Export job failed: "
                     + self._get_formated_error_message(status_response["result"])
                 )
             elif status_response["status"] == "ABANDONED":
-                raise Client.ApiError(
+                raise BaseClient.ApiError(
                     "Export job was abandoned: "
                     + self._get_formated_error_message(status_response["result"])
                 )
@@ -733,7 +735,7 @@ class Client:
                 time.sleep(wait_between_requests)
                 continue
             else:
-                raise Client.ApiError(
+                raise BaseClient.ApiError(
                     "Unknown job status: " + status_response["status"]
                 )
 
