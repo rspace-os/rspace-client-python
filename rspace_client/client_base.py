@@ -1,8 +1,10 @@
 import re
 import requests
+
+
 class ClientBase:
     """ Base class of common methods for all API clients """
-    
+
     def __init__(self, rspace_url, api_key):
         """
         Initializes RSpace client.
@@ -10,15 +12,15 @@ class ClientBase:
         :param api_key: RSpace API key of a user can be found on 'My Profile' page
         """
         self.rspace_url = rspace_url
-        self.api_key = api_key    
-        
+        self.api_key = api_key
+
     def _get_api_url(self):
         """
         Returns an API server URL.
         :return: string URL
         """
         return "{}/api/{}".format(self.rspace_url, self.API_VERSION)
-    
+
     def _get_headers(self, content_type="application/json"):
         return {"apiKey": self.api_key, "Accept": content_type}
 
@@ -78,7 +80,6 @@ class ClientBase:
                 )
             raise ClientBase.ApiError(error, response_status_code=response.status_code)
 
-    
     def doDelete(self, path, resource_id):
         """
         Performs a delete operation for a given resource
@@ -92,7 +93,7 @@ class ClientBase:
 
     def retrieve_api_results(
         self, url, params=None, content_type="application/json", request_type="GET"
-        ):
+    ):
         """
         Makes the requested API call and returns either an exception or a parsed JSON response as a dictionary.
         Authentication header is automatically added. In most cases, a specialised method can be used instead.
@@ -136,7 +137,7 @@ class ClientBase:
         try:
             return response["_links"]
         except KeyError:
-            raise  ClientBase.NoSuchLinkRel("There are no links!")
+            raise ClientBase.NoSuchLinkRel("There are no links!")
 
     def get_link_contents(self, response, link_rel):
         """
@@ -145,8 +146,7 @@ class ClientBase:
         :param link_rel: rel attribute value to look for
         :return: parsed response from the found URL
         """
-        return self.retrieve_api_results(
-            self.get_link(response, link_rel))
+        return self.retrieve_api_results(self.get_link(response, link_rel))
 
     def get_link(self, response, link_rel):
         """
@@ -158,7 +158,7 @@ class ClientBase:
         for link in self._get_links(response):
             if link["rel"] == link_rel:
                 return link["link"]
-        raise  ClientBase.NoSuchLinkRel(
+        raise ClientBase.NoSuchLinkRel(
             'Requested link rel "{}", available rel(s): {}'.format(
                 link_rel, (", ".join(x["rel"] for x in self._get_links(response)))
             )

@@ -72,7 +72,7 @@ class ELNClient(ClientBase):
         try:
             return response["_links"]
         except KeyError:
-            raise  ClientBase.NoSuchLinkRel("There are no links!")
+            raise ClientBase.NoSuchLinkRel("There are no links!")
 
     def get_link_contents(self, response, link_rel):
         """
@@ -81,8 +81,7 @@ class ELNClient(ClientBase):
         :param link_rel: rel attribute value to look for
         :return: parsed response from the found URL
         """
-        return self.retrieve_api_results(
-            self.get_link(response, link_rel))
+        return self.retrieve_api_results(self.get_link(response, link_rel))
 
     def get_link(self, response, link_rel):
         """
@@ -94,7 +93,7 @@ class ELNClient(ClientBase):
         for link in self._get_links(response):
             if link["rel"] == link_rel:
                 return link["link"]
-        raise  ClientBase.NoSuchLinkRel(
+        raise ClientBase.NoSuchLinkRel(
             'Requested link rel "{}", available rel(s): {}'.format(
                 link_rel, (", ".join(x["rel"] for x in self._get_links(response)))
             )
@@ -628,12 +627,12 @@ class ELNClient(ClientBase):
 
                 return file_path
             elif status_response["status"] == "FAILED":
-                raise  ClientBase.ApiError(
+                raise ClientBase.ApiError(
                     "Export job failed: "
                     + self._get_formated_error_message(status_response["result"])
                 )
             elif status_response["status"] == "ABANDONED":
-                raise  ClientBase.ApiError(
+                raise ClientBase.ApiError(
                     "Export job was abandoned: "
                     + self._get_formated_error_message(status_response["result"])
                 )

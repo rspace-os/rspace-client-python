@@ -18,9 +18,10 @@ import string
 RSPACE_URL_ENV = "RSPACE_URL"
 RSPACE_APIKEY_ENV = "RSPACE_API_KEY"
 
+
 def random_string(length):
     letters = string.ascii_lowercase
-    return (''.join(random.choice(letters) for i in range(length)) )
+    return "".join(random.choice(letters) for i in range(length))
 
 
 class ApiClientIntegrationTest(unittest.TestCase):
@@ -45,19 +46,19 @@ class ApiClientIntegrationTest(unittest.TestCase):
 
     def test_get_documents(self):
         resp = self.api.get_documents()
-        self.assertTrue(resp['totalHits'] > 0)
-        self.assertTrue(len(resp['documents']) > 0)
-        
+        self.assertTrue(resp["totalHits"] > 0)
+        self.assertTrue(len(resp["documents"]) > 0)
+
     def test_get_documents_by_id(self):
         resp = self.api.get_documents()
-        first_id = resp['documents'][0]['id']
+        first_id = resp["documents"][0]["id"]
         doc = self.api.get_document(first_id)
-        self.assertEqual(first_id, doc['id'])
-        
+        self.assertEqual(first_id, doc["id"])
+
     def test_create_document(self):
-        nameStr = random_string(10) 
-        tag_str= random_string(5)
+        nameStr = random_string(10)
+        tag_str = random_string(5)
         resp = self.api.create_document(name=nameStr, tags=tag_str)
         print(resp)
-        self.assertEqual(nameStr, resp['name'])
-        self.assertEqual(tag_str, resp['tags'])
+        self.assertEqual(nameStr, resp["name"])
+        self.assertEqual(tag_str, resp["tags"])
