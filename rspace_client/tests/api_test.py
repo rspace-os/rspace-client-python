@@ -15,7 +15,7 @@ import pytest
 
 RSPACE_URL_ENV="RSPACE_URL"
 RSPACE_APIKEY_ENV="RSPACE_API_KEY"
-class TestBasicFunction(unittest.TestCase):
+class ApiClientIntegrationTest(unittest.TestCase):
 
     def setUp(self):
         if os.getenv(RSPACE_URL_ENV) is not None:

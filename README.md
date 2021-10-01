@@ -23,6 +23,7 @@ For running API tests that call an RSpace instance, the following environment pr
 RSPACE_URL=http://myrspace.com
 RSPACE_API_KEY=myapikey123445
 ```
+Running pytest with `-s` option will show standard out, useful for debugging
 
 To install rspace-client and its dependencies, run
 
