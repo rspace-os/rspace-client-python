@@ -1,3 +1,5 @@
+import re
+import requests
 class ClientBase:
     """ Base class of common methods for all API clients """
     
@@ -9,6 +11,180 @@ class ClientBase:
         """
         self.rspace_url = rspace_url
         self.api_key = api_key    
+        
+    def _get_api_url(self):
+        """
+        Returns an API server URL.
+        :return: string URL
+        """
+        return "{}/api/{}".format(self.rspace_url, self.API_VERSION)
+    
+    def _get_headers(self, content_type="application/json"):
+        return {"apiKey": self.api_key, "Accept": content_type}
+
+    @staticmethod
+    def _get_numeric_record_id(global_id):
+        """
+        Gets numeric part of a global ID.
+        :param global_id: global ID (for example, SD123 or FM12)
+        :return: numeric record id
+        """
+        if re.match(r"[a-zA-Z]{2}\d+$", str(global_id)) is not None:
+            return int(global_id[2:])
+        elif re.match(r"\d+$", str(global_id)) is not None:
+            return int(global_id)
+        else:
+            raise ValueError("{} is not a valid global ID".format(global_id))
+
+    @staticmethod
+    def _get_formated_error_message(json_error):
+        return "error message: {}, errors: {}".format(
+            json_error.get("message", ""),
+            ", ".join(json_error.get("errors", [])) or "no error list",
+        )
+
+    @staticmethod
+    def _responseContainsJson(response):
+        return (
+            "Content-Type" in response.headers
+            and "application/json" in response.headers["Content-Type"]
+        )
+
+    @staticmethod
+    def _handle_response(response):
+        # Check whether response includes UNAUTHORIZED response code
+        # print("status: {}, header: {}".format(response.headers, response.status_code))
+        if response.status_code == 401:
+            raise ClientBase.AuthenticationError(response.json()["message"])
+
+        try:
+            response.raise_for_status()
+
+            if ClientBase._responseContainsJson(response):
+                return response.json()
+            elif response.text:
+                return response.text
+            else:
+                return response
+        except:
+            if "application/json" in response.headers["Content-Type"]:
+                error = "Error code: {}, {}".format(
+                    response.status_code,
+                    ClientBase._get_formated_error_message(response.json()),
+                )
+            else:
+                error = "Error code: {}, error message: {}".format(
+                    response.status_code, response.text
+                )
+            raise ClientBase.ApiError(error, response_status_code=response.status_code)
+
+    
+    def doDelete(self, path, resource_id):
+        """
+        Performs a delete operation for a given resource
+        """
+        numeric_id = self._get_numeric_record_id(resource_id)
+        return self.retrieve_api_results(
+            self._get_api_url() + "/{}/{}".format(path, numeric_id),
+            content_type=None,
+            request_type="DELETE",
+        )
+
+    def retrieve_api_results(
+        self, url, params=None, content_type="application/json", request_type="GET"
+        ):
+        """
+        Makes the requested API call and returns either an exception or a parsed JSON response as a dictionary.
+        Authentication header is automatically added. In most cases, a specialised method can be used instead.
+        :param url: URL to retrieve
+        :param request_type: 'GET', 'POST', 'PUT', 'DELETE'
+        :param params: arguments to be added to the API request
+        :param content_type: content type
+        :return: parsed JSON response as a dictionary
+        """
+        headers = self._get_headers(content_type)
+        try:
+            if request_type == "GET":
+                response = requests.get(url, params=params, headers=headers)
+            elif (
+                request_type == "PUT"
+                or request_type == "POST"
+                or request_type == "DELETE"
+            ):
+                response = requests.request(
+                    request_type, url, json=params, headers=headers
+                )
+            else:
+                raise ValueError(
+                    "Expected GET / PUT / POST / DELETE request type, received {} instead".format(
+                        request_type
+                    )
+                )
+
+            return self._handle_response(response)
+        except requests.exceptions.ConnectionError as e:
+            raise ClientBase.ConnectionError(e)
+
+    @staticmethod
+    def _get_links(response):
+        """
+        Finds links part of the response. Most responses contain links section with URLs that might be useful to query
+        for further information.
+        :param response: response from the API server
+        :return: links section of the response
+        """
+        try:
+            return response["_links"]
+        except KeyError:
+            raise  ClientBase.NoSuchLinkRel("There are no links!")
+
+    def get_link_contents(self, response, link_rel):
+        """
+        Finds a link with rel attribute equal to link_rel and retrieves its contents.
+        :param response: response from the API server
+        :param link_rel: rel attribute value to look for
+        :return: parsed response from the found URL
+        """
+        return self.retrieve_api_results(
+            self.get_link(response, link_rel))
+
+    def get_link(self, response, link_rel):
+        """
+        Finds a link with rel attribute equal to link_rel.
+        :param response: response from the API server.
+        :param link_rel: rel attribute value to look for
+        :return: string URL
+        """
+        for link in self._get_links(response):
+            if link["rel"] == link_rel:
+                return link["link"]
+        raise  ClientBase.NoSuchLinkRel(
+            'Requested link rel "{}", available rel(s): {}'.format(
+                link_rel, (", ".join(x["rel"] for x in self._get_links(response)))
+            )
+        )
+
+    def download_link_to_file(self, url, filename):
+        """
+        Downloads a file from the API server.
+        :param url: URL of the file to be downloaded
+        :param filename: file path to save the file to
+        """
+        headers = {"apiKey": self.api_key, "Accept": "application/octet-stream"}
+        with open(filename, "wb") as fd:
+            for chunk in requests.get(url, headers=headers).iter_content(
+                chunk_size=128
+            ):
+                fd.write(chunk)
+
+    def link_exists(self, response, link_rel):
+        """
+        Checks whether there is a link with rel attribute equal to link_rel in the links section of the response.
+        :param response: response from the API server
+        :param link_rel: rel attribute value to look for
+        :return: True, if the link exists
+        """
+        return link_rel in [x["rel"] for x in self._get_links(response)]
 
     class ConnectionError(Exception):
         pass

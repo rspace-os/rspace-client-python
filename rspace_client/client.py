@@ -2,7 +2,6 @@ import requests
 import datetime
 import time
 import os.path
-import re
 import six
 from rspace_client.client_base import ClientBase
 
@@ -15,74 +14,6 @@ class ELNClient(ClientBase):
     """
 
     API_VERSION = "v1"
-
-      
-
-    def _get_api_url(self):
-        """
-        Returns an API server URL.
-        :return: string URL
-        """
-        return "{}/api/{}".format(self.rspace_url, self.API_VERSION)
-
-    def _get_headers(self, content_type="application/json"):
-        return {"apiKey": self.api_key, "Accept": content_type}
-
-    @staticmethod
-    def _get_numeric_record_id(global_id):
-        """
-        Gets numeric part of a global ID.
-        :param global_id: global ID (for example, SD123 or FM12)
-        :return: numeric record id
-        """
-        if re.match(r"[a-zA-Z]{2}\d+$", str(global_id)) is not None:
-            return int(global_id[2:])
-        elif re.match(r"\d+$", str(global_id)) is not None:
-            return int(global_id)
-        else:
-            raise ValueError("{} is not a valid global ID".format(global_id))
-
-    @staticmethod
-    def _get_formated_error_message(json_error):
-        return "error message: {}, errors: {}".format(
-            json_error.get("message", ""),
-            ", ".join(json_error.get("errors", [])) or "no error list",
-        )
-
-    @staticmethod
-    def _responseContainsJson(response):
-        return (
-            "Content-Type" in response.headers
-            and "application/json" in response.headers["Content-Type"]
-        )
-
-    @staticmethod
-    def _handle_response(response):
-        # Check whether response includes UNAUTHORIZED response code
-        # print("status: {}, header: {}".format(response.headers, response.status_code))
-        if response.status_code == 401:
-            raise ClientBase.AuthenticationError(response.json()["message"])
-
-        try:
-            response.raise_for_status()
-
-            if ELNClient._responseContainsJson(response):
-                return response.json()
-            elif response.text:
-                return response.text
-            else:
-                return response
-        except:
-            if "application/json" in response.headers["Content-Type"]:
-                error = "Error code: {}, {}".format(
-                    response.status_code,
-                    ELNClient._get_formated_error_message(response.json()),
-                )
-            else:
-                error = "Error code: {}, error message: {}".format(
-                    response.status_code, response.text
-                )
-            raise ClientBase.ApiError(error, response_status_code=response.status_code)
 
     def doDelete(self, path, resource_id):
         """
