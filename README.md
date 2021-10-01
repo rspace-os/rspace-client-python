@@ -17,6 +17,12 @@ To run unit tests, install pytest:
 ```
 pytest -v rspace_client/tests
 ```
+For running API tests that call an RSpace instance, the following environment properties should be set, otherwise the tests are skipped, e.g. 
+
+```
+RSPACE_URL=http://myrspace.com
+RSPACE_API_KEY=myapikey123445
+```
 
 To install rspace-client and its dependencies, run
 
