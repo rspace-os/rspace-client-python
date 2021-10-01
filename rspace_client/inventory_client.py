@@ -6,23 +6,33 @@ import six
 from rspace_client.client_base import ClientBase
 
 
-class ELNClient(ClientBase):
-    """Client for RSpace API v1.
-    Most methods return a dictionary with fields described in the API documentation. The documentation can be found at
-    https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
-    For authentication, an API key must be provided. It can be found by logging in and navigating to 'My Profile' page.
-    """
-
-    API_VERSION = "v1"
-
+class InventoryClient(ClientBase):
+    API_VERSION="v1"
+    
     def _get_api_url(self):
         """
         Returns an API server URL.
         :return: string URL
         """
-        return "{}/api/{}".format(self.rspace_url, self.API_VERSION) 
+        
+        return "{}/api/inventory/{}".format(self.rspace_url, self.API_VERSION)
+    
+    def create_sample(self, name=None, tags=None):
+        """
+        Creates a new sample with optional attributes
+        """
+        data = {}
+        if name is not None:
+            data["name"] = name
+        if tags is not None:
+            data["tags"] = name
+        return self.retrieve_api_results(
+            self._get_api_url() + "/samples", request_type="POST", params=data
+        )
+        
+    
 
-   # Documents methods
+    # Documents methods
     def get_documents(
         self, query=None, order_by="lastModified desc", page_number=0, page_size=20
     ):

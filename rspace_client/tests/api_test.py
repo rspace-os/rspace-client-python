@@ -6,7 +6,6 @@ Created on Mon Jun  7 08:38:55 2021
 @author: richard
 """
 
-
 import rspace_client as cli
 import unittest
 import os
@@ -24,13 +23,13 @@ def random_string(length):
     return "".join(random.choice(letters) for i in range(length))
 
 
-class ApiClientIntegrationTest(unittest.TestCase):
+class ELNClientAPIIntegrationTest(unittest.TestCase):
     def setUp(self):
         if os.getenv(RSPACE_URL_ENV) is not None:
             self.rspace_url = os.getenv(RSPACE_URL_ENV)
         if os.getenv(RSPACE_APIKEY_ENV) is not None:
             self.rspace_apikey = os.getenv(RSPACE_APIKEY_ENV)
-        print(f"{self.rspace_apikey} for {self.rspace_url}")
+   
         if (
             self.rspace_url is None
             or self.rspace_apikey is None
@@ -39,6 +38,8 @@ class ApiClientIntegrationTest(unittest.TestCase):
         ):
             pytest.skip("Skipping API test as URL/Key are not defined")
         self.api = cli.ELNClient(self.rspace_url, self.rspace_apikey)
+        self.invapi = cli.InventoryClient(self.rspace_url, self.rspace_apikey)
+
 
     def test_get_status(self):
         resp = self.api.get_status()
@@ -59,6 +60,11 @@ class ApiClientIntegrationTest(unittest.TestCase):
         nameStr = random_string(10)
         tag_str = random_string(5)
         resp = self.api.create_document(name=nameStr, tags=tag_str)
-        print(resp)
         self.assertEqual(nameStr, resp["name"])
         self.assertEqual(tag_str, resp["tags"])
+        
+    def test_create_sample(self):
+        nameStr = random_string(10)
+        tag_str = random_string(5)
+        resp = self.invapi.create_sample(name=nameStr, tags=tag_str)
+        print(resp)

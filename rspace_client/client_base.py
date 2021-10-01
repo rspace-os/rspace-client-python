@@ -14,12 +14,7 @@ class ClientBase:
         self.rspace_url = rspace_url
         self.api_key = api_key
 
-    def _get_api_url(self):
-        """
-        Returns an API server URL.
-        :return: string URL
-        """
-        return "{}/api/{}".format(self.rspace_url, self.API_VERSION)
+
 
     def _get_headers(self, content_type="application/json"):
         return {"apiKey": self.api_key, "Accept": content_type}
