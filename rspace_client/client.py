@@ -16,14 +16,7 @@ class ELNClient(ClientBase):
 
     API_VERSION = "v1"
 
-    def __init__(self, rspace_url, api_key):
-        """
-        Initializes RSpace client.
-        :param rspace_url: RSpace server URL (for example, https://community.researchspace.com)
-        :param api_key: RSpace API key of a user can be found on 'My Profile' page
-        """
-        self.rspace_url = rspace_url
-        self.api_key = api_key
+      
 
     def _get_api_url(self):
         """
