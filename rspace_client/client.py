@@ -4,27 +4,10 @@ import time
 import os.path
 import re
 import six
+from rspace_client.client_base import ClientBase
 
 
-class BaseClient:
-    """ Base class of common methods for all API clients """
-
-    class ConnectionError(Exception):
-        pass
-
-    class AuthenticationError(Exception):
-        pass
-
-    class NoSuchLinkRel(Exception):
-        pass
-
-    class ApiError(Exception):
-        def __init__(self, error_message, response_status_code=None):
-            Exception.__init__(self, error_message)
-            self.response_status_code = response_status_code
-
-
-class ELNClient(BaseClient):
+class ELNClient(ClientBase):
     """Client for RSpace API v1.
     Most methods return a dictionary with fields described in the API documentation. The documentation can be found at
     https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
@@ -85,7 +68,7 @@ class ELNClient(BaseClient):
         # Check whether response includes UNAUTHORIZED response code
         # print("status: {}, header: {}".format(response.headers, response.status_code))
         if response.status_code == 401:
-            raise BaseClient.AuthenticationError(response.json()["message"])
+            raise ClientBase.AuthenticationError(response.json()["message"])
 
         try:
             response.raise_for_status()
@@ -106,7 +89,7 @@ class ELNClient(BaseClient):
                 error = "Error code: {}, error message: {}".format(
                     response.status_code, response.text
                 )
-            raise BaseClient.ApiError(error, response_status_code=response.status_code)
+            raise ClientBase.ApiError(error, response_status_code=response.status_code)
 
     def doDelete(self, path, resource_id):
         """
@@ -152,7 +135,7 @@ class ELNClient(BaseClient):
 
             return self._handle_response(response)
         except requests.exceptions.ConnectionError as e:
-            raise BaseClient.ConnectionError(e)
+            raise ClientBase.ConnectionError(e)
 
     @staticmethod
     def _get_links(response):
@@ -165,7 +148,7 @@ class ELNClient(BaseClient):
         try:
             return response["_links"]
         except KeyError:
-            raise BaseClient.NoSuchLinkRel("There are no links!")
+            raise  ClientBase.NoSuchLinkRel("There are no links!")
 
     def get_link_contents(self, response, link_rel):
         """
@@ -174,7 +157,8 @@ class ELNClient(BaseClient):
         :param link_rel: rel attribute value to look for
         :return: parsed response from the found URL
         """
-        return self.retrieve_api_results(self.get_link(response, link_rel))
+        return self.retrieve_api_results(
+            self.get_link(response, link_rel))
 
     def get_link(self, response, link_rel):
         """
@@ -186,7 +170,7 @@ class ELNClient(BaseClient):
         for link in self._get_links(response):
             if link["rel"] == link_rel:
                 return link["link"]
-        raise BaseClient.NoSuchLinkRel(
+        raise  ClientBase.NoSuchLinkRel(
             'Requested link rel "{}", available rel(s): {}'.format(
                 link_rel, (", ".join(x["rel"] for x in self._get_links(response)))
             )
@@ -720,12 +704,12 @@ class ELNClient(BaseClient):
 
                 return file_path
             elif status_response["status"] == "FAILED":
-                raise BaseClient.ApiError(
+                raise  ClientBase.ApiError(
                     "Export job failed: "
                     + self._get_formated_error_message(status_response["result"])
                 )
             elif status_response["status"] == "ABANDONED":
-                raise BaseClient.ApiError(
+                raise  ClientBase.ApiError(
                     "Export job was abandoned: "
                     + self._get_formated_error_message(status_response["result"])
                 )
@@ -737,7 +721,7 @@ class ELNClient(BaseClient):
                 time.sleep(wait_between_requests)
                 continue
             else:
-                raise BaseClient.ApiError(
+                raise ClientBase.ApiError(
                     "Unknown job status: " + status_response["status"]
                 )
 
