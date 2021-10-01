@@ -5,9 +5,10 @@ import os.path
 import re
 import six
 
+
 class BaseClient:
     """ Base class of common methods for all API clients """
-    
+
     class ConnectionError(Exception):
         pass
 
@@ -22,7 +23,8 @@ class BaseClient:
             Exception.__init__(self, error_message)
             self.response_status_code = response_status_code
 
-class ELNClient(BaseClient) :
+
+class ELNClient(BaseClient):
     """Client for RSpace API v1.
     Most methods return a dictionary with fields described in the API documentation. The documentation can be found at
     https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
