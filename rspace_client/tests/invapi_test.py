@@ -11,6 +11,9 @@ import rspace_client.inv.inv as cli
 
 class InventoryApiTest(base.BaseApiTest):
     def setUp(self):
+        """
+        Skips tests if aPI client credentials are missing
+        """
         self.assertClientCredentials()
         self.invapi = cli.InventoryClient(self.rspace_url, self.rspace_apikey)
 
