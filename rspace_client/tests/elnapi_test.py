@@ -9,14 +9,13 @@ Created on Mon Jun  7 08:38:55 2021
 import rspace_client.eln.eln as cli
 
 
-from  rspace_client.tests.base_test import BaseApiTest, random_string
+from rspace_client.tests.base_test import BaseApiTest, random_string
 
 
 class ELNClientAPIIntegrationTest(BaseApiTest):
     def setUp(self):
         self.assertClientCredentials()
         self.api = cli.ELNClient(self.rspace_url, self.rspace_apikey)
-
 
     def test_get_status(self):
         resp = self.api.get_status()
@@ -39,5 +38,3 @@ class ELNClientAPIIntegrationTest(BaseApiTest):
         resp = self.api.create_document(name=nameStr, tags=tag_str)
         self.assertEqual(nameStr, resp["name"])
         self.assertEqual(tag_str, resp["tags"])
-        
-   

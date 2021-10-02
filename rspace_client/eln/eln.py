@@ -20,9 +20,9 @@ class ELNClient(ClientBase):
         Returns an API server URL.
         :return: string URL
         """
-        return "{}/api/{}".format(self.rspace_url, self.API_VERSION) 
+        return "{}/api/{}".format(self.rspace_url, self.API_VERSION)
 
-   # Documents methods
+    # Documents methods
     def get_documents(
         self, query=None, order_by="lastModified desc", page_number=0, page_size=20
     ):

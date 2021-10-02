@@ -14,8 +14,6 @@ class ClientBase:
         self.rspace_url = rspace_url
         self.api_key = api_key
 
-
-
     def _get_headers(self, content_type="application/json"):
         return {"apiKey": self.api_key, "Accept": content_type}
 

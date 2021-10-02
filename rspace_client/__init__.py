@@ -4,4 +4,10 @@ from .eln.advanced_query_builder import AdvancedQueryBuilder
 from .utils import createELNClient
 from .eln.field_content import FieldContent
 
-__all__ = ["ELNClient", "InventoryClient", "AdvancedQueryBuilder", "createELNClient", "FieldContent"]
+__all__ = [
+    "ELNClient",
+    "InventoryClient",
+    "AdvancedQueryBuilder",
+    "createELNClient",
+    "FieldContent",
+]
