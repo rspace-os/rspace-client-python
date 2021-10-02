@@ -7,7 +7,7 @@ Created on Mon Jun  7 08:38:55 2021
 """
 
 
-import rspace_client as cli
+import rspace_client.eln as cli
 import unittest
 import os
 

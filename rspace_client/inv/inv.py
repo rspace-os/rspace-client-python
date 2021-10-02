@@ -2,7 +2,6 @@ import requests
 import datetime
 import time
 import os.path
-import six
 from rspace_client.client_base import ClientBase
 
 
@@ -30,8 +29,6 @@ class InventoryClient(ClientBase):
             self._get_api_url() + "/samples", request_type="POST", params=data
         )
         
-    
-
     # Documents methods
     def get_documents(
         self, query=None, order_by="lastModified desc", page_number=0, page_size=20

@@ -1,8 +1,8 @@
 import argparse
-import rspace_client
+import rspace_client.eln.eln as eln
 
 
-def createClient():
+def createELNClient():
     """
     Parses command line arguments: server, apiKey
     """
@@ -17,5 +17,5 @@ def createClient():
     )
     args = parser.parse_args()
 
-    client = rspace_client.Client(args.server, args.apiKey)
+    client = eln.ELNClient(args.server, args.apiKey)
     return client

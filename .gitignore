@@ -94,3 +94,4 @@ ENV/
 .idea/
 #*.log
 examples/deletedUserslog.txt
+.spyproject/
