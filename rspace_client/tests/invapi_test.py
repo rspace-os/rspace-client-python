@@ -33,3 +33,7 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(sample_name, sample["name"])
         self.assertEqual(2, len(sample["extraFields"]))
         self.assertEqual(4, sample["storageTempMax"]["numericValue"])
+
+    def test_create_sample_name_only(self):
+        sample = self.invapi.create_sample(base.random_string(5))
+        self.assertIsNotNone(sample)

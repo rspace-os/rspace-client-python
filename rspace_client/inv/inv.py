@@ -50,7 +50,7 @@ class InventoryClient(ClientBase):
 
     def create_sample(
         self,
-        name: Optional[str] = None,
+        name: str,
         tags: Optional[str] = None,
         extra_fields: Optional[Sequence] = [],
         storage_temperature_min=None,
