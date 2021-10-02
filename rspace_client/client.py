@@ -2,7 +2,7 @@ import requests
 import datetime
 import time
 import os.path
-import six
+
 from rspace_client.client_base import ClientBase
 
 
@@ -423,32 +423,24 @@ class ELNClient(ClientBase):
         if date_from is not None:
             if isinstance(date_from, datetime.date):
                 params["dateFrom"] = date_from.isoformat()
-            elif isinstance(date_from, six.string_types):
-                params["dateFrom"] = date_from
             else:
                 raise TypeError("Unexpected date_from type {}".format(type(date_from)))
 
         if date_to is not None:
             if isinstance(date_to, datetime.date):
                 params["dateTo"] = date_to.isoformat()
-            elif isinstance(date_to, six.string_types):
-                params["dateTo"] = date_to
             else:
                 raise TypeError("Unexpected date_from type {}".format(type(date_to)))
 
         if actions is not None:
             if isinstance(actions, list):
                 params["actions"] = ",".join(actions)
-            elif isinstance(actions, six.string_types):
-                params["actions"] = actions
             else:
                 raise TypeError("Unexpected actions type {}".format(type(actions)))
 
         if domains is not None:
             if isinstance(domains, list):
                 params["domains"] = ",".join(domains)
-            elif isinstance(domains, six.string_types):
-                params["domains"] = domains
             else:
                 raise TypeError("Unexpected domains type {}".format(type(domains)))
 
@@ -458,8 +450,6 @@ class ELNClient(ClientBase):
         if users is not None:
             if isinstance(users, list):
                 params["users"] = ",".join(users)
-            elif isinstance(users, six.string_types):
-                params["users"] = users
             else:
                 raise TypeError("Unexpected users type {}".format(type(users)))
 
