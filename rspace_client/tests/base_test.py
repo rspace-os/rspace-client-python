@@ -17,6 +17,9 @@ RSPACE_APIKEY_ENV = "RSPACE_API_KEY"
 
 
 def random_string(length):
+    """
+        Creates random lowercase string
+    """
     letters = string.ascii_lowercase
     return "".join(random.choice(letters) for i in range(length))
 
