@@ -101,8 +101,10 @@ class InventoryClient(ClientBase):
             self.serr(f"adding {len(attachments)} attachments")
             for file in attachments:
                 self.uploadAttachment(sample["globalId"], file)
+            ## get latest version
+            sample = self.get_sample_by_id(sample['id'])
         return sample
-    
+
     def get_sample_by_id(self, id: Union[int, str]) -> dict:
         """
         Gets a full sample information by id or global id
@@ -116,11 +118,11 @@ class InventoryClient(ClientBase):
             A full description of one sample
         """
         if isinstance(id, str):
-            id =id[2:]
-        
-        return self.retrieve_api_results(self._get_api_url() 
-                                           + f"/samples/{id}",
-                                           request_type="GET")
+            id = id[2:]
+
+        return self.retrieve_api_results(
+            self._get_api_url() + f"/samples/{id}", request_type="GET"
+        )
 
     def uploadAttachment(self, globalid: str, file):
         """    
@@ -136,7 +138,7 @@ class InventoryClient(ClientBase):
         -------
         Dict of the created InventoryFile
         """
-        
+
         fs = {"parentGlobalId": globalid}
         fsStr = json.dumps(fs)
         headers = self._get_headers()
