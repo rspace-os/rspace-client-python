@@ -4,7 +4,7 @@ import json
 import requests
 from rspace_client.client_base import ClientBase
 from rspace_client.inv import quantity_unit as qu
-from typing import Optional, Sequence, Any
+from typing import Optional, Sequence, Any, Union
 
 
 class ExtraFieldType(Enum):
@@ -102,9 +102,41 @@ class InventoryClient(ClientBase):
             for file in attachments:
                 self.uploadAttachment(sample["globalId"], file)
         return sample
+    
+    def get_sample_by_id(self, id: Union[int, str]) -> dict:
+        """
+        Gets a full sample information by id or global id
+        Parameters
+        ----------
+        id : Union[int, str]
+            An integer ID e.g 1234 or a global ID e.g. SA1234
+        Returns
+        -------
+        dict
+            A full description of one sample
+        """
+        if isinstance(id, str):
+            id =id[2:]
+        
+        return self.retrieve_api_results(self._get_api_url() 
+                                           + f"/samples/{id}",
+                                           request_type="GET")
 
     def uploadAttachment(self, globalid: str, file):
+        """    
+        Uploads an attachment file to an sample, subsample or container.
+        Parameters
+        ----------
+        - globalid : str
+            Global id of  sample (SA...), Subsample (SS...) or Container (IC...)
+        - file : an open file
+            An open file stream.
 
+        Returns
+        -------
+        Dict of the created InventoryFile
+        """
+        
         fs = {"parentGlobalId": globalid}
         fsStr = json.dumps(fs)
         headers = self._get_headers()

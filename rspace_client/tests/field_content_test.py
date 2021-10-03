@@ -25,7 +25,6 @@ class TestBasicFunction(unittest.TestCase):
 
     def test_parse_table(self):
         array2d = self.field.get_datatables()[0]
-        print(array2d)
         self.assertEqual(12, len(array2d))
         ## all rows have same number of columns
         self.assertEqual(1, len(set((len(row) for row in array2d))))
@@ -46,5 +45,4 @@ class TestBasicFunction(unittest.TestCase):
 
     def test_include_empty_rows(self):
         tables = self.field.get_datatables(ignore_empty_rows=False)
-        print(tables[0])
         self.assertEqual(13, len(tables[0]))

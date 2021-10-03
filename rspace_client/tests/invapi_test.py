@@ -48,11 +48,17 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(12, sample["subSamplesCount"])
 
         self.assertEqual(expiry_date.isoformat(), sample["expiryDate"])
-        print(sample)
 
     def test_create_sample_name_only(self):
         sample = self.invapi.create_sample(base.random_string(5))
         self.assertIsNotNone(sample)
+    
+    def test_get_single_sample(self):
+        sample = self.invapi.create_sample(base.random_string(5))
+        sample2 = self.invapi.get_sample_by_id(sample['id'])
+        sample3 = self.invapi.get_sample_by_id(sample['globalId'])
+        self.assertEqual(sample['name'], sample2['name'])
+        self.assertEqual(sample['name'], sample3['name'])
 
     def test_upload_file(self):
         sample = self.invapi.create_sample(base.random_string(5))
