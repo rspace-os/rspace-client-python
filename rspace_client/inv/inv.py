@@ -1,5 +1,6 @@
 from enum import Enum
 from rspace_client.client_base import ClientBase
+from rspace_client.inv import quantity_unit as qu
 from typing import Optional, Sequence, Any
 import datetime
 
@@ -15,8 +16,6 @@ class TemperatureUnit(Enum):
 
 
 class StorageTemperature:
-    degrees: float
-    units: TemperatureUnit
 
     def __init__(
         self, degrees: float, units: TemperatureUnit = TemperatureUnit.CELSIUS
@@ -28,6 +27,15 @@ class StorageTemperature:
         return {"unitId": self.units.value, "numericValue": self.degrees}
 
 
+
+class Quantity:
+    def __init__(self, value:float, units:qu.QuantityUnit):
+        self.value = value
+        self.units=units
+    def _toDict(self) -> dict:
+        return {'numericValue': self.value,
+                'unitId':self.units['id']}
+    
 class ExtraField:
     def __init__(
         self,
@@ -54,16 +62,17 @@ class InventoryClient(ClientBase):
         name: str,
         tags: Optional[str] = None,
         extra_fields: Optional[Sequence] = [],
-        storage_temperature_min : StorageTemperature =None,
-        storage_temperature_max: StorageTemperature =None,
-        expiry_date: datetime.datetime = None
+        storage_temperature_min: StorageTemperature = None,
+        storage_temperature_max: StorageTemperature = None,
+        expiry_date: datetime.datetime = None,
+        subsample_count: int = None,
+        total_quantity: Quantity = None
     ) -> dict:
         """
-        Creates a new sample with optional attributes
+        Creates a new sample with a mandatory name optional attributes
         """
         data = {}
-        if name is not None:
-            data["name"] = name
+        data['name'] = name
         if tags is not None:
             data["tags"] = name
         if extra_fields is not None:
@@ -74,6 +83,12 @@ class InventoryClient(ClientBase):
             data["storageTempMax"] = storage_temperature_max._toDict()
         if expiry_date is not None:
             data["expiryDate"] = expiry_date.isoformat()
+        if subsample_count is not None:
+            data["newSampleSubSamplesCount"]=subsample_count
+        if total_quantity is not None:
+            data['quantity']=total_quantity._toDict()
+            
+            
         return self.retrieve_api_results(
             self._get_api_url() + "/samples", request_type="POST", params=data
         )
