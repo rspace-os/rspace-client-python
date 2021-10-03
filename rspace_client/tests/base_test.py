@@ -19,6 +19,7 @@ RSPACE_APIKEY_ENV = "RSPACE_API_KEY"
 def get_datafile(filename: str):
     return os.path.join(os.path.dirname(__file__), filename)
 
+
 def get_any_datafile():
     return get_datafile("data/fish_method.doc")
 

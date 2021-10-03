@@ -182,6 +182,7 @@ class ClientBase:
 
     def serr(self, msg: str):
         print(msg, file=sys.stderr)
+
     class ConnectionError(Exception):
         pass
 

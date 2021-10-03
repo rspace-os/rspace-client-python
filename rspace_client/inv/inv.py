@@ -94,19 +94,17 @@ class InventoryClient(ClientBase):
             if not isinstance(attachments, list):
                 raise ValueError("attachments must be a list of open files")
 
-
-        sample =  self.retrieve_api_results(
-            self._get_api_url() + "/samples",
-            request_type="POST", params=data
+        sample = self.retrieve_api_results(
+            self._get_api_url() + "/samples", request_type="POST", params=data
         )
         if attachments is not None:
-           self.serr(f"adding {len(attachments)} attachments")
-           for file  in attachments:
-              self.uploadAttachment(sample['globalId'], file)
-        return sample 
+            self.serr(f"adding {len(attachments)} attachments")
+            for file in attachments:
+                self.uploadAttachment(sample["globalId"], file)
+        return sample
 
     def uploadAttachment(self, globalid: str, file):
-        
+
         fs = {"parentGlobalId": globalid}
         fsStr = json.dumps(fs)
         headers = self._get_headers()

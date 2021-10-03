@@ -39,7 +39,7 @@ class InventoryApiTest(base.BaseApiTest):
             expiry_date=expiry_date,
             total_quantity=amount,
             subsample_count=12,
-            attachments = [open(base.get_any_datafile(),'rb')]
+            attachments=[open(base.get_any_datafile(), "rb")],
         )
         self.assertEqual(sample_name, sample["name"])
         self.assertEqual(2, len(sample["extraFields"]))
@@ -49,7 +49,7 @@ class InventoryApiTest(base.BaseApiTest):
 
         self.assertEqual(expiry_date.isoformat(), sample["expiryDate"])
         print(sample)
-        
+
     def test_create_sample_name_only(self):
         sample = self.invapi.create_sample(base.random_string(5))
         self.assertIsNotNone(sample)
@@ -61,4 +61,3 @@ class InventoryApiTest(base.BaseApiTest):
             resp = self.invapi.uploadAttachment(sample["globalId"], f)
             self.assertIsNotNone(resp["id"])
             self.assertTrue(resp["globalId"][0:2] == "IF")
-        
