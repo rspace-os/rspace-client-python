@@ -52,11 +52,11 @@ class InventoryApiTest(base.BaseApiTest):
     def test_create_sample_name_only(self):
         sample = self.invapi.create_sample(base.random_string(5))
         self.assertIsNotNone(sample)
-        
+
     def test_upload_file(self):
         sample = self.invapi.create_sample(base.random_string(5))
         data_file = base.get_datafile("data/calculation_table.html")
         with open(data_file, "rb") as f:
-            resp =  self.invapi.uploadAttachment(sample['globalId'], f)
-            self.assertIsNotNone(resp['id'])
-            self.assertTrue(resp['globalId'][0:2] == 'IF')
+            resp = self.invapi.uploadAttachment(sample["globalId"], f)
+            self.assertIsNotNone(resp["id"])
+            self.assertTrue(resp["globalId"][0:2] == "IF")

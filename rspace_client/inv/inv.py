@@ -68,7 +68,7 @@ class InventoryClient(ClientBase):
         expiry_date: datetime.datetime = None,
         subsample_count: int = None,
         total_quantity: Quantity = None,
-        attachments = None
+        attachments=None,
     ) -> dict:
         """
         Creates a new sample with a mandatory name, optional attributes
@@ -93,15 +93,14 @@ class InventoryClient(ClientBase):
         return self.retrieve_api_results(
             self._get_api_url() + "/samples", request_type="POST", params=data
         )
-    
+
     def uploadAttachment(self, globalid: str, file):
         fs = {"parentGlobalId": globalid}
-        fsStr= json.dumps(fs)
+        fsStr = json.dumps(fs)
         headers = self._get_headers()
         response = requests.post(
             self._get_api_url() + "/files",
-            files={"file": file,
-                   "fileSettings": (None, fsStr, "application/json")},
-            headers=headers)
+            files={"file": file, "fileSettings": (None, fsStr, "application/json")},
+            headers=headers,
+        )
         return self._handle_response(response)
-        

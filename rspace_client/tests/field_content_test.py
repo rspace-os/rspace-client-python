@@ -8,8 +8,9 @@ Created on Mon Jun  7 08:38:55 2021
 
 
 import rspace_client.eln as cli
-import  rspace_client.tests.base_test as base_test
+import rspace_client.tests.base_test as base_test
 import unittest
+
 
 class TestBasicFunction(unittest.TestCase):
     def setUp(self):
