@@ -8,13 +8,12 @@ Created on Mon Jun  7 08:38:55 2021
 
 
 import rspace_client.eln as cli
+import  rspace_client.tests.base_test as base_test
 import unittest
-import os
-
 
 class TestBasicFunction(unittest.TestCase):
     def setUp(self):
-        dataDir = os.path.join(os.path.dirname(__file__), "data/calculation_table.html")
+        dataDir = base_test.get_datafile("data/calculation_table.html")
         with open(dataDir) as f:
             text = f.read()
             field = cli.field_content.FieldContent(text)

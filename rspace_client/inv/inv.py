@@ -1,8 +1,10 @@
 from enum import Enum
+import datetime
+import json
+import requests
 from rspace_client.client_base import ClientBase
 from rspace_client.inv import quantity_unit as qu
 from typing import Optional, Sequence, Any
-import datetime
 
 
 class ExtraFieldType(Enum):
@@ -16,7 +18,6 @@ class TemperatureUnit(Enum):
 
 
 class StorageTemperature:
-
     def __init__(
         self, degrees: float, units: TemperatureUnit = TemperatureUnit.CELSIUS
     ):
@@ -27,15 +28,15 @@ class StorageTemperature:
         return {"unitId": self.units.value, "numericValue": self.degrees}
 
 
-
 class Quantity:
-    def __init__(self, value:float, units:qu.QuantityUnit):
+    def __init__(self, value: float, units: qu.QuantityUnit):
         self.value = value
-        self.units=units
+        self.units = units
+
     def _toDict(self) -> dict:
-        return {'numericValue': self.value,
-                'unitId':self.units['id']}
-    
+        return {"numericValue": self.value, "unitId": self.units["id"]}
+
+
 class ExtraField:
     def __init__(
         self,
@@ -66,13 +67,14 @@ class InventoryClient(ClientBase):
         storage_temperature_max: StorageTemperature = None,
         expiry_date: datetime.datetime = None,
         subsample_count: int = None,
-        total_quantity: Quantity = None
+        total_quantity: Quantity = None,
+        attachments = None
     ) -> dict:
         """
-        Creates a new sample with a mandatory name optional attributes
+        Creates a new sample with a mandatory name, optional attributes
         """
         data = {}
-        data['name'] = name
+        data["name"] = name
         if tags is not None:
             data["tags"] = name
         if extra_fields is not None:
@@ -84,11 +86,22 @@ class InventoryClient(ClientBase):
         if expiry_date is not None:
             data["expiryDate"] = expiry_date.isoformat()
         if subsample_count is not None:
-            data["newSampleSubSamplesCount"]=subsample_count
+            data["newSampleSubSamplesCount"] = subsample_count
         if total_quantity is not None:
-            data['quantity']=total_quantity._toDict()
-            
-            
+            data["quantity"] = total_quantity._toDict()
+
         return self.retrieve_api_results(
             self._get_api_url() + "/samples", request_type="POST", params=data
         )
+    
+    def uploadAttachment(self, globalid: str, file):
+        fs = {"parentGlobalId": globalid}
+        fsStr= json.dumps(fs)
+        headers = self._get_headers()
+        response = requests.post(
+            self._get_api_url() + "/files",
+            files={"file": file,
+                   "fileSettings": (None, fsStr, "application/json")},
+            headers=headers)
+        return self._handle_response(response)
+        

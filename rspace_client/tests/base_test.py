@@ -15,6 +15,9 @@ import pytest
 RSPACE_URL_ENV = "RSPACE_URL"
 RSPACE_APIKEY_ENV = "RSPACE_API_KEY"
 
+def get_datafile(filename : str):
+    return os.path.join(os.path.dirname(__file__), filename)
+
 
 def random_string(length):
     """

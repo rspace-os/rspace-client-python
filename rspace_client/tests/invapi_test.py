@@ -10,6 +10,7 @@ import rspace_client.inv.inv as cli
 import rspace_client.inv.quantity_unit as qu
 
 import datetime as dt
+import io
 
 
 class InventoryApiTest(base.BaseApiTest):
@@ -29,7 +30,7 @@ class InventoryApiTest(base.BaseApiTest):
         minTemp = cli.StorageTemperature(1, cli.TemperatureUnit.KELVIN)
         maxTemp = cli.StorageTemperature(4, cli.TemperatureUnit.KELVIN)
         expiry_date = dt.date(2024, 12, 25)
-        amount = cli.Quantity(5, qu.QuantityUnit.of('ml'))
+        amount = cli.Quantity(5, qu.QuantityUnit.of("ml"))
         sample = self.invapi.create_sample(
             name=sample_name,
             tags=sample_tags,
@@ -38,8 +39,7 @@ class InventoryApiTest(base.BaseApiTest):
             storage_temperature_max=maxTemp,
             expiry_date=expiry_date,
             total_quantity=amount,
-            subsample_count=12
-            
+            subsample_count=12,
         )
         self.assertEqual(sample_name, sample["name"])
         self.assertEqual(2, len(sample["extraFields"]))
@@ -52,3 +52,11 @@ class InventoryApiTest(base.BaseApiTest):
     def test_create_sample_name_only(self):
         sample = self.invapi.create_sample(base.random_string(5))
         self.assertIsNotNone(sample)
+        
+    def test_upload_file(self):
+        sample = self.invapi.create_sample(base.random_string(5))
+        data_file = base.get_datafile("data/calculation_table.html")
+        with open(data_file, "rb") as f:
+            resp =  self.invapi.uploadAttachment(sample['globalId'], f)
+            self.assertIsNotNone(resp['id'])
+            self.assertTrue(resp['globalId'][0:2] == 'IF')
