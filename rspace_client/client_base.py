@@ -1,5 +1,6 @@
 import re
 import requests
+import sys
 
 
 class ClientBase:
@@ -179,6 +180,8 @@ class ClientBase:
         """
         return link_rel in [x["rel"] for x in self._get_links(response)]
 
+    def serr(self, msg: str):
+        print(msg, file=sys.stderr)
     class ConnectionError(Exception):
         pass
 

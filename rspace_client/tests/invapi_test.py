@@ -10,7 +10,6 @@ import rspace_client.inv.inv as cli
 import rspace_client.inv.quantity_unit as qu
 
 import datetime as dt
-import io
 
 
 class InventoryApiTest(base.BaseApiTest):
@@ -40,6 +39,7 @@ class InventoryApiTest(base.BaseApiTest):
             expiry_date=expiry_date,
             total_quantity=amount,
             subsample_count=12,
+            attachments = [open(base.get_any_datafile(),'rb')]
         )
         self.assertEqual(sample_name, sample["name"])
         self.assertEqual(2, len(sample["extraFields"]))
@@ -48,15 +48,17 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(12, sample["subSamplesCount"])
 
         self.assertEqual(expiry_date.isoformat(), sample["expiryDate"])
-
+        print(sample)
+        
     def test_create_sample_name_only(self):
         sample = self.invapi.create_sample(base.random_string(5))
         self.assertIsNotNone(sample)
 
     def test_upload_file(self):
         sample = self.invapi.create_sample(base.random_string(5))
-        data_file = base.get_datafile("data/calculation_table.html")
+        data_file = base.get_any_datafile()
         with open(data_file, "rb") as f:
             resp = self.invapi.uploadAttachment(sample["globalId"], f)
             self.assertIsNotNone(resp["id"])
             self.assertTrue(resp["globalId"][0:2] == "IF")
+        
