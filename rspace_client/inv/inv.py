@@ -1,6 +1,7 @@
 from enum import Enum
 from rspace_client.client_base import ClientBase
 from typing import Optional, Sequence, Any
+import datetime
 
 
 class ExtraFieldType(Enum):
@@ -53,8 +54,9 @@ class InventoryClient(ClientBase):
         name: str,
         tags: Optional[str] = None,
         extra_fields: Optional[Sequence] = [],
-        storage_temperature_min=None,
-        storage_temperature_max=None,
+        storage_temperature_min : StorageTemperature =None,
+        storage_temperature_max: StorageTemperature =None,
+        expiry_date: datetime.datetime = None
     ) -> dict:
         """
         Creates a new sample with optional attributes
@@ -70,6 +72,8 @@ class InventoryClient(ClientBase):
             data["storageTempMin"] = storage_temperature_min._toDict()
         if storage_temperature_max is not None:
             data["storageTempMax"] = storage_temperature_max._toDict()
+        if expiry_date is not None:
+            data["expiryDate"] = expiry_date.isoformat()
         return self.retrieve_api_results(
             self._get_api_url() + "/samples", request_type="POST", params=data
         )
