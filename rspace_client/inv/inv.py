@@ -161,11 +161,11 @@ class InventoryClient(ClientBase):
         return self.retrieve_api_results(
             self._get_api_url() + f"/samples/{s_id.as_id()}", request_type="GET"
         )
-    
-    def list_samples(self, pagination = None ):
+
+    def list_samples(self, pagination=None):
         return []
 
-    def rename_sample(self, sample_id: Union[int,str], new_name: str) -> dict:
+    def rename_sample(self, sample_id: Union[int, str], new_name: str) -> dict:
         """
         Parameters
         ----------
