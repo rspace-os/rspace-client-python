@@ -9,6 +9,8 @@ import rspace_client.tests.base_test as base
 import rspace_client.inv.inv as cli
 import rspace_client.inv.quantity_unit as qu
 
+
+
 import datetime as dt
 
 
@@ -20,6 +22,11 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertClientCredentials()
         self.invapi = cli.InventoryClient(self.rspace_url, self.rspace_apikey)
 
+    def test_id(self):
+        id = cli.Id(1234)
+        id2 = cli.Id('SA1234')
+        self.assertRaises(ValueError, cli.Id, '!!!!')
+        
     def test_create_sample(self):
         sample_name = base.random_string(5)
         sample_tags = base.random_string(4)
@@ -47,7 +54,8 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(1, sample["storageTempMin"]["numericValue"])
         self.assertEqual(12, sample["subSamplesCount"])
         self.assertEqual(expiry_date.isoformat(), sample["expiryDate"])
-        self.assertEqual(1, len(sample['attachments']))
+        self.assertEqual(1, len(sample["attachments"]))
+
     def test_create_sample_name_only(self):
         sample = self.invapi.create_sample(base.random_string(5))
         self.assertIsNotNone(sample)

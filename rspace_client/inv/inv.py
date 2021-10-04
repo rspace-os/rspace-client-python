@@ -4,18 +4,23 @@ import json
 import requests
 from rspace_client.client_base import ClientBase
 from rspace_client.inv import quantity_unit as qu
-from typing import Optional, Sequence, Any, Union
+from typing import Optional, Sequence,  Union
+import re
 
+class Id:
+    pattern  = r'[A-Z]{2}\d+'
+    def __init__(self, value: Union[int,str]):
+        if isinstance(value, str):
+            if re.match(Id.pattern, value) is None:
+                raise ValueError("incorrect global id format")
 
 class ExtraFieldType(Enum):
     TEXT = "text"
     NUMBER = "number"
 
-
 class TemperatureUnit(Enum):
     CELSIUS = 8
     KELVIN = 9
-
 
 class StorageTemperature:
     def __init__(
@@ -38,11 +43,14 @@ class Quantity:
 
 
 class ExtraField:
+    """
+        The data in the 'content' field must be of the type set in the 'fieldType' field
+    """
     def __init__(
         self,
         name: str,
         fieldType: ExtraFieldType = ExtraFieldType.TEXT,
-        content: Any = "",
+        content: Union[str,int,float] = "",
     ):
         self.data = {"name": name, "type": fieldType.value, "content": content}
 
@@ -72,6 +80,8 @@ class InventoryClient(ClientBase):
     ) -> dict:
         """
         Creates a new sample with a mandatory name, optional attributes
+        If no template id is specified, the default template will be used,
+        whose quantity is measured as a volume. 
         """
         data = {}
         data["name"] = name
@@ -102,7 +112,7 @@ class InventoryClient(ClientBase):
             for file in attachments:
                 self.uploadAttachment(sample["globalId"], file)
             ## get latest version
-            sample = self.get_sample_by_id(sample['id'])
+            sample = self.get_sample_by_id(sample["id"])
         return sample
 
     def get_sample_by_id(self, id: Union[int, str]) -> dict:
@@ -124,7 +134,7 @@ class InventoryClient(ClientBase):
             self._get_api_url() + f"/samples/{id}", request_type="GET"
         )
 
-    def uploadAttachment(self, globalid: str, file):
+    def uploadAttachment(self, globalid: str, file)->dict:
         """    
         Uploads an attachment file to an sample, subsample or container.
         Parameters
@@ -145,6 +155,8 @@ class InventoryClient(ClientBase):
         response = requests.post(
             self._get_api_url() + "/files",
             files={"file": file, "fileSettings": (None, fsStr, "application/json")},
-            headers=headers,
+            headers=headers
         )
         return self._handle_response(response)
+    
+        
