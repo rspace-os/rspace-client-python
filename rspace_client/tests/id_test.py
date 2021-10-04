@@ -10,7 +10,7 @@ from rspace_client.inv.inv import Id
 
 
 class IdUnitTest(unittest.TestCase):
-      def test_id(self):
+    def test_id(self):
         ida = Id(1234)
         self.assertEqual(1234, ida.as_id())
         id2 = Id("SA1235")
@@ -19,7 +19,4 @@ class IdUnitTest(unittest.TestCase):
         id3 = Id("2234")
         self.assertEqual(2234, id3.as_id())
 
-        
         self.assertRaises(ValueError, Id, "!!!!")
-    
-

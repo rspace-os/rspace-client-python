@@ -10,7 +10,6 @@ import rspace_client.inv.inv as cli
 import rspace_client.inv.quantity_unit as qu
 
 
-
 import datetime as dt
 
 
@@ -21,8 +20,6 @@ class InventoryApiTest(base.BaseApiTest):
         """
         self.assertClientCredentials()
         self.invapi = cli.InventoryClient(self.rspace_url, self.rspace_apikey)
-
-  
 
     def test_create_sample(self):
         sample_name = base.random_string(5)
@@ -59,8 +56,8 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_get_single_sample(self):
         sample = self.invapi.create_sample(base.random_string(5))
-        sample2 = self.invapi.get_sample_by_id(cli.Id(sample["id"]))
-        sample3 = self.invapi.get_sample_by_id(cli.Id(sample["globalId"]))
+        sample2 = self.invapi.get_sample_by_id(sample["id"])
+        sample3 = self.invapi.get_sample_by_id(sample["globalId"])
         self.assertEqual(sample["name"], sample2["name"])
         self.assertEqual(sample["name"], sample3["name"])
 
@@ -75,5 +72,5 @@ class InventoryApiTest(base.BaseApiTest):
     def test_rename_sample(self):
         sample = self.invapi.create_sample(base.random_string(5))
         new_name = base.random_string(10)
-        updated = self.invapi.rename_sample(cli.Id(sample['id']), new_name)
-        self.assertEqual(new_name, updated['name'])
+        updated = self.invapi.rename_sample(sample["id"], new_name)
+        self.assertEqual(new_name, updated["name"])

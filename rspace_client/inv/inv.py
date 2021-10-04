@@ -13,23 +13,24 @@ class Id:
     Supports integer or string representation of a globalId or
     numeric ID
     """
+
     Pattern = r"([A-Z]{2})?\d+"
 
     def __init__(self, value: Union[int, str]):
-        
+
         if isinstance(value, str):
             if re.match(Id.Pattern, value) is None:
                 raise ValueError("incorrect global id format")
-                
+
             if len(value) > 2 and value[0:2].isalpha():
                 self.prefix = value[0:2]
                 self.id = int(value[2:])
-            else :
-                self.id=int(value)
-        else :
+            else:
+                self.id = int(value)
+        else:
             self.id = value
-    
-    def as_id(self) ->int :
+
+    def as_id(self) -> int:
         return self.id
         """
         Returns
@@ -141,10 +142,10 @@ class InventoryClient(ClientBase):
             for file in attachments:
                 self.uploadAttachment(sample["globalId"], file)
             ## get latest version
-            sample = self.get_sample_by_id(Id(sample["id"]))
+            sample = self.get_sample_by_id(sample["id"])
         return sample
 
-    def get_sample_by_id(self, id: Id) -> dict:
+    def get_sample_by_id(self, sample_id: Union[str, int]) -> dict:
         """
         Gets a full sample information by id or global id
         Parameters
@@ -156,11 +157,15 @@ class InventoryClient(ClientBase):
         dict
             A full description of one sample
         """
+        s_id = Id(sample_id)
         return self.retrieve_api_results(
-            self._get_api_url() + f"/samples/{id.as_id()}", request_type="GET"
+            self._get_api_url() + f"/samples/{s_id.as_id()}", request_type="GET"
         )
     
-    def rename_sample(self, id: Id, new_name: str) -> dict:
+    def list_samples(self, pagination = None ):
+        return []
+
+    def rename_sample(self, sample_id: Union[int,str], new_name: str) -> dict:
         """
         Parameters
         ----------
@@ -172,11 +177,12 @@ class InventoryClient(ClientBase):
             dict : The updated sample
 
         """
+        s_id = Id(sample_id)
         return self.retrieve_api_results(
-            self._get_api_url() + f"/samples/{id.as_id()}",
+            self._get_api_url() + f"/samples/{s_id.as_id()}",
             request_type="PUT",
-            params={"name":new_name})
-
+            params={"name": new_name},
+        )
 
     def uploadAttachment(self, globalid: str, file) -> dict:
         """
