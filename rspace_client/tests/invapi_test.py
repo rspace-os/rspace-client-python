@@ -5,12 +5,13 @@ Created on Sat Oct  2 22:09:40 2021
 
 @author: richard
 """
+import sys
+import datetime as dt
 import rspace_client.tests.base_test as base
 import rspace_client.inv.inv as cli
 import rspace_client.inv.quantity_unit as qu
 
 
-import datetime as dt
 
 
 class InventoryApiTest(base.BaseApiTest):
@@ -74,3 +75,18 @@ class InventoryApiTest(base.BaseApiTest):
         new_name = base.random_string(10)
         updated = self.invapi.rename_sample(sample["id"], new_name)
         self.assertEqual(new_name, updated["name"])
+        
+    def test_list_samples(self):
+        samples = self.invapi.list_samples()
+        print(samples,file=sys.stderr)
+        self.assertEqual(0, samples['pageNumber'])
+        self.assertEqual(10, len(samples['samples']))
+
+        
+    def test_paginated_samples(self):
+        pag = cli.Pagination( page_nunber=1, page_size=1, sort_order='desc')
+        samples = self.invapi.list_samples(pag)
+        self.assertEqual(1, samples['pageNumber'])
+        self.assertEqual(1, len(samples['samples']))
+        
+    
