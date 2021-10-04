@@ -10,7 +10,6 @@ import rspace_client.inv.inv as cli
 import rspace_client.inv.quantity_unit as qu
 
 
-
 import datetime as dt
 
 
@@ -24,9 +23,9 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_id(self):
         id = cli.Id(1234)
-        id2 = cli.Id('SA1234')
-        self.assertRaises(ValueError, cli.Id, '!!!!')
-        
+        id2 = cli.Id("SA1234")
+        self.assertRaises(ValueError, cli.Id, "!!!!")
+
     def test_create_sample(self):
         sample_name = base.random_string(5)
         sample_tags = base.random_string(4)
