@@ -26,7 +26,7 @@ def get_any_datafile():
 
 def random_string(length):
     """
-        Creates random lowercase string
+    Creates random lowercase string
     """
     letters = string.ascii_lowercase
     return "".join(random.choice(letters) for i in range(length))

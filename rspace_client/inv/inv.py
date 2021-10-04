@@ -49,7 +49,7 @@ class Quantity:
 
 class ExtraField:
     """
-        The data in the 'content' field must be of the type set in the 'fieldType' field
+    The data in the 'content' field must be of the type set in the 'fieldType' field
     """
 
     def __init__(
@@ -87,7 +87,7 @@ class InventoryClient(ClientBase):
         """
         Creates a new sample with a mandatory name, optional attributes
         If no template id is specified, the default template will be used,
-        whose quantity is measured as a volume. 
+        whose quantity is measured as a volume.
         """
         data = {}
         data["name"] = name
@@ -141,7 +141,7 @@ class InventoryClient(ClientBase):
         )
 
     def uploadAttachment(self, globalid: str, file) -> dict:
-        """    
+        """
         Uploads an attachment file to an sample, subsample or container.
         Parameters
         ----------

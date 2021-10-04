@@ -4,7 +4,7 @@ import sys
 
 
 class ClientBase:
-    """ Base class of common methods for all API clients """
+    """Base class of common methods for all API clients"""
 
     def __init__(self, rspace_url, api_key):
         """

@@ -11,6 +11,7 @@ class QuantityUnit:
     """
     Static data from api/v1/units definitions
     """
+
     data = [
         {"id": 1, "label": "items", "category": "dimensionless", "description": ""},
         {"id": 2, "label": "µl", "category": "volume", "description": ""},
@@ -32,9 +33,9 @@ class QuantityUnit:
     ]
 
     @staticmethod
-    def of(label: str) ->dict :
+    def of(label: str) -> dict:
         """
-    
+
         Parameters
         ----------
         label : str
@@ -47,22 +48,22 @@ class QuantityUnit:
 
         Returns
         -------
-        dict 
+        dict
             information about the unit definition.
         """
         units = QuantityUnit()._find_label(label)
-        if len(units) ==0:
+        if len(units) == 0:
             raise ValueError(f"{label} not found in  unit data")
         return units[0]
-    
+
     @staticmethod
-    def is_supported_unit(label : str) -> bool :
+    def is_supported_unit(label: str) -> bool:
         return len(QuantityUnit._find_label(label)) > 0
-    
+
     @staticmethod
-    def _find_label( label):
-         return  [x for x in QuantityUnit.data if x["label"] == label  ]      
+    def _find_label(label):
+        return [x for x in QuantityUnit.data if x["label"] == label]
 
     @staticmethod
     def unit_labels() -> tuple:
-        return [x['label'] for x in QuantityUnit.data]
+        return [x["label"] for x in QuantityUnit.data]
