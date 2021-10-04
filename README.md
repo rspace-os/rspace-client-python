@@ -12,18 +12,8 @@ All the code listed here is in the project.
 
 For full details of our API spec please see https://your.rspace.com/public/apiDocs
 
-To run unit tests, install pytest:
+See [DEVELOPING.md](DEVELOPING.md) for details of running tests.
 
-```
-pytest -v rspace_client/tests
-```
-For running API tests that call an RSpace instance, the following environment properties should be set, otherwise the tests are skipped, e.g. 
-
-```
-RSPACE_URL=http://myrspace.com
-RSPACE_API_KEY=myapikey123445
-```
-Running pytest with `-s` option will show standard out, useful for debugging
 
 To install rspace-client and its dependencies, run
 
@@ -31,9 +21,9 @@ To install rspace-client and its dependencies, run
 pip3 install rspace-client
 ```
 
-You may need to install `six` and `requests` modules:
+You may need to install `requests` module:
 ``` bash
-pip3 install six requests
+pip3 install  requests
 ```
 
 To run the example scripts in the examples folder, cd to that folder, then run
