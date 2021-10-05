@@ -7,7 +7,20 @@ from rspace_client.inv import quantity_unit as qu
 from typing import Optional, Sequence, Union
 import re
 
-
+class DeletedItemFilter(Enum):
+    EXCLUDE = 1
+    INCLUDE = 2
+    DELETED_ONLY = 3
+    
+class SampleFilter:
+    def __init__(self, deleted_item_filter = DeletedItemFilter.EXCLUDE,
+                 owned_by: str = None):
+        self.data  = {}
+        if deleted_item_filter is not None:
+            self.data['deletedItems']=deleted_item_filter.name
+        if owned_by is not None and len(owned_by)> 0:
+            self.data['ownedBy'] = owned_by                                             
+    
 class Pagination:
     def __init__(
         self,
@@ -179,7 +192,7 @@ class InventoryClient(ClientBase):
             self._get_api_url() + f"/samples/{s_id.as_id()}", request_type="GET"
         )
 
-    def list_samples(self, pagination: Pagination = Pagination()):
+    def list_samples(self, pagination: Pagination = Pagination(), sample_filter: SampleFilter=None):
         """
         Parameters
         ----------
@@ -187,39 +200,45 @@ class InventoryClient(ClientBase):
             The default is Pagination().
         Returns
         -------
-        Search result
+        Paginated Search result. Use 'next' and 'prev' links to navigate
         """
+        
+        if sample_filter is not None:
+            pagination.data.update(sample_filter.data)
         return self.retrieve_api_results(
             self._get_api_url() + "/samples", request_type="GET", params=pagination.data
         )
-    
-    def stream_samples(self, pagination : Pagination = Pagination()):
+
+    def stream_samples(self, pagination: Pagination = Pagination(), sample_filter: SampleFilter=None):
         """
         Streams all samples. Pagination argument sets batch size and ordering.
         Parameters
         ----------
-        pagination : Pagination, optional
-            DESCRIPTION. The default is Pagination().
+        pagination : Pagination, optional. The default is Pagination().
 
         Yields
         ------
         item : One Sample at a time
         """
         urlStr = self._get_api_url() + "/samples"
-        next_link = requests.Request(method='GET', url=urlStr,
-                                params=pagination.data).prepare().url
+        if sample_filter is not None:
+            pagination.data.update(sample_filter.data)
+        next_link = (
+            requests.Request(method="GET", url=urlStr, params=pagination.data)
+            .prepare()
+            .url
+        )
         self.serr(f" initial url is {next_link}")
         while True:
             if next_link is not None:
                 samples = self.retrieve_api_results(next_link)
-                for item in samples['samples']:
-                     yield item
+                for item in samples["samples"]:
+                    yield item
                 if self.link_exists(samples, "next"):
-                     next_link = self.get_link(samples, "next")
+                    next_link = self.get_link(samples, "next")
                 else:
-                     break
-        
-        
+                    break
+
     def rename_sample(self, sample_id: Union[int, str], new_name: str) -> dict:
         """
         Parameters
@@ -236,6 +255,21 @@ class InventoryClient(ClientBase):
             request_type="PUT",
             params={"name": new_name},
         )
+    
+    def delete_sample(self,  sample_id: Union[int, str]):
+        """
+        Parameters
+        ----------
+        sample_id : Union[int, str]
+            A integer id, or a string id or global ID.
+
+        Returns
+        -------
+        None.
+
+        """
+        id_to_delete = Id(sample_id)
+        self.doDelete("samples", id_to_delete.as_id())
 
     def uploadAttachment(self, globalid: str, file) -> dict:
         """

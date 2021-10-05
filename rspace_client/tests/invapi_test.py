@@ -87,8 +87,17 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_stream_samples(self):
         onePerPage = cli.Pagination(page_size=1)
-        gen =  self.invapi.stream_samples(onePerPage)
-        # get 2 items 
+        gen = self.invapi.stream_samples(onePerPage)
+        # get 2 items
         s1 = next(gen)
         s2 = next(gen)
-        self.assertNotEqual(s1['id'], s2['id'])        
+        self.assertNotEqual(s1["id"], s2["id"])
+        
+        unknown_user = base.random_string(15)
+        sample_filter = cli.SampleFilter(owned_by=unknown_user)
+        gen = self.invapi.stream_samples(onePerPage, sample_filter)
+        result_count = 0
+        for sample in gen:
+            result_count = result_count + 1
+        self.assertEqual(0, result_count)
+        
