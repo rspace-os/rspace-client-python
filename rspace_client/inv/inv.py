@@ -7,20 +7,24 @@ from rspace_client.inv import quantity_unit as qu
 from typing import Optional, Sequence, Union
 import re
 
+
 class DeletedItemFilter(Enum):
     EXCLUDE = 1
     INCLUDE = 2
     DELETED_ONLY = 3
-    
+
+
 class SampleFilter:
-    def __init__(self, deleted_item_filter = DeletedItemFilter.EXCLUDE,
-                 owned_by: str = None):
-        self.data  = {}
+    def __init__(
+        self, deleted_item_filter=DeletedItemFilter.EXCLUDE, owned_by: str = None
+    ):
+        self.data = {}
         if deleted_item_filter is not None:
-            self.data['deletedItems']=deleted_item_filter.name
-        if owned_by is not None and len(owned_by)> 0:
-            self.data['ownedBy'] = owned_by                                             
-    
+            self.data["deletedItems"] = deleted_item_filter.name
+        if owned_by is not None and len(owned_by) > 0:
+            self.data["ownedBy"] = owned_by
+
+
 class Pagination:
     def __init__(
         self,
@@ -32,10 +36,15 @@ class Pagination:
         self.data = {
             "pageNumber": page_nunber,
             "pageSize": page_size,
-            "sort_order": sort_order,
         }
         if order_by is not None:
-            self.data["orderBy"] = order_by
+            self.data["orderBy"] = f"{order_by} {sort_order}"
+            
+class ResultType(Enum):
+    SAMPLE=1,
+    SUBSAMPLE=2,
+    TEMPLATE=3,
+    CONTAINER=4
 
 
 class Id:
@@ -192,7 +201,9 @@ class InventoryClient(ClientBase):
             self._get_api_url() + f"/samples/{s_id.as_id()}", request_type="GET"
         )
 
-    def list_samples(self, pagination: Pagination = Pagination(), sample_filter: SampleFilter=None):
+    def list_samples(
+        self, pagination: Pagination = Pagination(), sample_filter: SampleFilter = None
+    ):
         """
         Parameters
         ----------
@@ -202,14 +213,17 @@ class InventoryClient(ClientBase):
         -------
         Paginated Search result. Use 'next' and 'prev' links to navigate
         """
-        
+
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
+        self.serr(f"pg is {pagination.data}")
         return self.retrieve_api_results(
             self._get_api_url() + "/samples", request_type="GET", params=pagination.data
         )
 
-    def stream_samples(self, pagination: Pagination = Pagination(), sample_filter: SampleFilter=None):
+    def stream_samples(
+        self, pagination: Pagination = Pagination(), sample_filter: SampleFilter = None
+    ):
         """
         Streams all samples. Pagination argument sets batch size and ordering.
         Parameters
@@ -253,10 +267,10 @@ class InventoryClient(ClientBase):
         return self.retrieve_api_results(
             self._get_api_url() + f"/samples/{s_id.as_id()}",
             request_type="PUT",
-            params={"name": new_name},
+            body={"name": new_name},
         )
-    
-    def delete_sample(self,  sample_id: Union[int, str]):
+
+    def delete_sample(self, sample_id: Union[int, str]):
         """
         Parameters
         ----------
@@ -270,6 +284,18 @@ class InventoryClient(ClientBase):
         """
         id_to_delete = Id(sample_id)
         self.doDelete("samples", id_to_delete.as_id())
+        
+    def add_extra_fields(self, sample_id: Union[int, str], *ExtraField):
+        toPut= []
+        for ef in ExtraField:
+            ef.data['newFieldRequest']=True
+            toPut.append(ef.data)
+        s_id=Id(sample_id)
+        return self.retrieve_api_results(
+            self._get_api_url() + f"/samples/{s_id.as_id()}",
+            request_type="PUT",
+            params={"extraFields": toPut})
+        
 
     def uploadAttachment(self, globalid: str, file) -> dict:
         """
@@ -295,3 +321,10 @@ class InventoryClient(ClientBase):
             headers=headers,
         )
         return self._handle_response(response)
+    
+    def search(self, query: str, pagination = Pagination(), result_type: ResultType=None):
+        params={'query': query}
+        params.update(pagination.data)
+        if result_type is not None:
+            params['resultType']=result_type.name
+        return self.retrieve_api_results(self._get_api_url() + "/search", params=params)

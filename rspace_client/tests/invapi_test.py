@@ -61,7 +61,7 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(sample["name"], sample3["name"])
 
     def test_upload_file(self):
-        sample = self.invapi.create_sample(base.random_string(5))
+        sample = self.invapi.create_sample(base.random_string())
         data_file = base.get_any_datafile()
         with open(data_file, "rb") as f:
             resp = self.invapi.uploadAttachment(sample["globalId"], f)
@@ -70,12 +70,13 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_rename_sample(self):
         sample = self.invapi.create_sample(base.random_string(5))
-        new_name = base.random_string(10)
+        new_name = base.random_string()
         updated = self.invapi.rename_sample(sample["id"], new_name)
         self.assertEqual(new_name, updated["name"])
 
     def test_list_samples(self):
-        samples = self.invapi.list_samples()
+        samples = self.invapi.list_samples(cli.Pagination(sort_order="desc"))
+
         self.assertEqual(0, samples["pageNumber"])
         self.assertEqual(10, len(samples["samples"]))
 
@@ -92,7 +93,7 @@ class InventoryApiTest(base.BaseApiTest):
         s1 = next(gen)
         s2 = next(gen)
         self.assertNotEqual(s1["id"], s2["id"])
-        
+
         unknown_user = base.random_string(15)
         sample_filter = cli.SampleFilter(owned_by=unknown_user)
         gen = self.invapi.stream_samples(onePerPage, sample_filter)
@@ -100,4 +101,33 @@ class InventoryApiTest(base.BaseApiTest):
         for sample in gen:
             result_count = result_count + 1
         self.assertEqual(0, result_count)
+        
+    def test_add_extra_fields(self):
+        sample = self.invapi.create_sample(base.random_string())
+        ef1 = cli.ExtraField(name="ef1", content="ef1 content")
+        ef2 = cli.ExtraField(name="ef2", content="ef2 content")
+        updatedS = self.invapi.add_extra_fields(sample['id'], ef1, ef2)
+        self.assertEqual(2, len(updatedS['extraFields']))
+        
+    def test_search_sample(self):
+        name = base.random_string()
+        sample = self.invapi.create_sample(name)
+        results = self.invapi.search(query=name)
+        ## sample and its subsample
+        self.assertEqual(2, results['totalHits'])
+        results2 = self.invapi.search(query=name, result_type=cli.ResultType.SAMPLE)
+        self.assertEqual(1, results2['totalHits'])
+
+        
+    def test_delete_samples(self):
+        total_samples=self.invapi.list_samples()
+        total_samples_count = total_samples['totalHits']
+        total_deleted = self.invapi.list_samples(
+        sample_filter=cli.SampleFilter(deleted_item_filter=cli.DeletedItemFilter.DELETED_ONLY)
+        )['totalHits']
+        self.invapi.delete_sample(total_samples['samples'][0]['id'])
+        total_deleted2 = self.invapi.list_samples(
+        sample_filter=cli.SampleFilter(deleted_item_filter=cli.DeletedItemFilter.DELETED_ONLY)
+        )['totalHits']
+        self.assertEqual(total_deleted2, total_deleted + 1)
         

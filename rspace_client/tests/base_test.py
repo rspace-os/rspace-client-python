@@ -24,7 +24,7 @@ def get_any_datafile():
     return get_datafile("data/fish_method.doc")
 
 
-def random_string(length):
+def random_string(length=10):
     """
     Creates random lowercase string
     """
