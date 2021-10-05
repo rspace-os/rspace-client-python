@@ -12,8 +12,6 @@ import rspace_client.inv.inv as cli
 import rspace_client.inv.quantity_unit as qu
 
 
-
-
 class InventoryApiTest(base.BaseApiTest):
     def setUp(self):
         """
@@ -75,18 +73,22 @@ class InventoryApiTest(base.BaseApiTest):
         new_name = base.random_string(10)
         updated = self.invapi.rename_sample(sample["id"], new_name)
         self.assertEqual(new_name, updated["name"])
-        
+
     def test_list_samples(self):
         samples = self.invapi.list_samples()
-        print(samples,file=sys.stderr)
-        self.assertEqual(0, samples['pageNumber'])
-        self.assertEqual(10, len(samples['samples']))
+        self.assertEqual(0, samples["pageNumber"])
+        self.assertEqual(10, len(samples["samples"]))
 
-        
     def test_paginated_samples(self):
-        pag = cli.Pagination( page_nunber=1, page_size=1, sort_order='desc')
+        pag = cli.Pagination(page_nunber=1, page_size=1, sort_order="desc")
         samples = self.invapi.list_samples(pag)
-        self.assertEqual(1, samples['pageNumber'])
-        self.assertEqual(1, len(samples['samples']))
-        
-    
+        self.assertEqual(1, samples["pageNumber"])
+        self.assertEqual(1, len(samples["samples"]))
+
+    def test_stream_samples(self):
+        onePerPage = cli.Pagination(page_size=1)
+        gen =  self.invapi.stream_samples(onePerPage)
+        # get 2 items 
+        s1 = next(gen)
+        s2 = next(gen)
+        self.assertNotEqual(s1['id'], s2['id'])        

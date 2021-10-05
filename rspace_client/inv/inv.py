@@ -7,15 +7,24 @@ from rspace_client.inv import quantity_unit as qu
 from typing import Optional, Sequence, Union
 import re
 
+
 class Pagination:
-    def __init__(self, page_nunber: int =0, page_size: int =10,
-                 order_by: str = None, sort_order:str = "asc"):
-        self.data={'pageNumber':page_nunber,
-                'pageSize':page_size,
-                'sort_order':sort_order}
+    def __init__(
+        self,
+        page_nunber: int = 0,
+        page_size: int = 10,
+        order_by: str = None,
+        sort_order: str = "asc",
+    ):
+        self.data = {
+            "pageNumber": page_nunber,
+            "pageSize": page_size,
+            "sort_order": sort_order,
+        }
         if order_by is not None:
-            self.data['orderBy'] = order_by
-            
+            self.data["orderBy"] = order_by
+
+
 class Id:
     """
     Supports integer or string representation of a globalId or
@@ -170,22 +179,56 @@ class InventoryClient(ClientBase):
             self._get_api_url() + f"/samples/{s_id.as_id()}", request_type="GET"
         )
 
-    def list_samples(self, pagination : Pagination = Pagination()):
+    def list_samples(self, pagination: Pagination = Pagination()):
+        """
+        Parameters
+        ----------
+        pagination : Pagination, optional
+            The default is Pagination().
+        Returns
+        -------
+        Search result
+        """
         return self.retrieve_api_results(
-            self._get_api_url() + "/samples", request_type="GET",
-        params= pagination.data)
+            self._get_api_url() + "/samples", request_type="GET", params=pagination.data
+        )
+    
+    def stream_samples(self, pagination : Pagination = Pagination()):
+        """
+        Streams all samples. Pagination argument sets batch size and ordering.
+        Parameters
+        ----------
+        pagination : Pagination, optional
+            DESCRIPTION. The default is Pagination().
 
+        Yields
+        ------
+        item : One Sample at a time
+        """
+        urlStr = self._get_api_url() + "/samples"
+        next_link = requests.Request(method='GET', url=urlStr,
+                                params=pagination.data).prepare().url
+        self.serr(f" initial url is {next_link}")
+        while True:
+            if next_link is not None:
+                samples = self.retrieve_api_results(next_link)
+                for item in samples['samples']:
+                     yield item
+                if self.link_exists(samples, "next"):
+                     next_link = self.get_link(samples, "next")
+                else:
+                     break
+        
+        
     def rename_sample(self, sample_id: Union[int, str], new_name: str) -> dict:
         """
         Parameters
         ----------
             id : Id Id of sample to rename
             new_name : str The new name.
-
         Returns
         -------
             dict : The updated sample
-
         """
         s_id = Id(sample_id)
         return self.retrieve_api_results(
