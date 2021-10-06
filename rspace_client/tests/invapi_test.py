@@ -101,33 +101,46 @@ class InventoryApiTest(base.BaseApiTest):
         for sample in gen:
             result_count = result_count + 1
         self.assertEqual(0, result_count)
-        
+
     def test_add_extra_fields(self):
         sample = self.invapi.create_sample(base.random_string())
         ef1 = cli.ExtraField(name="ef1", content="ef1 content")
         ef2 = cli.ExtraField(name="ef2", content="ef2 content")
-        updatedS = self.invapi.add_extra_fields(sample['id'], ef1, ef2)
-        self.assertEqual(2, len(updatedS['extraFields']))
-        
+        updatedS = self.invapi.add_extra_fields(sample["id"], ef1, ef2)
+        self.assertEqual(2, len(updatedS["extraFields"]))
+
     def test_search_sample(self):
         name = base.random_string()
-        sample = self.invapi.create_sample(name)
+        tags= base.random_string()
+        sample = self.invapi.create_sample(name, tags=tags)
         results = self.invapi.search(query=name)
         ## sample and its subsample
-        self.assertEqual(2, results['totalHits'])
-        results2 = self.invapi.search(query=name, result_type=cli.ResultType.SAMPLE)
-        self.assertEqual(1, results2['totalHits'])
+        self.assertEqual(2, results["totalHits"])
+        results_from_tag = self.invapi.search(query=tags)
+        self.assertEqual(1, results_from_tag["totalHits"])
 
+        results2 = self.invapi.search(query=name, result_type=cli.ResultType.SAMPLE)
+        self.assertEqual(1, results2["totalHits"])
+        results3 = self.invapi.search(query=name, result_type=cli.ResultType.SUBSAMPLE)
+        self.assertEqual(1, results3["totalHits"])
+        results4 = self.invapi.search(query=name, result_type=cli.ResultType.CONTAINER)
+        self.assertEqual(0, results4["totalHits"])
         
+        
+        
+
     def test_delete_samples(self):
-        total_samples=self.invapi.list_samples()
-        total_samples_count = total_samples['totalHits']
+        total_samples = self.invapi.list_samples()
+        total_samples_count = total_samples["totalHits"]
         total_deleted = self.invapi.list_samples(
-        sample_filter=cli.SampleFilter(deleted_item_filter=cli.DeletedItemFilter.DELETED_ONLY)
-        )['totalHits']
-        self.invapi.delete_sample(total_samples['samples'][0]['id'])
+            sample_filter=cli.SampleFilter(
+                deleted_item_filter=cli.DeletedItemFilter.DELETED_ONLY
+            )
+        )["totalHits"]
+        self.invapi.delete_sample(total_samples["samples"][0]["id"])
         total_deleted2 = self.invapi.list_samples(
-        sample_filter=cli.SampleFilter(deleted_item_filter=cli.DeletedItemFilter.DELETED_ONLY)
-        )['totalHits']
+            sample_filter=cli.SampleFilter(
+                deleted_item_filter=cli.DeletedItemFilter.DELETED_ONLY
+            )
+        )["totalHits"]
         self.assertEqual(total_deleted2, total_deleted + 1)
-        

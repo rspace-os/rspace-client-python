@@ -39,12 +39,13 @@ class Pagination:
         }
         if order_by is not None:
             self.data["orderBy"] = f"{order_by} {sort_order}"
-            
+
+
 class ResultType(Enum):
-    SAMPLE=1,
-    SUBSAMPLE=2,
-    TEMPLATE=3,
-    CONTAINER=4
+    SAMPLE = (1,)
+    SUBSAMPLE = (2,)
+    TEMPLATE = (3,)
+    CONTAINER = 4
 
 
 class Id:
@@ -155,7 +156,7 @@ class InventoryClient(ClientBase):
         data = {}
         data["name"] = name
         if tags is not None:
-            data["tags"] = name
+            data["tags"] = tags
         if extra_fields is not None:
             data["extraFields"] = [ef.data for ef in extra_fields]
         if storage_temperature_min is not None:
@@ -284,18 +285,18 @@ class InventoryClient(ClientBase):
         """
         id_to_delete = Id(sample_id)
         self.doDelete("samples", id_to_delete.as_id())
-        
+
     def add_extra_fields(self, sample_id: Union[int, str], *ExtraField):
-        toPut= []
+        toPut = []
         for ef in ExtraField:
-            ef.data['newFieldRequest']=True
+            ef.data["newFieldRequest"] = True
             toPut.append(ef.data)
-        s_id=Id(sample_id)
+        s_id = Id(sample_id)
         return self.retrieve_api_results(
             self._get_api_url() + f"/samples/{s_id.as_id()}",
             request_type="PUT",
-            params={"extraFields": toPut})
-        
+            params={"extraFields": toPut},
+        )
 
     def uploadAttachment(self, globalid: str, file) -> dict:
         """
@@ -321,10 +322,12 @@ class InventoryClient(ClientBase):
             headers=headers,
         )
         return self._handle_response(response)
-    
-    def search(self, query: str, pagination = Pagination(), result_type: ResultType=None):
-        params={'query': query}
+
+    def search(
+        self, query: str, pagination=Pagination(), result_type: ResultType = None
+    ):
+        params = {"query": query}
         params.update(pagination.data)
         if result_type is not None:
-            params['resultType']=result_type.name
+            params["resultType"] = result_type.name
         return self.retrieve_api_results(self._get_api_url() + "/search", params=params)
