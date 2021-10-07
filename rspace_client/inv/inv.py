@@ -77,8 +77,13 @@ class Id:
         -------
         int 
             Numeric part of identifier.
-
         """
+        
+    def is_container(self, maybe: bool =False):
+        if maybe:
+            return not hasattr(self, 'prefix')  or  self.prefix=='IC'
+        else:
+            return hasattr(self, 'prefix') and self.prefix=='IC'
 
 
 class ExtraFieldType(Enum):
@@ -140,6 +145,7 @@ class InventoryClient(ClientBase):
         self,
         name: str,
         tags: Optional[str] = None,
+        description: Optional[str] = None,
         extra_fields: Optional[Sequence] = [],
         storage_temperature_min: StorageTemperature = None,
         storage_temperature_max: StorageTemperature = None,
@@ -157,6 +163,8 @@ class InventoryClient(ClientBase):
         data["name"] = name
         if tags is not None:
             data["tags"] = tags
+        if description is not None:
+            data["description"] = description
         if extra_fields is not None:
             data["extraFields"] = [ef.data for ef in extra_fields]
         if storage_temperature_min is not None:
@@ -243,7 +251,6 @@ class InventoryClient(ClientBase):
             .prepare()
             .url
         )
-        self.serr(f" initial url is {next_link}")
         while True:
             if next_link is not None:
                 samples = self.retrieve_api_results(next_link)
@@ -331,3 +338,74 @@ class InventoryClient(ClientBase):
         if result_type is not None:
             params["resultType"] = result_type.name
         return self.retrieve_api_results(self._get_api_url() + "/search", params=params)
+
+    def _set_core_properties(self, name: str,
+        tags: Optional[str] = None,
+        description: Optional[str] = None,
+        extra_fields: Optional[Sequence] = []):
+            data = {}
+            data['name'] = name
+            if tags is not None:
+                data["tags"] = tags
+            if description is not None:
+                data["description"] = description
+            if extra_fields is not None:
+                data["extraFields"] = [ef.data for ef in extra_fields]
+            return data 
+        
+
+    def create_list_container( self,
+        name: str,
+        tags: Optional[str] = None,
+        description: Optional[str] = None,
+        extra_fields: Optional[Sequence] = [],
+        can_store_containers: bool = True,
+        can_store_subsamples: bool = True):
+        
+        data = self._set_core_properties(name, tags, description, extra_fields)
+        data['cType'] = 'LIST'
+        data['canStoreContainers']= can_store_containers
+        data['canStoreSubsamples'] = can_store_subsamples
+        
+        container = self.retrieve_api_results(
+            self._get_api_url() + "/containers", request_type="POST", params=data
+        )
+        return container
+    
+    def create_grid_container( self,
+        name: str,
+        row_count: int,
+        column_count: int,
+        tags: Optional[str] = None,
+        description: Optional[str] = None,
+        extra_fields: Optional[Sequence] = [],
+        can_store_containers: bool = True,
+        can_store_subsamples: bool = True) -> dict:
+        
+        data = self._set_core_properties(name, tags, description, extra_fields)
+        data['cType'] = 'GRID'
+        data['canStoreContainers']= can_store_containers
+        data['canStoreSubsamples'] = can_store_subsamples
+        data['gridLayout']['columnsNumber'] = column_count
+        data['gridLayout']['rowssNumber'] = row_count
+
+        
+        container = self.retrieve_api_results(
+            self._get_api_url() + "/containers", request_type="POST", params=data
+        )
+        return container
+
+    def add_container_to_list_container(self, item_id: Union[str,int], target_container_id: Union[str, int]) -> dict:
+        id_ob = Id(item_id)
+        if not id_ob.is_container(maybe=True):
+            raise ValueError("Item to move must be a container")
+        id_target = Id(target_container_id)
+        if not id_target.is_container(maybe=True):
+            raise ValueError("Target must be a container")
+        data={}
+        data['parentContainers']= [{'id':id_target.as_id()}]
+        container = self.retrieve_api_results(
+            self._get_api_url() + f"/containers/{id_ob.as_id()}", request_type="PUT", params=data)
+        
+        return container
+        

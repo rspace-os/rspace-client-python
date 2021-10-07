@@ -111,21 +111,33 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_search_sample(self):
         name = base.random_string()
-        tags= base.random_string()
+        tags = base.random_string()
         sample = self.invapi.create_sample(name, tags=tags)
         results = self.invapi.search(query=name)
         ## sample and its subsample
         self.assertEqual(2, results["totalHits"])
         results_from_tag = self.invapi.search(query=tags)
         self.assertEqual(1, results_from_tag["totalHits"])
-
+        
         results2 = self.invapi.search(query=name, result_type=cli.ResultType.SAMPLE)
         self.assertEqual(1, results2["totalHits"])
         results3 = self.invapi.search(query=name, result_type=cli.ResultType.SUBSAMPLE)
         self.assertEqual(1, results3["totalHits"])
         results4 = self.invapi.search(query=name, result_type=cli.ResultType.CONTAINER)
         self.assertEqual(0, results4["totalHits"])
+    
+    def test_create_list_container(self):
+        name = base.random_string()
+        ct = self.invapi.create_list_container(name, tags="ab,cd,ef")
+        self.assertTrue(ct['cType'] == 'LIST')
         
+    def test_move_container_to_list_container(self):
+        name = base.random_string() + "_to_move"
+        toMove =  self.invapi.create_list_container(name)
+        name_target = base.random_string() + "_target"
+        target =  self.invapi.create_list_container(name_target)
+        moved=self.invapi.add_container_to_list_container(toMove['id'], target['id'])
+        self.assertEqual(moved['parentContainers'][0]['name'], target['name'])
         
         
 
