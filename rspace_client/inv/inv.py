@@ -394,7 +394,7 @@ class InventoryClient(ClientBase):
         return container
 
     def add_containers_to_list_container(
-        self,  target_container_id: Union[str, int], *item_ids: Union[str, int],
+        self, target_container_id: Union[str, int], *item_ids: Union[str, int],
     ) -> list:
         """
         Adds 1 or more containers to a list container
@@ -421,17 +421,28 @@ class InventoryClient(ClientBase):
         id_target = Id(target_container_id)
         if not id_target.is_container(maybe=True):
             raise ValueError("Target must be a container")
-        data = {}
-        updated_containers = []
+        
+        valid_item_ids = []
+        ## assert there are no invalid globai ids
         for item_id in item_ids:
             id_ob = Id(item_id)
             if not id_ob.is_container(maybe=True):
-                raise ValueError("Item to move must be a container")
+                raise ValueError(f"Item to move '{item_id}' must be a container")
+            valid_item_ids.append(id_ob)
+        
+        return self._do_add_to_list_container(valid_item_ids, id_target, "containers")
+        
+    
+    def _do_add_to_list_container(self, valid_item_ids, id_target, endpoint):
+        data = {}
+        updated_containers = []
+        for id_ob in valid_item_ids:
             data["parentContainers"] = [{"id": id_target.as_id()}]
             container = self.retrieve_api_results(
-            self._get_api_url() + f"/containers/{id_ob.as_id()}",
-            request_type="PUT",
-            params=data)
+                self._get_api_url() + f"/{endpoint}/{id_ob.as_id()}",
+                request_type="PUT",
+                params=data,
+            )
             updated_containers.append(container)
 
-        return container
+        return updated_containers

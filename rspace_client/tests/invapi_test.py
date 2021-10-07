@@ -8,7 +8,7 @@ Created on Sat Oct  2 22:09:40 2021
 import sys
 import datetime as dt
 import rspace_client.tests.base_test as base
-import rspace_client.inv.inv as cli
+from rspace_client.inv import inv
 import rspace_client.inv.quantity_unit as qu
 
 
@@ -18,18 +18,18 @@ class InventoryApiTest(base.BaseApiTest):
         Skips tests if aPI client credentials are missing
         """
         self.assertClientCredentials()
-        self.invapi = cli.InventoryClient(self.rspace_url, self.rspace_apikey)
+        self.invapi = inv.InventoryClient(self.rspace_url, self.rspace_apikey)
 
     def test_create_sample(self):
         sample_name = base.random_string(5)
         sample_tags = base.random_string(4)
-        ef1 = cli.ExtraField("f1", cli.ExtraFieldType.TEXT, "hello")
-        ef2 = cli.ExtraField("f2", cli.ExtraFieldType.NUMBER, 123)
+        ef1 = inv.ExtraField("f1", inv.ExtraFieldType.TEXT, "hello")
+        ef2 = inv.ExtraField("f2", inv.ExtraFieldType.NUMBER, 123)
 
-        minTemp = cli.StorageTemperature(1, cli.TemperatureUnit.KELVIN)
-        maxTemp = cli.StorageTemperature(4, cli.TemperatureUnit.KELVIN)
+        minTemp = inv.StorageTemperature(1, inv.TemperatureUnit.KELVIN)
+        maxTemp = inv.StorageTemperature(4, inv.TemperatureUnit.KELVIN)
         expiry_date = dt.date(2024, 12, 25)
-        amount = cli.Quantity(5, qu.QuantityUnit.of("ml"))
+        amount = inv.Quantity(5, qu.QuantityUnit.of("ml"))
         sample = self.invapi.create_sample(
             name=sample_name,
             tags=sample_tags,
@@ -75,19 +75,19 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(new_name, updated["name"])
 
     def test_list_samples(self):
-        samples = self.invapi.list_samples(cli.Pagination(sort_order="desc"))
+        samples = self.invapi.list_samples(inv.Pagination(sort_order="desc"))
 
         self.assertEqual(0, samples["pageNumber"])
         self.assertEqual(10, len(samples["samples"]))
 
     def test_paginated_samples(self):
-        pag = cli.Pagination(page_nunber=1, page_size=1, sort_order="desc")
+        pag = inv.Pagination(page_nunber=1, page_size=1, sort_order="desc")
         samples = self.invapi.list_samples(pag)
         self.assertEqual(1, samples["pageNumber"])
         self.assertEqual(1, len(samples["samples"]))
 
     def test_stream_samples(self):
-        onePerPage = cli.Pagination(page_size=1)
+        onePerPage = inv.Pagination(page_size=1)
         gen = self.invapi.stream_samples(onePerPage)
         # get 2 items
         s1 = next(gen)
@@ -95,7 +95,7 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertNotEqual(s1["id"], s2["id"])
 
         unknown_user = base.random_string(15)
-        sample_filter = cli.SampleFilter(owned_by=unknown_user)
+        sample_filter = inv.SampleFilter(owned_by=unknown_user)
         gen = self.invapi.stream_samples(onePerPage, sample_filter)
         result_count = 0
         for sample in gen:
@@ -104,8 +104,8 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_add_extra_fields(self):
         sample = self.invapi.create_sample(base.random_string())
-        ef1 = cli.ExtraField(name="ef1", content="ef1 content")
-        ef2 = cli.ExtraField(name="ef2", content="ef2 content")
+        ef1 = inv.ExtraField(name="ef1", content="ef1 content")
+        ef2 = inv.ExtraField(name="ef2", content="ef2 content")
         updatedS = self.invapi.add_extra_fields(sample["id"], ef1, ef2)
         self.assertEqual(2, len(updatedS["extraFields"]))
 
@@ -119,11 +119,11 @@ class InventoryApiTest(base.BaseApiTest):
         results_from_tag = self.invapi.search(query=tags)
         self.assertEqual(1, results_from_tag["totalHits"])
 
-        results2 = self.invapi.search(query=name, result_type=cli.ResultType.SAMPLE)
+        results2 = self.invapi.search(query=name, result_type=inv.ResultType.SAMPLE)
         self.assertEqual(1, results2["totalHits"])
-        results3 = self.invapi.search(query=name, result_type=cli.ResultType.SUBSAMPLE)
+        results3 = self.invapi.search(query=name, result_type=inv.ResultType.SUBSAMPLE)
         self.assertEqual(1, results3["totalHits"])
-        results4 = self.invapi.search(query=name, result_type=cli.ResultType.CONTAINER)
+        results4 = self.invapi.search(query=name, result_type=inv.ResultType.CONTAINER)
         self.assertEqual(0, results4["totalHits"])
 
     def test_create_list_container(self):
@@ -136,21 +136,21 @@ class InventoryApiTest(base.BaseApiTest):
         toMove = self.invapi.create_list_container(name)
         name_target = base.random_string() + "_target"
         target = self.invapi.create_list_container(name_target)
-        moved = self.invapi.add_containers_to_list_container( target["id"], toMove['id'])
-        self.assertEqual(moved["parentContainers"][0]["name"], target["name"])
+        moved = self.invapi.add_containers_to_list_container(target["id"], toMove["id"])
+        self.assertEqual(moved[0]["parentContainers"][0]["name"], target["name"])
 
     def test_delete_samples(self):
         total_samples = self.invapi.list_samples()
         total_samples_count = total_samples["totalHits"]
         total_deleted = self.invapi.list_samples(
-            sample_filter=cli.SampleFilter(
-                deleted_item_filter=cli.DeletedItemFilter.DELETED_ONLY
+            sample_filter=inv.SampleFilter(
+                deleted_item_filter=inv.DeletedItemFilter.DELETED_ONLY
             )
         )["totalHits"]
         self.invapi.delete_sample(total_samples["samples"][0]["id"])
         total_deleted2 = self.invapi.list_samples(
-            sample_filter=cli.SampleFilter(
-                deleted_item_filter=cli.DeletedItemFilter.DELETED_ONLY
+            sample_filter=inv.SampleFilter(
+                deleted_item_filter=inv.DeletedItemFilter.DELETED_ONLY
             )
         )["totalHits"]
         self.assertEqual(total_deleted2, total_deleted + 1)
