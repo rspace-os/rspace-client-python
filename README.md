@@ -10,7 +10,10 @@ It's compatible with Python 3.4 onwards, based on analysis by [vermin](https://p
 
 All the code listed here is in the project.
 
-For full details of our API spec please see https://your.rspace.com/public/apiDocs
+For full details of our API spec are available from within your RSpace deployment: https://<YOUR_RSPACE>/public/apiDocs
+
+For example, if you are using `https://community.researchspace.com`,
+the API documentation is available at `https://community.researchspace.com/public/apiDocs`
 
 To run unit tests, install pytest:
 
