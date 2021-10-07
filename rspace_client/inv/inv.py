@@ -72,18 +72,19 @@ class Id:
 
     def as_id(self) -> int:
         return self.id
-        """
-        Returns
-        -------
-        int 
-            Numeric part of identifier.
-        """
 
     def is_container(self, maybe: bool = False):
+        return self._check("IC", maybe)
+        
+    def is_subsample(self, maybe: bool = False):
+        return self._check("SS", maybe)
+    
+    def _check(self, prefix, maybe: bool):
         if maybe:
-            return not hasattr(self, "prefix") or self.prefix == "IC"
+            return not hasattr(self, "prefix") or self.prefix == prefix
         else:
-            return hasattr(self, "prefix") and self.prefix == "IC"
+            return hasattr(self, "prefix") and self.prefix == prefix
+        
 
 
 class ExtraFieldType(Enum):
@@ -421,7 +422,7 @@ class InventoryClient(ClientBase):
         id_target = Id(target_container_id)
         if not id_target.is_container(maybe=True):
             raise ValueError("Target must be a container")
-        
+
         valid_item_ids = []
         ## assert there are no invalid globai ids
         for item_id in item_ids:
@@ -429,9 +430,25 @@ class InventoryClient(ClientBase):
             if not id_ob.is_container(maybe=True):
                 raise ValueError(f"Item to move '{item_id}' must be a container")
             valid_item_ids.append(id_ob)
-        
+
         return self._do_add_to_list_container(valid_item_ids, id_target, "containers")
-        
+
+    def add_subsamples_to_list_container(
+        self, target_container_id: Union[str, int], *subsample_ids: Union[str, int],
+    ) -> list:
+        id_target = Id(target_container_id)
+        if not id_target.is_container(maybe=True):
+            raise ValueError("Target must be a container")
+
+        valid_item_ids = []
+        ## assert there are no invalid global ids (not subsamples)
+        for item_id in subsample_ids:
+            id_ob = Id(item_id)
+            if not id_ob.is_subsample(maybe=True):
+                raise ValueError(f"Item to move '{item_id}' must be a subsamples")
+            valid_item_ids.append(id_ob)
+
+        return self._do_add_to_list_container(valid_item_ids, id_target, "subSamples")
     
     def _do_add_to_list_container(self, valid_item_ids, id_target, endpoint):
         data = {}
