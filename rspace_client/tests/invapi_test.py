@@ -138,19 +138,20 @@ class InventoryApiTest(base.BaseApiTest):
         target = self.invapi.create_list_container(name_target)
         moved = self.invapi.add_containers_to_list_container(target["id"], toMove["id"])
         self.assertEqual(moved[0]["parentContainers"][0]["name"], target["name"])
-        
+
     def test_move_subsamples_to_list_container(self):
         name = base.random_string() + "_to_move"
         toMove = self.invapi.create_sample(name, subsample_count=2)
         name_target = base.random_string() + "_target"
         target = self.invapi.create_list_container(name_target)
-        
+
         ## get the 2 subsample ids ad move to container
-        subsample_ids = [ ss['id'] for ss in toMove['subSamples']]
-        moved = self.invapi.add_subsamples_to_list_container(target["id"], *subsample_ids)
+        subsample_ids = [ss["id"] for ss in toMove["subSamples"]]
+        moved = self.invapi.add_subsamples_to_list_container(
+            target["id"], *subsample_ids
+        )
         self.assertEqual(moved[0]["parentContainers"][0]["name"], target["name"])
         self.assertEqual(moved[1]["parentContainers"][0]["name"], target["name"])
-
 
     def test_delete_samples(self):
         total_samples = self.invapi.list_samples()

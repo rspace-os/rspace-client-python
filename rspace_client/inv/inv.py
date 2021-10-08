@@ -75,16 +75,15 @@ class Id:
 
     def is_container(self, maybe: bool = False):
         return self._check("IC", maybe)
-        
+
     def is_subsample(self, maybe: bool = False):
         return self._check("SS", maybe)
-    
+
     def _check(self, prefix, maybe: bool):
         if maybe:
             return not hasattr(self, "prefix") or self.prefix == prefix
         else:
             return hasattr(self, "prefix") and self.prefix == prefix
-        
 
 
 class ExtraFieldType(Enum):
@@ -140,7 +139,7 @@ class InventoryClient(ClientBase):
         :return: string URL
         """
 
-        return "{}/api/inventory/{}".format(self.rspace_url, self.API_VERSION)
+        return f"{self.rspace_url}/api/inventory/{self.API_VERSION}"
 
     def create_sample(
         self,
@@ -440,25 +439,26 @@ class InventoryClient(ClientBase):
         if not id_target.is_container(maybe=True):
             raise ValueError("Target must be a container")
 
-        valid_item_ids = []
+        datas = []
         ## assert there are no invalid global ids (not subsamples)
         for item_id in subsample_ids:
             id_ob = Id(item_id)
             if not id_ob.is_subsample(maybe=True):
                 raise ValueError(f"Item to move '{item_id}' must be a subsamples")
-            valid_item_ids.append(id_ob)
-
-        return self._do_add_to_list_container(valid_item_ids, id_target, "subSamples")
+            data = {}
+            data ["id"]=id_ob
+            data["to_put"]={"parentContainers":[{"id": id_target.as_id()}]}
+            datas.append(data)
     
-    def _do_add_to_list_container(self, valid_item_ids, id_target, endpoint):
-        data = {}
+        return self._do_add_to_list_container(datas, id_target, "subSamples")
+
+    def _do_add_to_list_container(self, datas, id_target, endpoint):
         updated_containers = []
-        for id_ob in valid_item_ids:
-            data["parentContainers"] = [{"id": id_target.as_id()}]
+        for data in datas:
             container = self.retrieve_api_results(
-                self._get_api_url() + f"/{endpoint}/{id_ob.as_id()}",
+                self._get_api_url() + f"/{endpoint}/{data['id'].as_id()}",
                 request_type="PUT",
-                params=data,
+                params=data["to_put"],
             )
             updated_containers.append(container)
 
