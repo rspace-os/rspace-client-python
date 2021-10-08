@@ -12,6 +12,11 @@ class DeletedItemFilter(Enum):
     EXCLUDE = 1
     INCLUDE = 2
     DELETED_ONLY = 3
+    
+class FillingStrategy(Enum):
+    BY_ROW = 1
+    BY_COLUMN =2
+    ANY_AVAILABLE =3
 
 
 class SampleFilter:
@@ -385,8 +390,8 @@ class InventoryClient(ClientBase):
         data["cType"] = "GRID"
         data["canStoreContainers"] = can_store_containers
         data["canStoreSubsamples"] = can_store_subsamples
-        data["gridLayout"]["columnsNumber"] = column_count
-        data["gridLayout"]["rowssNumber"] = row_count
+        data["gridLayout"]= {"columnsNumber" : column_count,
+                             "rowsNumber": row_count}
 
         container = self.retrieve_api_results(
             self._get_api_url() + "/containers", request_type="POST", params=data
@@ -423,6 +428,7 @@ class InventoryClient(ClientBase):
             raise ValueError("Target must be a container")
 
         valid_item_ids = []
+        
         ## assert there are no invalid globai ids
         for item_id in item_ids:
             id_ob = Id(item_id)
@@ -444,13 +450,65 @@ class InventoryClient(ClientBase):
         for item_id in subsample_ids:
             id_ob = Id(item_id)
             if not id_ob.is_subsample(maybe=True):
-                raise ValueError(f"Item to move '{item_id}' must be a subsamples")
+                raise ValueError(f"Item to move '{item_id}' must be a subsample")
             data = {}
-            data ["id"]=id_ob
-            data["to_put"]={"parentContainers":[{"id": id_target.as_id()}]}
+            data["id"] = id_ob
+            data["to_put"] = {"parentContainers": [{"id": id_target.as_id()}]}
             datas.append(data)
-    
+
         return self._do_add_to_list_container(datas, id_target, "subSamples")
+    
+    def add_subsamples_to_grid_container(
+        self, target_container_id: Union[str, int], row_index: int, column_index: int, 
+        *subsample_ids: Union[str, int],  filling_strategy=FillingStrategy.BY_ROW
+    ) -> list:
+        """
+        Add one or more subsamples to a grid container, starting at given row/ column
+        index
+
+        Parameters
+        ----------
+        target_container_id : Union[str, int]
+            The Grid container to move to.
+        row_index : The starting row index
+        column_index : The starting column index
+        filling_strategy: If adding multiple subsamples, the order in which
+         the grid is filled
+        *subsample_ids : Union[str, int]
+            One or more subsample ids, either as 'SS' global ids or numeric ids
+
+        Raises
+        ------
+        ValueError
+            If items are the wrong or inconsistent type
+
+        Returns
+        -------
+        list
+            A list of updated subsamples showing their current position
+
+        """
+        id_target = Id(target_container_id)
+        if not id_target.is_container(maybe=True):
+            raise ValueError("Target must be a container")
+        print (f" grid has {len(subsample_ids)} ss")
+        datas = []
+        ## assert there are no invalid global ids (things that are not subsamples)
+        s_ids = []
+        for item_id in subsample_ids:
+            id_ob = Id(item_id)
+            s_ids.append(id_ob)
+            if not id_ob.is_subsample(maybe=True):
+                raise ValueError(f"Item to move '{item_id}' must be a subsample")
+        print (f" creating has {len(s_ids)} ss")
+
+        bulk_post = self.create_bulk_move(id_target, 3, 7, s_ids)
+        ## get target - are there enough spaces?
+        ## iterate over grid (0 or 1 based?)
+        ## use bulk API?
+        
+        return self.retrieve_api_results(self._get_api_url() + "/bulk",request_type="POST",
+                                         params=bulk_post)
 
     def _do_add_to_list_container(self, datas, id_target, endpoint):
         updated_containers = []
@@ -463,3 +521,19 @@ class InventoryClient(ClientBase):
             updated_containers.append(container)
 
         return updated_containers
+    
+    def create_bulk_move(self, grid_id: Id, col_count: int, row_count: int, sub_samples: list):
+        print (f"moving {len(sub_samples)}")
+        coords = [] #array of x,y coords
+        ## fill by row
+        counter = 0
+        for ss_id in sub_samples:
+            x = counter % col_count + 1
+            y = int(counter / col_count) + 1
+            coords.append( { "type": "SUBSAMPLE", "id": ss_id.as_id(),
+                       "parentContainers": [ { "id": grid_id.as_id()} ],
+                       "parentLocation": { "coordX": x, "coordY": y } 
+                       })
+            counter = counter + 1
+        print (f"coords is {len(coords)}")
+        return { "operationType": "MOVE", "records": coords}
