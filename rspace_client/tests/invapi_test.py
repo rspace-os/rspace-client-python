@@ -152,15 +152,17 @@ class InventoryApiTest(base.BaseApiTest):
         )
         self.assertEqual(moved[0]["parentContainers"][0]["name"], target["name"])
         self.assertEqual(moved[1]["parentContainers"][0]["name"], target["name"])
-        
+
     def test_bulk_move_to_grid(self):
         grid_c = self.invapi.create_grid_container("gridX", 7, 3)
-        sample = self.invapi.create_sample(name="multiS", subsample_count=10  )
-        ss_ids = [x['id'] for x in sample['subSamples']]
-        print(" ss_ids are " + ','.join([str (x) for x in ss_ids]))
-        self.invapi.add_subsamples_to_grid_container(grid_c['id'], 0, 0, *ss_ids)
-        
-
+        sample = self.invapi.create_sample(name="multiS", subsample_count=10)
+        ss_ids = [x["id"] for x in sample["subSamples"]]
+        print(" ss_ids are " + ",".join([str(x) for x in ss_ids]))
+        rc = self.invapi.add_subsamples_to_grid_container(grid_c["id"], 0, 0, 7, 3, *ss_ids,
+                                                     filling_strategy=inv.FillingStrategy.BY_COLUMN)
+        ## get list of updated subsamples
+        self.assertEqual(10, len(rc['results']))
+        print (rc)
     def test_delete_samples(self):
         total_samples = self.invapi.list_samples()
         total_samples_count = total_samples["totalHits"]
