@@ -507,9 +507,15 @@ class InventoryClient(ClientBase):
                 raise ValueError(f"Item to move '{item_id}' must be a subsample")
         print(f" creating has {len(s_ids)} ss")
 
-        bulk_post = self.create_bulk_move(id_target, column_index, 
-                                          row_index, total_columns, total_rows,
-                                          filling_strategy, s_ids)
+        bulk_post = self.create_bulk_move(
+            id_target,
+            column_index,
+            row_index,
+            total_columns,
+            total_rows,
+            filling_strategy,
+            s_ids,
+        )
         ## get target - are there enough spaces?
         ## iterate over grid (0 or 1 based?)
         ## use bulk API?
@@ -531,16 +537,22 @@ class InventoryClient(ClientBase):
         return updated_containers
 
     def create_bulk_move(
-        self, grid_id: Id, column_index: int, row_index: int, total_columns: int, total_rows: int,
-        filling_strategy: FillingStrategy, sub_samples: list
+        self,
+        grid_id: Id,
+        column_index: int,
+        row_index: int,
+        total_columns: int,
+        total_rows: int,
+        filling_strategy: FillingStrategy,
+        sub_samples: list,
     ):
         print(f"moving {len(sub_samples)}")
         coords = []  # array of x,y coords
         ## fill by row
         counter = 0
         for ss_id in sub_samples:
-            x=0
-            y=0
+            x = 0
+            y = 0
             if FillingStrategy.BY_ROW == filling_strategy:
                 x = counter % total_columns + 1
                 y = int(counter / total_columns) + 1
@@ -558,3 +570,44 @@ class InventoryClient(ClientBase):
             counter = counter + 1
         print(f"coords is {len(coords)}")
         return {"operationType": "MOVE", "records": coords}
+    
+def _calculate_start_index(col_start, row_start, total_columns, total_rows, filling_strategy):
+    if col_start < 1 or row_start < 1:
+        raise ValueError("Columns and row starting position must be >= 1")
+    if col_start > total_columns or row_start > total_rows:
+        raise ValueError(f"Columns and row starting position must fit in grid: {total_rows} rows x {total_columns} columns")
+
+    index = 0 
+    if FillingStrategy.BY_ROW == filling_strategy:
+        index = ((row_start -1) * total_columns ) +col_start
+    elif FillingStrategy.BY_COLUMN == filling_strategy:
+        index = ((col_start -1) * total_rows) + row_start
+    return index -1
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        

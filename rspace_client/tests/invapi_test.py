@@ -158,11 +158,36 @@ class InventoryApiTest(base.BaseApiTest):
         sample = self.invapi.create_sample(name="multiS", subsample_count=10)
         ss_ids = [x["id"] for x in sample["subSamples"]]
         print(" ss_ids are " + ",".join([str(x) for x in ss_ids]))
-        rc = self.invapi.add_subsamples_to_grid_container(grid_c["id"], 0, 0, 7, 3, *ss_ids,
-                                                     filling_strategy=inv.FillingStrategy.BY_COLUMN)
+        rc = self.invapi.add_subsamples_to_grid_container(
+            grid_c["id"],
+            0,
+            0,
+            7,
+            3,
+            *ss_ids,
+            filling_strategy=inv.FillingStrategy.BY_COLUMN
+        )
         ## get list of updated subsamples
-        self.assertEqual(10, len(rc['results']))
-        print (rc)
+        self.assertEqual(10, len(rc["results"]))
+
+    def test_calculate_grid_start(self):
+        total_cols=5
+        total_rows = 4
+        self.assertEqual(7, inv._calculate_start_index(3,2,total_cols,total_rows,inv.FillingStrategy.BY_ROW))
+        self.assertEqual(9, inv._calculate_start_index(3,2,total_cols,total_rows,inv.FillingStrategy.BY_COLUMN))
+        self.assertEqual(0, inv._calculate_start_index(1,1,total_cols,total_rows,inv.FillingStrategy.BY_COLUMN))
+        self.assertEqual(19, inv._calculate_start_index(5,4,total_cols,total_rows,inv.FillingStrategy.BY_COLUMN))
+        self.assertEqual(19, inv._calculate_start_index(5,4,total_cols,total_rows,inv.FillingStrategy.BY_ROW))
+
+
+    def test_calculate_grid_start_validation(self):
+        self.assertRaises(ValueError, inv._calculate_start_index, -1, 2, 5,4, inv.FillingStrategy.BY_ROW)
+        self.assertRaises(ValueError, inv._calculate_start_index, -2, -1, 5,4, inv.FillingStrategy.BY_ROW)
+
+        self.assertRaises(ValueError, inv._calculate_start_index, 6, 2, 5,4, inv.FillingStrategy.BY_ROW)
+
+        self.assertRaises(ValueError, inv._calculate_start_index, 5, 5, 5,4, inv.FillingStrategy.BY_ROW)
+
     def test_delete_samples(self):
         total_samples = self.invapi.list_samples()
         total_samples_count = total_samples["totalHits"]
