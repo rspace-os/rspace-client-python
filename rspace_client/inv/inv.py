@@ -662,7 +662,7 @@ class InventoryClient(ClientBase):
         updated_containers = []
         for data in datas:
             container = self.retrieve_api_results(
-                self._get_api_url() + f"/{endpoint}/{data.as_id()}",
+                self._get_api_url() + f"/{endpoint}/{data['id']}",
                 request_type="PUT",
                 params=data["to_put"],
             )
