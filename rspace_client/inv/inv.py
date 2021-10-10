@@ -402,7 +402,7 @@ class InventoryClient(ClientBase):
         return self.retrieve_api_results(
             self._get_api_url() + f"/samples/{s_id.as_id()}",
             request_type="PUT",
-            body={"name": new_name},
+            params={"name": new_name},
         )
 
     def delete_sample(self, sample_id: Union[int, str]):
@@ -662,7 +662,7 @@ class InventoryClient(ClientBase):
         updated_containers = []
         for data in datas:
             container = self.retrieve_api_results(
-                self._get_api_url() + f"/{endpoint}/{data['id'].as_id()}",
+                self._get_api_url() + f"/{endpoint}/{data.as_id()}",
                 request_type="PUT",
                 params=data["to_put"],
             )

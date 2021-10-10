@@ -14,7 +14,7 @@ import unittest
 
 class TestBasicFunction(unittest.TestCase):
     def setUp(self):
-        dataDir = base_test.get_datafile("data/calculation_table.html")
+        dataDir = base_test.get_datafile("calculation_table.html")
         with open(dataDir) as f:
             text = f.read()
             field = cli.field_content.FieldContent(text)
