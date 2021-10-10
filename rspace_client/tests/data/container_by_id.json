@@ -1,0 +1,2851 @@
+{
+  "id": 131085,
+  "globalId": "IC131085",
+  "name": "gridX",
+  "description": null,
+  "created": "2021-10-10T14:19:08.000Z",
+  "createdBy": "user5e",
+  "lastModified": "2021-10-10T14:19:08.482Z",
+  "modifiedBy": "user5e",
+  "modifiedByFullName": "user5 user5",
+  "deleted": false,
+  "deletedDate": null,
+  "iconId": -1,
+  "quantity": null,
+  "tags": null,
+  "barcode": null,
+  "type": "CONTAINER",
+  "owner": {
+    "id": -9,
+    "username": "user5e",
+    "email": "user5@researchspace.com",
+    "firstName": "user5",
+    "lastName": "user5",
+    "homeFolderId": 1,
+    "workbenchId": null,
+    "_links": []
+  },
+  "permittedActions": [
+    "UPDATE",
+    "CHANGE_OWNER"
+  ],
+  "locationsCount": 21,
+  "cType": "GRID",
+  "gridLayout": {
+    "columnsNumber": 3,
+    "rowsNumber": 7,
+    "columnsLabelType": "N123",
+    "rowsLabelType": "ABC"
+  },
+  "canStoreSamples": true,
+  "canStoreContainers": true,
+  "parentContainers": [
+    {
+      "id": 1,
+      "globalId": "BE1",
+      "name": "WB user5e",
+      "description": null,
+      "created": "2021-09-30T22:52:54.000Z",
+      "createdBy": "user5e",
+      "lastModified": "2021-09-30T22:52:53.640Z",
+      "modifiedBy": "user5e",
+      "modifiedByFullName": null,
+      "deleted": false,
+      "deletedDate": null,
+      "iconId": -1,
+      "quantity": null,
+      "tags": null,
+      "barcode": null,
+      "type": "CONTAINER",
+      "owner": {
+        "id": -9,
+        "username": "user5e",
+        "email": "user5@researchspace.com",
+        "firstName": "user5",
+        "lastName": "user5",
+        "homeFolderId": 1,
+        "workbenchId": null,
+        "_links": []
+      },
+      "permittedActions": [],
+      "locationsCount": null,
+      "contentSummary": {
+        "totalCount": 1377,
+        "subSampleCount": 1320,
+        "containerCount": 57
+      },
+      "cType": "WORKBENCH",
+      "gridLayout": null,
+      "canStoreSamples": true,
+      "canStoreContainers": true,
+      "parentContainers": [],
+      "parentLocation": null,
+      "lastNonWorkbenchParent": null,
+      "lastMoveDate": null,
+      "attachments": [],
+      "_links": []
+    }
+  ],
+  "parentLocation": {
+    "id": 1607,
+    "coordX": 1377,
+    "coordY": 1
+  },
+  "lastNonWorkbenchParent": null,
+  "lastMoveDate": null,
+  "extraFields": [],
+  "locations": [
+    {
+      "id": 1618,
+      "coordX": 2,
+      "coordY": 1,
+      "content": {
+        "id": 163952,
+        "globalId": "SS163952",
+        "name": "multiS.01",
+        "description": null,
+        "created": "2021-10-10T14:19:15.000Z",
+        "createdBy": "user5e",
+        "lastModified": "2021-10-10T14:19:15.207Z",
+        "modifiedBy": "user5e",
+        "modifiedByFullName": "user5 user5",
+        "deleted": false,
+        "deletedDate": null,
+        "deletedOnSampleDeletion": false,
+        "revisionId": null,
+        "owner": {
+          "id": -9,
+          "username": "user5e",
+          "email": "user5@researchspace.com",
+          "firstName": "user5",
+          "lastName": "user5",
+          "homeFolderId": 1,
+          "workbenchId": null,
+          "_links": []
+        },
+        "permittedActions": [
+          "UPDATE",
+          "CHANGE_OWNER"
+        ],
+        "iconId": -1,
+        "quantity": {
+          "numericValue": 10,
+          "unitId": 3
+        },
+        "tags": null,
+        "barcode": null,
+        "type": "SUBSAMPLE",
+        "sample": {
+          "id": 163852,
+          "globalId": "SA163852",
+          "name": "multiS",
+          "description": null,
+          "created": "2021-10-10T14:19:15.000Z",
+          "createdBy": "user5e",
+          "lastModified": "2021-10-10T14:19:15.207Z",
+          "modifiedBy": "user5e",
+          "modifiedByFullName": null,
+          "deleted": false,
+          "deletedDate": null,
+          "revisionId": null,
+          "version": 1,
+          "historicalVersion": false,
+          "iconId": -1,
+          "quantity": {
+            "numericValue": 100,
+            "unitId": 3
+          },
+          "tags": null,
+          "barcode": null,
+          "type": "SAMPLE",
+          "templateId": null,
+          "templateVersion": null,
+          "template": false,
+          "owner": {
+            "id": -9,
+            "username": "user5e",
+            "email": "user5@researchspace.com",
+            "firstName": "user5",
+            "lastName": "user5",
+            "homeFolderId": 1,
+            "workbenchId": null,
+            "_links": []
+          },
+          "permittedActions": [],
+          "subSampleAlias": "aliquot",
+          "subSamplesCount": 10,
+          "storageTempMin": null,
+          "storageTempMax": null,
+          "sampleSource": "LAB_CREATED",
+          "expiryDate": null,
+          "attachments": [],
+          "_links": [
+            {
+              "link": "http://localhost:8080/api/inventory/v1/samples/163852",
+              "rel": "self"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "icon"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "thumbnail"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "image"
+            }
+          ]
+        },
+        "parentContainers": [
+          {
+            "id": 131085,
+            "globalId": "IC131085",
+            "name": "gridX",
+            "description": null,
+            "created": "2021-10-10T14:19:08.000Z",
+            "createdBy": "user5e",
+            "lastModified": "2021-10-10T14:19:08.482Z",
+            "modifiedBy": "user5e",
+            "modifiedByFullName": null,
+            "deleted": false,
+            "deletedDate": null,
+            "iconId": -1,
+            "quantity": null,
+            "tags": null,
+            "barcode": null,
+            "type": "CONTAINER",
+            "owner": {
+              "id": -9,
+              "username": "user5e",
+              "email": "user5@researchspace.com",
+              "firstName": "user5",
+              "lastName": "user5",
+              "homeFolderId": 1,
+              "workbenchId": null,
+              "_links": []
+            },
+            "permittedActions": [],
+            "locationsCount": 21,
+            "contentSummary": {
+              "totalCount": 10,
+              "subSampleCount": 10,
+              "containerCount": 0
+            },
+            "cType": "GRID",
+            "gridLayout": {
+              "columnsNumber": 3,
+              "rowsNumber": 7,
+              "columnsLabelType": "N123",
+              "rowsLabelType": "ABC"
+            },
+            "canStoreSamples": true,
+            "canStoreContainers": true,
+            "parentContainers": [
+              {
+                "id": 1,
+                "globalId": "BE1",
+                "name": "WB user5e",
+                "description": null,
+                "created": "2021-09-30T22:52:54.000Z",
+                "createdBy": "user5e",
+                "lastModified": "2021-09-30T22:52:53.640Z",
+                "modifiedBy": "user5e",
+                "modifiedByFullName": null,
+                "deleted": false,
+                "deletedDate": null,
+                "iconId": -1,
+                "quantity": null,
+                "tags": null,
+                "barcode": null,
+                "type": "CONTAINER",
+                "owner": {
+                  "id": -9,
+                  "username": "user5e",
+                  "email": "user5@researchspace.com",
+                  "firstName": "user5",
+                  "lastName": "user5",
+                  "homeFolderId": 1,
+                  "workbenchId": null,
+                  "_links": []
+                },
+                "permittedActions": [],
+                "locationsCount": null,
+                "contentSummary": {
+                  "totalCount": 1377,
+                  "subSampleCount": 1320,
+                  "containerCount": 57
+                },
+                "cType": "WORKBENCH",
+                "gridLayout": null,
+                "canStoreSamples": true,
+                "canStoreContainers": true,
+                "parentContainers": [],
+                "parentLocation": null,
+                "lastNonWorkbenchParent": null,
+                "lastMoveDate": null,
+                "attachments": [],
+                "_links": []
+              }
+            ],
+            "parentLocation": {
+              "id": 1607,
+              "coordX": 1377,
+              "coordY": 1
+            },
+            "lastNonWorkbenchParent": null,
+            "lastMoveDate": null,
+            "attachments": [],
+            "_links": []
+          },
+          {
+            "id": 1,
+            "globalId": "BE1",
+            "name": "WB user5e",
+            "description": null,
+            "created": "2021-09-30T22:52:54.000Z",
+            "createdBy": "user5e",
+            "lastModified": "2021-09-30T22:52:53.640Z",
+            "modifiedBy": "user5e",
+            "modifiedByFullName": null,
+            "deleted": false,
+            "deletedDate": null,
+            "iconId": -1,
+            "quantity": null,
+            "tags": null,
+            "barcode": null,
+            "type": "CONTAINER",
+            "owner": {
+              "id": -9,
+              "username": "user5e",
+              "email": "user5@researchspace.com",
+              "firstName": "user5",
+              "lastName": "user5",
+              "homeFolderId": 1,
+              "workbenchId": null,
+              "_links": []
+            },
+            "permittedActions": [],
+            "locationsCount": null,
+            "contentSummary": {
+              "totalCount": 1377,
+              "subSampleCount": 1320,
+              "containerCount": 57
+            },
+            "cType": "WORKBENCH",
+            "gridLayout": null,
+            "canStoreSamples": true,
+            "canStoreContainers": true,
+            "parentContainers": [],
+            "parentLocation": null,
+            "lastNonWorkbenchParent": null,
+            "lastMoveDate": null,
+            "attachments": [],
+            "_links": []
+          }
+        ],
+        "parentLocation": {
+          "id": 1618,
+          "coordX": 2,
+          "coordY": 1
+        },
+        "lastNonWorkbenchParent": null,
+        "lastMoveDate": "2021-10-10T14:19:29.168Z",
+        "attachments": [],
+        "_links": [
+          {
+            "link": "http://localhost:8080/api/inventory/v1/subSamples/163952",
+            "rel": "self"
+          },
+          {
+            "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+            "rel": "image"
+          },
+          {
+            "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+            "rel": "thumbnail"
+          }
+        ]
+      }
+    },
+    {
+      "id": 1625,
+      "coordX": 3,
+      "coordY": 1,
+      "content": {
+        "id": 163959,
+        "globalId": "SS163959",
+        "name": "multiS.08",
+        "description": null,
+        "created": "2021-10-10T14:19:15.000Z",
+        "createdBy": "user5e",
+        "lastModified": "2021-10-10T14:19:15.207Z",
+        "modifiedBy": "user5e",
+        "modifiedByFullName": "user5 user5",
+        "deleted": false,
+        "deletedDate": null,
+        "deletedOnSampleDeletion": false,
+        "revisionId": null,
+        "owner": {
+          "id": -9,
+          "username": "user5e",
+          "email": "user5@researchspace.com",
+          "firstName": "user5",
+          "lastName": "user5",
+          "homeFolderId": 1,
+          "workbenchId": null,
+          "_links": []
+        },
+        "permittedActions": [
+          "UPDATE",
+          "CHANGE_OWNER"
+        ],
+        "iconId": -1,
+        "quantity": {
+          "numericValue": 10,
+          "unitId": 3
+        },
+        "tags": null,
+        "barcode": null,
+        "type": "SUBSAMPLE",
+        "sample": {
+          "id": 163852,
+          "globalId": "SA163852",
+          "name": "multiS",
+          "description": null,
+          "created": "2021-10-10T14:19:15.000Z",
+          "createdBy": "user5e",
+          "lastModified": "2021-10-10T14:19:15.207Z",
+          "modifiedBy": "user5e",
+          "modifiedByFullName": null,
+          "deleted": false,
+          "deletedDate": null,
+          "revisionId": null,
+          "version": 1,
+          "historicalVersion": false,
+          "iconId": -1,
+          "quantity": {
+            "numericValue": 100,
+            "unitId": 3
+          },
+          "tags": null,
+          "barcode": null,
+          "type": "SAMPLE",
+          "templateId": null,
+          "templateVersion": null,
+          "template": false,
+          "owner": {
+            "id": -9,
+            "username": "user5e",
+            "email": "user5@researchspace.com",
+            "firstName": "user5",
+            "lastName": "user5",
+            "homeFolderId": 1,
+            "workbenchId": null,
+            "_links": []
+          },
+          "permittedActions": [],
+          "subSampleAlias": "aliquot",
+          "subSamplesCount": 10,
+          "storageTempMin": null,
+          "storageTempMax": null,
+          "sampleSource": "LAB_CREATED",
+          "expiryDate": null,
+          "attachments": [],
+          "_links": [
+            {
+              "link": "http://localhost:8080/api/inventory/v1/samples/163852",
+              "rel": "self"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "icon"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "thumbnail"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "image"
+            }
+          ]
+        },
+        "parentContainers": [
+          {
+            "id": 131085,
+            "globalId": "IC131085",
+            "name": "gridX",
+            "description": null,
+            "created": "2021-10-10T14:19:08.000Z",
+            "createdBy": "user5e",
+            "lastModified": "2021-10-10T14:19:08.482Z",
+            "modifiedBy": "user5e",
+            "modifiedByFullName": null,
+            "deleted": false,
+            "deletedDate": null,
+            "iconId": -1,
+            "quantity": null,
+            "tags": null,
+            "barcode": null,
+            "type": "CONTAINER",
+            "owner": {
+              "id": -9,
+              "username": "user5e",
+              "email": "user5@researchspace.com",
+              "firstName": "user5",
+              "lastName": "user5",
+              "homeFolderId": 1,
+              "workbenchId": null,
+              "_links": []
+            },
+            "permittedActions": [],
+            "locationsCount": 21,
+            "contentSummary": {
+              "totalCount": 10,
+              "subSampleCount": 10,
+              "containerCount": 0
+            },
+            "cType": "GRID",
+            "gridLayout": {
+              "columnsNumber": 3,
+              "rowsNumber": 7,
+              "columnsLabelType": "N123",
+              "rowsLabelType": "ABC"
+            },
+            "canStoreSamples": true,
+            "canStoreContainers": true,
+            "parentContainers": [
+              {
+                "id": 1,
+                "globalId": "BE1",
+                "name": "WB user5e",
+                "description": null,
+                "created": "2021-09-30T22:52:54.000Z",
+                "createdBy": "user5e",
+                "lastModified": "2021-09-30T22:52:53.640Z",
+                "modifiedBy": "user5e",
+                "modifiedByFullName": null,
+                "deleted": false,
+                "deletedDate": null,
+                "iconId": -1,
+                "quantity": null,
+                "tags": null,
+                "barcode": null,
+                "type": "CONTAINER",
+                "owner": {
+                  "id": -9,
+                  "username": "user5e",
+                  "email": "user5@researchspace.com",
+                  "firstName": "user5",
+                  "lastName": "user5",
+                  "homeFolderId": 1,
+                  "workbenchId": null,
+                  "_links": []
+                },
+                "permittedActions": [],
+                "locationsCount": null,
+                "contentSummary": {
+                  "totalCount": 1377,
+                  "subSampleCount": 1320,
+                  "containerCount": 57
+                },
+                "cType": "WORKBENCH",
+                "gridLayout": null,
+                "canStoreSamples": true,
+                "canStoreContainers": true,
+                "parentContainers": [],
+                "parentLocation": null,
+                "lastNonWorkbenchParent": null,
+                "lastMoveDate": null,
+                "attachments": [],
+                "_links": []
+              }
+            ],
+            "parentLocation": {
+              "id": 1607,
+              "coordX": 1377,
+              "coordY": 1
+            },
+            "lastNonWorkbenchParent": null,
+            "lastMoveDate": null,
+            "attachments": [],
+            "_links": []
+          },
+          {
+            "id": 1,
+            "globalId": "BE1",
+            "name": "WB user5e",
+            "description": null,
+            "created": "2021-09-30T22:52:54.000Z",
+            "createdBy": "user5e",
+            "lastModified": "2021-09-30T22:52:53.640Z",
+            "modifiedBy": "user5e",
+            "modifiedByFullName": null,
+            "deleted": false,
+            "deletedDate": null,
+            "iconId": -1,
+            "quantity": null,
+            "tags": null,
+            "barcode": null,
+            "type": "CONTAINER",
+            "owner": {
+              "id": -9,
+              "username": "user5e",
+              "email": "user5@researchspace.com",
+              "firstName": "user5",
+              "lastName": "user5",
+              "homeFolderId": 1,
+              "workbenchId": null,
+              "_links": []
+            },
+            "permittedActions": [],
+            "locationsCount": null,
+            "contentSummary": {
+              "totalCount": 1377,
+              "subSampleCount": 1320,
+              "containerCount": 57
+            },
+            "cType": "WORKBENCH",
+            "gridLayout": null,
+            "canStoreSamples": true,
+            "canStoreContainers": true,
+            "parentContainers": [],
+            "parentLocation": null,
+            "lastNonWorkbenchParent": null,
+            "lastMoveDate": null,
+            "attachments": [],
+            "_links": []
+          }
+        ],
+        "parentLocation": {
+          "id": 1625,
+          "coordX": 3,
+          "coordY": 1
+        },
+        "lastNonWorkbenchParent": null,
+        "lastMoveDate": "2021-10-10T14:19:29.169Z",
+        "attachments": [],
+        "_links": [
+          {
+            "link": "http://localhost:8080/api/inventory/v1/subSamples/163959",
+            "rel": "self"
+          },
+          {
+            "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+            "rel": "image"
+          },
+          {
+            "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+            "rel": "thumbnail"
+          }
+        ]
+      }
+    },
+    {
+      "id": 1619,
+      "coordX": 2,
+      "coordY": 2,
+      "content": {
+        "id": 163953,
+        "globalId": "SS163953",
+        "name": "multiS.02",
+        "description": null,
+        "created": "2021-10-10T14:19:15.000Z",
+        "createdBy": "user5e",
+        "lastModified": "2021-10-10T14:19:15.207Z",
+        "modifiedBy": "user5e",
+        "modifiedByFullName": "user5 user5",
+        "deleted": false,
+        "deletedDate": null,
+        "deletedOnSampleDeletion": false,
+        "revisionId": null,
+        "owner": {
+          "id": -9,
+          "username": "user5e",
+          "email": "user5@researchspace.com",
+          "firstName": "user5",
+          "lastName": "user5",
+          "homeFolderId": 1,
+          "workbenchId": null,
+          "_links": []
+        },
+        "permittedActions": [
+          "UPDATE",
+          "CHANGE_OWNER"
+        ],
+        "iconId": -1,
+        "quantity": {
+          "numericValue": 10,
+          "unitId": 3
+        },
+        "tags": null,
+        "barcode": null,
+        "type": "SUBSAMPLE",
+        "sample": {
+          "id": 163852,
+          "globalId": "SA163852",
+          "name": "multiS",
+          "description": null,
+          "created": "2021-10-10T14:19:15.000Z",
+          "createdBy": "user5e",
+          "lastModified": "2021-10-10T14:19:15.207Z",
+          "modifiedBy": "user5e",
+          "modifiedByFullName": null,
+          "deleted": false,
+          "deletedDate": null,
+          "revisionId": null,
+          "version": 1,
+          "historicalVersion": false,
+          "iconId": -1,
+          "quantity": {
+            "numericValue": 100,
+            "unitId": 3
+          },
+          "tags": null,
+          "barcode": null,
+          "type": "SAMPLE",
+          "templateId": null,
+          "templateVersion": null,
+          "template": false,
+          "owner": {
+            "id": -9,
+            "username": "user5e",
+            "email": "user5@researchspace.com",
+            "firstName": "user5",
+            "lastName": "user5",
+            "homeFolderId": 1,
+            "workbenchId": null,
+            "_links": []
+          },
+          "permittedActions": [],
+          "subSampleAlias": "aliquot",
+          "subSamplesCount": 10,
+          "storageTempMin": null,
+          "storageTempMax": null,
+          "sampleSource": "LAB_CREATED",
+          "expiryDate": null,
+          "attachments": [],
+          "_links": [
+            {
+              "link": "http://localhost:8080/api/inventory/v1/samples/163852",
+              "rel": "self"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "icon"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "thumbnail"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "image"
+            }
+          ]
+        },
+        "parentContainers": [
+          {
+            "id": 131085,
+            "globalId": "IC131085",
+            "name": "gridX",
+            "description": null,
+            "created": "2021-10-10T14:19:08.000Z",
+            "createdBy": "user5e",
+            "lastModified": "2021-10-10T14:19:08.482Z",
+            "modifiedBy": "user5e",
+            "modifiedByFullName": null,
+            "deleted": false,
+            "deletedDate": null,
+            "iconId": -1,
+            "quantity": null,
+            "tags": null,
+            "barcode": null,
+            "type": "CONTAINER",
+            "owner": {
+              "id": -9,
+              "username": "user5e",
+              "email": "user5@researchspace.com",
+              "firstName": "user5",
+              "lastName": "user5",
+              "homeFolderId": 1,
+              "workbenchId": null,
+              "_links": []
+            },
+            "permittedActions": [],
+            "locationsCount": 21,
+            "contentSummary": {
+              "totalCount": 10,
+              "subSampleCount": 10,
+              "containerCount": 0
+            },
+            "cType": "GRID",
+            "gridLayout": {
+              "columnsNumber": 3,
+              "rowsNumber": 7,
+              "columnsLabelType": "N123",
+              "rowsLabelType": "ABC"
+            },
+            "canStoreSamples": true,
+            "canStoreContainers": true,
+            "parentContainers": [
+              {
+                "id": 1,
+                "globalId": "BE1",
+                "name": "WB user5e",
+                "description": null,
+                "created": "2021-09-30T22:52:54.000Z",
+                "createdBy": "user5e",
+                "lastModified": "2021-09-30T22:52:53.640Z",
+                "modifiedBy": "user5e",
+                "modifiedByFullName": null,
+                "deleted": false,
+                "deletedDate": null,
+                "iconId": -1,
+                "quantity": null,
+                "tags": null,
+                "barcode": null,
+                "type": "CONTAINER",
+                "owner": {
+                  "id": -9,
+                  "username": "user5e",
+                  "email": "user5@researchspace.com",
+                  "firstName": "user5",
+                  "lastName": "user5",
+                  "homeFolderId": 1,
+                  "workbenchId": null,
+                  "_links": []
+                },
+                "permittedActions": [],
+                "locationsCount": null,
+                "contentSummary": {
+                  "totalCount": 1377,
+                  "subSampleCount": 1320,
+                  "containerCount": 57
+                },
+                "cType": "WORKBENCH",
+                "gridLayout": null,
+                "canStoreSamples": true,
+                "canStoreContainers": true,
+                "parentContainers": [],
+                "parentLocation": null,
+                "lastNonWorkbenchParent": null,
+                "lastMoveDate": null,
+                "attachments": [],
+                "_links": []
+              }
+            ],
+            "parentLocation": {
+              "id": 1607,
+              "coordX": 1377,
+              "coordY": 1
+            },
+            "lastNonWorkbenchParent": null,
+            "lastMoveDate": null,
+            "attachments": [],
+            "_links": []
+          },
+          {
+            "id": 1,
+            "globalId": "BE1",
+            "name": "WB user5e",
+            "description": null,
+            "created": "2021-09-30T22:52:54.000Z",
+            "createdBy": "user5e",
+            "lastModified": "2021-09-30T22:52:53.640Z",
+            "modifiedBy": "user5e",
+            "modifiedByFullName": null,
+            "deleted": false,
+            "deletedDate": null,
+            "iconId": -1,
+            "quantity": null,
+            "tags": null,
+            "barcode": null,
+            "type": "CONTAINER",
+            "owner": {
+              "id": -9,
+              "username": "user5e",
+              "email": "user5@researchspace.com",
+              "firstName": "user5",
+              "lastName": "user5",
+              "homeFolderId": 1,
+              "workbenchId": null,
+              "_links": []
+            },
+            "permittedActions": [],
+            "locationsCount": null,
+            "contentSummary": {
+              "totalCount": 1377,
+              "subSampleCount": 1320,
+              "containerCount": 57
+            },
+            "cType": "WORKBENCH",
+            "gridLayout": null,
+            "canStoreSamples": true,
+            "canStoreContainers": true,
+            "parentContainers": [],
+            "parentLocation": null,
+            "lastNonWorkbenchParent": null,
+            "lastMoveDate": null,
+            "attachments": [],
+            "_links": []
+          }
+        ],
+        "parentLocation": {
+          "id": 1619,
+          "coordX": 2,
+          "coordY": 2
+        },
+        "lastNonWorkbenchParent": null,
+        "lastMoveDate": "2021-10-10T14:19:29.168Z",
+        "attachments": [],
+        "_links": [
+          {
+            "link": "http://localhost:8080/api/inventory/v1/subSamples/163953",
+            "rel": "self"
+          },
+          {
+            "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+            "rel": "image"
+          },
+          {
+            "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+            "rel": "thumbnail"
+          }
+        ]
+      }
+    },
+    {
+      "id": 1626,
+      "coordX": 3,
+      "coordY": 2,
+      "content": {
+        "id": 163960,
+        "globalId": "SS163960",
+        "name": "multiS.09",
+        "description": null,
+        "created": "2021-10-10T14:19:15.000Z",
+        "createdBy": "user5e",
+        "lastModified": "2021-10-10T14:19:15.207Z",
+        "modifiedBy": "user5e",
+        "modifiedByFullName": "user5 user5",
+        "deleted": false,
+        "deletedDate": null,
+        "deletedOnSampleDeletion": false,
+        "revisionId": null,
+        "owner": {
+          "id": -9,
+          "username": "user5e",
+          "email": "user5@researchspace.com",
+          "firstName": "user5",
+          "lastName": "user5",
+          "homeFolderId": 1,
+          "workbenchId": null,
+          "_links": []
+        },
+        "permittedActions": [
+          "UPDATE",
+          "CHANGE_OWNER"
+        ],
+        "iconId": -1,
+        "quantity": {
+          "numericValue": 10,
+          "unitId": 3
+        },
+        "tags": null,
+        "barcode": null,
+        "type": "SUBSAMPLE",
+        "sample": {
+          "id": 163852,
+          "globalId": "SA163852",
+          "name": "multiS",
+          "description": null,
+          "created": "2021-10-10T14:19:15.000Z",
+          "createdBy": "user5e",
+          "lastModified": "2021-10-10T14:19:15.207Z",
+          "modifiedBy": "user5e",
+          "modifiedByFullName": null,
+          "deleted": false,
+          "deletedDate": null,
+          "revisionId": null,
+          "version": 1,
+          "historicalVersion": false,
+          "iconId": -1,
+          "quantity": {
+            "numericValue": 100,
+            "unitId": 3
+          },
+          "tags": null,
+          "barcode": null,
+          "type": "SAMPLE",
+          "templateId": null,
+          "templateVersion": null,
+          "template": false,
+          "owner": {
+            "id": -9,
+            "username": "user5e",
+            "email": "user5@researchspace.com",
+            "firstName": "user5",
+            "lastName": "user5",
+            "homeFolderId": 1,
+            "workbenchId": null,
+            "_links": []
+          },
+          "permittedActions": [],
+          "subSampleAlias": "aliquot",
+          "subSamplesCount": 10,
+          "storageTempMin": null,
+          "storageTempMax": null,
+          "sampleSource": "LAB_CREATED",
+          "expiryDate": null,
+          "attachments": [],
+          "_links": [
+            {
+              "link": "http://localhost:8080/api/inventory/v1/samples/163852",
+              "rel": "self"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "icon"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "thumbnail"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "image"
+            }
+          ]
+        },
+        "parentContainers": [
+          {
+            "id": 131085,
+            "globalId": "IC131085",
+            "name": "gridX",
+            "description": null,
+            "created": "2021-10-10T14:19:08.000Z",
+            "createdBy": "user5e",
+            "lastModified": "2021-10-10T14:19:08.482Z",
+            "modifiedBy": "user5e",
+            "modifiedByFullName": null,
+            "deleted": false,
+            "deletedDate": null,
+            "iconId": -1,
+            "quantity": null,
+            "tags": null,
+            "barcode": null,
+            "type": "CONTAINER",
+            "owner": {
+              "id": -9,
+              "username": "user5e",
+              "email": "user5@researchspace.com",
+              "firstName": "user5",
+              "lastName": "user5",
+              "homeFolderId": 1,
+              "workbenchId": null,
+              "_links": []
+            },
+            "permittedActions": [],
+            "locationsCount": 21,
+            "contentSummary": {
+              "totalCount": 10,
+              "subSampleCount": 10,
+              "containerCount": 0
+            },
+            "cType": "GRID",
+            "gridLayout": {
+              "columnsNumber": 3,
+              "rowsNumber": 7,
+              "columnsLabelType": "N123",
+              "rowsLabelType": "ABC"
+            },
+            "canStoreSamples": true,
+            "canStoreContainers": true,
+            "parentContainers": [
+              {
+                "id": 1,
+                "globalId": "BE1",
+                "name": "WB user5e",
+                "description": null,
+                "created": "2021-09-30T22:52:54.000Z",
+                "createdBy": "user5e",
+                "lastModified": "2021-09-30T22:52:53.640Z",
+                "modifiedBy": "user5e",
+                "modifiedByFullName": null,
+                "deleted": false,
+                "deletedDate": null,
+                "iconId": -1,
+                "quantity": null,
+                "tags": null,
+                "barcode": null,
+                "type": "CONTAINER",
+                "owner": {
+                  "id": -9,
+                  "username": "user5e",
+                  "email": "user5@researchspace.com",
+                  "firstName": "user5",
+                  "lastName": "user5",
+                  "homeFolderId": 1,
+                  "workbenchId": null,
+                  "_links": []
+                },
+                "permittedActions": [],
+                "locationsCount": null,
+                "contentSummary": {
+                  "totalCount": 1377,
+                  "subSampleCount": 1320,
+                  "containerCount": 57
+                },
+                "cType": "WORKBENCH",
+                "gridLayout": null,
+                "canStoreSamples": true,
+                "canStoreContainers": true,
+                "parentContainers": [],
+                "parentLocation": null,
+                "lastNonWorkbenchParent": null,
+                "lastMoveDate": null,
+                "attachments": [],
+                "_links": []
+              }
+            ],
+            "parentLocation": {
+              "id": 1607,
+              "coordX": 1377,
+              "coordY": 1
+            },
+            "lastNonWorkbenchParent": null,
+            "lastMoveDate": null,
+            "attachments": [],
+            "_links": []
+          },
+          {
+            "id": 1,
+            "globalId": "BE1",
+            "name": "WB user5e",
+            "description": null,
+            "created": "2021-09-30T22:52:54.000Z",
+            "createdBy": "user5e",
+            "lastModified": "2021-09-30T22:52:53.640Z",
+            "modifiedBy": "user5e",
+            "modifiedByFullName": null,
+            "deleted": false,
+            "deletedDate": null,
+            "iconId": -1,
+            "quantity": null,
+            "tags": null,
+            "barcode": null,
+            "type": "CONTAINER",
+            "owner": {
+              "id": -9,
+              "username": "user5e",
+              "email": "user5@researchspace.com",
+              "firstName": "user5",
+              "lastName": "user5",
+              "homeFolderId": 1,
+              "workbenchId": null,
+              "_links": []
+            },
+            "permittedActions": [],
+            "locationsCount": null,
+            "contentSummary": {
+              "totalCount": 1377,
+              "subSampleCount": 1320,
+              "containerCount": 57
+            },
+            "cType": "WORKBENCH",
+            "gridLayout": null,
+            "canStoreSamples": true,
+            "canStoreContainers": true,
+            "parentContainers": [],
+            "parentLocation": null,
+            "lastNonWorkbenchParent": null,
+            "lastMoveDate": null,
+            "attachments": [],
+            "_links": []
+          }
+        ],
+        "parentLocation": {
+          "id": 1626,
+          "coordX": 3,
+          "coordY": 2
+        },
+        "lastNonWorkbenchParent": null,
+        "lastMoveDate": "2021-10-10T14:19:29.169Z",
+        "attachments": [],
+        "_links": [
+          {
+            "link": "http://localhost:8080/api/inventory/v1/subSamples/163960",
+            "rel": "self"
+          },
+          {
+            "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+            "rel": "image"
+          },
+          {
+            "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+            "rel": "thumbnail"
+          }
+        ]
+      }
+    },
+    {
+      "id": 1620,
+      "coordX": 2,
+      "coordY": 3,
+      "content": {
+        "id": 163954,
+        "globalId": "SS163954",
+        "name": "multiS.03",
+        "description": null,
+        "created": "2021-10-10T14:19:15.000Z",
+        "createdBy": "user5e",
+        "lastModified": "2021-10-10T14:19:15.207Z",
+        "modifiedBy": "user5e",
+        "modifiedByFullName": "user5 user5",
+        "deleted": false,
+        "deletedDate": null,
+        "deletedOnSampleDeletion": false,
+        "revisionId": null,
+        "owner": {
+          "id": -9,
+          "username": "user5e",
+          "email": "user5@researchspace.com",
+          "firstName": "user5",
+          "lastName": "user5",
+          "homeFolderId": 1,
+          "workbenchId": null,
+          "_links": []
+        },
+        "permittedActions": [
+          "UPDATE",
+          "CHANGE_OWNER"
+        ],
+        "iconId": -1,
+        "quantity": {
+          "numericValue": 10,
+          "unitId": 3
+        },
+        "tags": null,
+        "barcode": null,
+        "type": "SUBSAMPLE",
+        "sample": {
+          "id": 163852,
+          "globalId": "SA163852",
+          "name": "multiS",
+          "description": null,
+          "created": "2021-10-10T14:19:15.000Z",
+          "createdBy": "user5e",
+          "lastModified": "2021-10-10T14:19:15.207Z",
+          "modifiedBy": "user5e",
+          "modifiedByFullName": null,
+          "deleted": false,
+          "deletedDate": null,
+          "revisionId": null,
+          "version": 1,
+          "historicalVersion": false,
+          "iconId": -1,
+          "quantity": {
+            "numericValue": 100,
+            "unitId": 3
+          },
+          "tags": null,
+          "barcode": null,
+          "type": "SAMPLE",
+          "templateId": null,
+          "templateVersion": null,
+          "template": false,
+          "owner": {
+            "id": -9,
+            "username": "user5e",
+            "email": "user5@researchspace.com",
+            "firstName": "user5",
+            "lastName": "user5",
+            "homeFolderId": 1,
+            "workbenchId": null,
+            "_links": []
+          },
+          "permittedActions": [],
+          "subSampleAlias": "aliquot",
+          "subSamplesCount": 10,
+          "storageTempMin": null,
+          "storageTempMax": null,
+          "sampleSource": "LAB_CREATED",
+          "expiryDate": null,
+          "attachments": [],
+          "_links": [
+            {
+              "link": "http://localhost:8080/api/inventory/v1/samples/163852",
+              "rel": "self"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "icon"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "thumbnail"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "image"
+            }
+          ]
+        },
+        "parentContainers": [
+          {
+            "id": 131085,
+            "globalId": "IC131085",
+            "name": "gridX",
+            "description": null,
+            "created": "2021-10-10T14:19:08.000Z",
+            "createdBy": "user5e",
+            "lastModified": "2021-10-10T14:19:08.482Z",
+            "modifiedBy": "user5e",
+            "modifiedByFullName": null,
+            "deleted": false,
+            "deletedDate": null,
+            "iconId": -1,
+            "quantity": null,
+            "tags": null,
+            "barcode": null,
+            "type": "CONTAINER",
+            "owner": {
+              "id": -9,
+              "username": "user5e",
+              "email": "user5@researchspace.com",
+              "firstName": "user5",
+              "lastName": "user5",
+              "homeFolderId": 1,
+              "workbenchId": null,
+              "_links": []
+            },
+            "permittedActions": [],
+            "locationsCount": 21,
+            "contentSummary": {
+              "totalCount": 10,
+              "subSampleCount": 10,
+              "containerCount": 0
+            },
+            "cType": "GRID",
+            "gridLayout": {
+              "columnsNumber": 3,
+              "rowsNumber": 7,
+              "columnsLabelType": "N123",
+              "rowsLabelType": "ABC"
+            },
+            "canStoreSamples": true,
+            "canStoreContainers": true,
+            "parentContainers": [
+              {
+                "id": 1,
+                "globalId": "BE1",
+                "name": "WB user5e",
+                "description": null,
+                "created": "2021-09-30T22:52:54.000Z",
+                "createdBy": "user5e",
+                "lastModified": "2021-09-30T22:52:53.640Z",
+                "modifiedBy": "user5e",
+                "modifiedByFullName": null,
+                "deleted": false,
+                "deletedDate": null,
+                "iconId": -1,
+                "quantity": null,
+                "tags": null,
+                "barcode": null,
+                "type": "CONTAINER",
+                "owner": {
+                  "id": -9,
+                  "username": "user5e",
+                  "email": "user5@researchspace.com",
+                  "firstName": "user5",
+                  "lastName": "user5",
+                  "homeFolderId": 1,
+                  "workbenchId": null,
+                  "_links": []
+                },
+                "permittedActions": [],
+                "locationsCount": null,
+                "contentSummary": {
+                  "totalCount": 1377,
+                  "subSampleCount": 1320,
+                  "containerCount": 57
+                },
+                "cType": "WORKBENCH",
+                "gridLayout": null,
+                "canStoreSamples": true,
+                "canStoreContainers": true,
+                "parentContainers": [],
+                "parentLocation": null,
+                "lastNonWorkbenchParent": null,
+                "lastMoveDate": null,
+                "attachments": [],
+                "_links": []
+              }
+            ],
+            "parentLocation": {
+              "id": 1607,
+              "coordX": 1377,
+              "coordY": 1
+            },
+            "lastNonWorkbenchParent": null,
+            "lastMoveDate": null,
+            "attachments": [],
+            "_links": []
+          },
+          {
+            "id": 1,
+            "globalId": "BE1",
+            "name": "WB user5e",
+            "description": null,
+            "created": "2021-09-30T22:52:54.000Z",
+            "createdBy": "user5e",
+            "lastModified": "2021-09-30T22:52:53.640Z",
+            "modifiedBy": "user5e",
+            "modifiedByFullName": null,
+            "deleted": false,
+            "deletedDate": null,
+            "iconId": -1,
+            "quantity": null,
+            "tags": null,
+            "barcode": null,
+            "type": "CONTAINER",
+            "owner": {
+              "id": -9,
+              "username": "user5e",
+              "email": "user5@researchspace.com",
+              "firstName": "user5",
+              "lastName": "user5",
+              "homeFolderId": 1,
+              "workbenchId": null,
+              "_links": []
+            },
+            "permittedActions": [],
+            "locationsCount": null,
+            "contentSummary": {
+              "totalCount": 1377,
+              "subSampleCount": 1320,
+              "containerCount": 57
+            },
+            "cType": "WORKBENCH",
+            "gridLayout": null,
+            "canStoreSamples": true,
+            "canStoreContainers": true,
+            "parentContainers": [],
+            "parentLocation": null,
+            "lastNonWorkbenchParent": null,
+            "lastMoveDate": null,
+            "attachments": [],
+            "_links": []
+          }
+        ],
+        "parentLocation": {
+          "id": 1620,
+          "coordX": 2,
+          "coordY": 3
+        },
+        "lastNonWorkbenchParent": null,
+        "lastMoveDate": "2021-10-10T14:19:29.168Z",
+        "attachments": [],
+        "_links": [
+          {
+            "link": "http://localhost:8080/api/inventory/v1/subSamples/163954",
+            "rel": "self"
+          },
+          {
+            "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+            "rel": "image"
+          },
+          {
+            "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+            "rel": "thumbnail"
+          }
+        ]
+      }
+    },
+    {
+      "id": 1627,
+      "coordX": 3,
+      "coordY": 3,
+      "content": {
+        "id": 163961,
+        "globalId": "SS163961",
+        "name": "multiS.10",
+        "description": null,
+        "created": "2021-10-10T14:19:15.000Z",
+        "createdBy": "user5e",
+        "lastModified": "2021-10-10T14:19:15.207Z",
+        "modifiedBy": "user5e",
+        "modifiedByFullName": "user5 user5",
+        "deleted": false,
+        "deletedDate": null,
+        "deletedOnSampleDeletion": false,
+        "revisionId": null,
+        "owner": {
+          "id": -9,
+          "username": "user5e",
+          "email": "user5@researchspace.com",
+          "firstName": "user5",
+          "lastName": "user5",
+          "homeFolderId": 1,
+          "workbenchId": null,
+          "_links": []
+        },
+        "permittedActions": [
+          "UPDATE",
+          "CHANGE_OWNER"
+        ],
+        "iconId": -1,
+        "quantity": {
+          "numericValue": 10,
+          "unitId": 3
+        },
+        "tags": null,
+        "barcode": null,
+        "type": "SUBSAMPLE",
+        "sample": {
+          "id": 163852,
+          "globalId": "SA163852",
+          "name": "multiS",
+          "description": null,
+          "created": "2021-10-10T14:19:15.000Z",
+          "createdBy": "user5e",
+          "lastModified": "2021-10-10T14:19:15.207Z",
+          "modifiedBy": "user5e",
+          "modifiedByFullName": null,
+          "deleted": false,
+          "deletedDate": null,
+          "revisionId": null,
+          "version": 1,
+          "historicalVersion": false,
+          "iconId": -1,
+          "quantity": {
+            "numericValue": 100,
+            "unitId": 3
+          },
+          "tags": null,
+          "barcode": null,
+          "type": "SAMPLE",
+          "templateId": null,
+          "templateVersion": null,
+          "template": false,
+          "owner": {
+            "id": -9,
+            "username": "user5e",
+            "email": "user5@researchspace.com",
+            "firstName": "user5",
+            "lastName": "user5",
+            "homeFolderId": 1,
+            "workbenchId": null,
+            "_links": []
+          },
+          "permittedActions": [],
+          "subSampleAlias": "aliquot",
+          "subSamplesCount": 10,
+          "storageTempMin": null,
+          "storageTempMax": null,
+          "sampleSource": "LAB_CREATED",
+          "expiryDate": null,
+          "attachments": [],
+          "_links": [
+            {
+              "link": "http://localhost:8080/api/inventory/v1/samples/163852",
+              "rel": "self"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "icon"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "thumbnail"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "image"
+            }
+          ]
+        },
+        "parentContainers": [
+          {
+            "id": 131085,
+            "globalId": "IC131085",
+            "name": "gridX",
+            "description": null,
+            "created": "2021-10-10T14:19:08.000Z",
+            "createdBy": "user5e",
+            "lastModified": "2021-10-10T14:19:08.482Z",
+            "modifiedBy": "user5e",
+            "modifiedByFullName": null,
+            "deleted": false,
+            "deletedDate": null,
+            "iconId": -1,
+            "quantity": null,
+            "tags": null,
+            "barcode": null,
+            "type": "CONTAINER",
+            "owner": {
+              "id": -9,
+              "username": "user5e",
+              "email": "user5@researchspace.com",
+              "firstName": "user5",
+              "lastName": "user5",
+              "homeFolderId": 1,
+              "workbenchId": null,
+              "_links": []
+            },
+            "permittedActions": [],
+            "locationsCount": 21,
+            "contentSummary": {
+              "totalCount": 10,
+              "subSampleCount": 10,
+              "containerCount": 0
+            },
+            "cType": "GRID",
+            "gridLayout": {
+              "columnsNumber": 3,
+              "rowsNumber": 7,
+              "columnsLabelType": "N123",
+              "rowsLabelType": "ABC"
+            },
+            "canStoreSamples": true,
+            "canStoreContainers": true,
+            "parentContainers": [
+              {
+                "id": 1,
+                "globalId": "BE1",
+                "name": "WB user5e",
+                "description": null,
+                "created": "2021-09-30T22:52:54.000Z",
+                "createdBy": "user5e",
+                "lastModified": "2021-09-30T22:52:53.640Z",
+                "modifiedBy": "user5e",
+                "modifiedByFullName": null,
+                "deleted": false,
+                "deletedDate": null,
+                "iconId": -1,
+                "quantity": null,
+                "tags": null,
+                "barcode": null,
+                "type": "CONTAINER",
+                "owner": {
+                  "id": -9,
+                  "username": "user5e",
+                  "email": "user5@researchspace.com",
+                  "firstName": "user5",
+                  "lastName": "user5",
+                  "homeFolderId": 1,
+                  "workbenchId": null,
+                  "_links": []
+                },
+                "permittedActions": [],
+                "locationsCount": null,
+                "contentSummary": {
+                  "totalCount": 1377,
+                  "subSampleCount": 1320,
+                  "containerCount": 57
+                },
+                "cType": "WORKBENCH",
+                "gridLayout": null,
+                "canStoreSamples": true,
+                "canStoreContainers": true,
+                "parentContainers": [],
+                "parentLocation": null,
+                "lastNonWorkbenchParent": null,
+                "lastMoveDate": null,
+                "attachments": [],
+                "_links": []
+              }
+            ],
+            "parentLocation": {
+              "id": 1607,
+              "coordX": 1377,
+              "coordY": 1
+            },
+            "lastNonWorkbenchParent": null,
+            "lastMoveDate": null,
+            "attachments": [],
+            "_links": []
+          },
+          {
+            "id": 1,
+            "globalId": "BE1",
+            "name": "WB user5e",
+            "description": null,
+            "created": "2021-09-30T22:52:54.000Z",
+            "createdBy": "user5e",
+            "lastModified": "2021-09-30T22:52:53.640Z",
+            "modifiedBy": "user5e",
+            "modifiedByFullName": null,
+            "deleted": false,
+            "deletedDate": null,
+            "iconId": -1,
+            "quantity": null,
+            "tags": null,
+            "barcode": null,
+            "type": "CONTAINER",
+            "owner": {
+              "id": -9,
+              "username": "user5e",
+              "email": "user5@researchspace.com",
+              "firstName": "user5",
+              "lastName": "user5",
+              "homeFolderId": 1,
+              "workbenchId": null,
+              "_links": []
+            },
+            "permittedActions": [],
+            "locationsCount": null,
+            "contentSummary": {
+              "totalCount": 1377,
+              "subSampleCount": 1320,
+              "containerCount": 57
+            },
+            "cType": "WORKBENCH",
+            "gridLayout": null,
+            "canStoreSamples": true,
+            "canStoreContainers": true,
+            "parentContainers": [],
+            "parentLocation": null,
+            "lastNonWorkbenchParent": null,
+            "lastMoveDate": null,
+            "attachments": [],
+            "_links": []
+          }
+        ],
+        "parentLocation": {
+          "id": 1627,
+          "coordX": 3,
+          "coordY": 3
+        },
+        "lastNonWorkbenchParent": null,
+        "lastMoveDate": "2021-10-10T14:19:29.170Z",
+        "attachments": [],
+        "_links": [
+          {
+            "link": "http://localhost:8080/api/inventory/v1/subSamples/163961",
+            "rel": "self"
+          },
+          {
+            "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+            "rel": "image"
+          },
+          {
+            "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+            "rel": "thumbnail"
+          }
+        ]
+      }
+    },
+    {
+      "id": 1621,
+      "coordX": 2,
+      "coordY": 4,
+      "content": {
+        "id": 163955,
+        "globalId": "SS163955",
+        "name": "multiS.04",
+        "description": null,
+        "created": "2021-10-10T14:19:15.000Z",
+        "createdBy": "user5e",
+        "lastModified": "2021-10-10T14:19:15.207Z",
+        "modifiedBy": "user5e",
+        "modifiedByFullName": "user5 user5",
+        "deleted": false,
+        "deletedDate": null,
+        "deletedOnSampleDeletion": false,
+        "revisionId": null,
+        "owner": {
+          "id": -9,
+          "username": "user5e",
+          "email": "user5@researchspace.com",
+          "firstName": "user5",
+          "lastName": "user5",
+          "homeFolderId": 1,
+          "workbenchId": null,
+          "_links": []
+        },
+        "permittedActions": [
+          "UPDATE",
+          "CHANGE_OWNER"
+        ],
+        "iconId": -1,
+        "quantity": {
+          "numericValue": 10,
+          "unitId": 3
+        },
+        "tags": null,
+        "barcode": null,
+        "type": "SUBSAMPLE",
+        "sample": {
+          "id": 163852,
+          "globalId": "SA163852",
+          "name": "multiS",
+          "description": null,
+          "created": "2021-10-10T14:19:15.000Z",
+          "createdBy": "user5e",
+          "lastModified": "2021-10-10T14:19:15.207Z",
+          "modifiedBy": "user5e",
+          "modifiedByFullName": null,
+          "deleted": false,
+          "deletedDate": null,
+          "revisionId": null,
+          "version": 1,
+          "historicalVersion": false,
+          "iconId": -1,
+          "quantity": {
+            "numericValue": 100,
+            "unitId": 3
+          },
+          "tags": null,
+          "barcode": null,
+          "type": "SAMPLE",
+          "templateId": null,
+          "templateVersion": null,
+          "template": false,
+          "owner": {
+            "id": -9,
+            "username": "user5e",
+            "email": "user5@researchspace.com",
+            "firstName": "user5",
+            "lastName": "user5",
+            "homeFolderId": 1,
+            "workbenchId": null,
+            "_links": []
+          },
+          "permittedActions": [],
+          "subSampleAlias": "aliquot",
+          "subSamplesCount": 10,
+          "storageTempMin": null,
+          "storageTempMax": null,
+          "sampleSource": "LAB_CREATED",
+          "expiryDate": null,
+          "attachments": [],
+          "_links": [
+            {
+              "link": "http://localhost:8080/api/inventory/v1/samples/163852",
+              "rel": "self"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "icon"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "thumbnail"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "image"
+            }
+          ]
+        },
+        "parentContainers": [
+          {
+            "id": 131085,
+            "globalId": "IC131085",
+            "name": "gridX",
+            "description": null,
+            "created": "2021-10-10T14:19:08.000Z",
+            "createdBy": "user5e",
+            "lastModified": "2021-10-10T14:19:08.482Z",
+            "modifiedBy": "user5e",
+            "modifiedByFullName": null,
+            "deleted": false,
+            "deletedDate": null,
+            "iconId": -1,
+            "quantity": null,
+            "tags": null,
+            "barcode": null,
+            "type": "CONTAINER",
+            "owner": {
+              "id": -9,
+              "username": "user5e",
+              "email": "user5@researchspace.com",
+              "firstName": "user5",
+              "lastName": "user5",
+              "homeFolderId": 1,
+              "workbenchId": null,
+              "_links": []
+            },
+            "permittedActions": [],
+            "locationsCount": 21,
+            "contentSummary": {
+              "totalCount": 10,
+              "subSampleCount": 10,
+              "containerCount": 0
+            },
+            "cType": "GRID",
+            "gridLayout": {
+              "columnsNumber": 3,
+              "rowsNumber": 7,
+              "columnsLabelType": "N123",
+              "rowsLabelType": "ABC"
+            },
+            "canStoreSamples": true,
+            "canStoreContainers": true,
+            "parentContainers": [
+              {
+                "id": 1,
+                "globalId": "BE1",
+                "name": "WB user5e",
+                "description": null,
+                "created": "2021-09-30T22:52:54.000Z",
+                "createdBy": "user5e",
+                "lastModified": "2021-09-30T22:52:53.640Z",
+                "modifiedBy": "user5e",
+                "modifiedByFullName": null,
+                "deleted": false,
+                "deletedDate": null,
+                "iconId": -1,
+                "quantity": null,
+                "tags": null,
+                "barcode": null,
+                "type": "CONTAINER",
+                "owner": {
+                  "id": -9,
+                  "username": "user5e",
+                  "email": "user5@researchspace.com",
+                  "firstName": "user5",
+                  "lastName": "user5",
+                  "homeFolderId": 1,
+                  "workbenchId": null,
+                  "_links": []
+                },
+                "permittedActions": [],
+                "locationsCount": null,
+                "contentSummary": {
+                  "totalCount": 1377,
+                  "subSampleCount": 1320,
+                  "containerCount": 57
+                },
+                "cType": "WORKBENCH",
+                "gridLayout": null,
+                "canStoreSamples": true,
+                "canStoreContainers": true,
+                "parentContainers": [],
+                "parentLocation": null,
+                "lastNonWorkbenchParent": null,
+                "lastMoveDate": null,
+                "attachments": [],
+                "_links": []
+              }
+            ],
+            "parentLocation": {
+              "id": 1607,
+              "coordX": 1377,
+              "coordY": 1
+            },
+            "lastNonWorkbenchParent": null,
+            "lastMoveDate": null,
+            "attachments": [],
+            "_links": []
+          },
+          {
+            "id": 1,
+            "globalId": "BE1",
+            "name": "WB user5e",
+            "description": null,
+            "created": "2021-09-30T22:52:54.000Z",
+            "createdBy": "user5e",
+            "lastModified": "2021-09-30T22:52:53.640Z",
+            "modifiedBy": "user5e",
+            "modifiedByFullName": null,
+            "deleted": false,
+            "deletedDate": null,
+            "iconId": -1,
+            "quantity": null,
+            "tags": null,
+            "barcode": null,
+            "type": "CONTAINER",
+            "owner": {
+              "id": -9,
+              "username": "user5e",
+              "email": "user5@researchspace.com",
+              "firstName": "user5",
+              "lastName": "user5",
+              "homeFolderId": 1,
+              "workbenchId": null,
+              "_links": []
+            },
+            "permittedActions": [],
+            "locationsCount": null,
+            "contentSummary": {
+              "totalCount": 1377,
+              "subSampleCount": 1320,
+              "containerCount": 57
+            },
+            "cType": "WORKBENCH",
+            "gridLayout": null,
+            "canStoreSamples": true,
+            "canStoreContainers": true,
+            "parentContainers": [],
+            "parentLocation": null,
+            "lastNonWorkbenchParent": null,
+            "lastMoveDate": null,
+            "attachments": [],
+            "_links": []
+          }
+        ],
+        "parentLocation": {
+          "id": 1621,
+          "coordX": 2,
+          "coordY": 4
+        },
+        "lastNonWorkbenchParent": null,
+        "lastMoveDate": "2021-10-10T14:19:29.168Z",
+        "attachments": [],
+        "_links": [
+          {
+            "link": "http://localhost:8080/api/inventory/v1/subSamples/163955",
+            "rel": "self"
+          },
+          {
+            "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+            "rel": "image"
+          },
+          {
+            "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+            "rel": "thumbnail"
+          }
+        ]
+      }
+    },
+    {
+      "id": 1622,
+      "coordX": 2,
+      "coordY": 5,
+      "content": {
+        "id": 163956,
+        "globalId": "SS163956",
+        "name": "multiS.05",
+        "description": null,
+        "created": "2021-10-10T14:19:15.000Z",
+        "createdBy": "user5e",
+        "lastModified": "2021-10-10T14:19:15.207Z",
+        "modifiedBy": "user5e",
+        "modifiedByFullName": "user5 user5",
+        "deleted": false,
+        "deletedDate": null,
+        "deletedOnSampleDeletion": false,
+        "revisionId": null,
+        "owner": {
+          "id": -9,
+          "username": "user5e",
+          "email": "user5@researchspace.com",
+          "firstName": "user5",
+          "lastName": "user5",
+          "homeFolderId": 1,
+          "workbenchId": null,
+          "_links": []
+        },
+        "permittedActions": [
+          "UPDATE",
+          "CHANGE_OWNER"
+        ],
+        "iconId": -1,
+        "quantity": {
+          "numericValue": 10,
+          "unitId": 3
+        },
+        "tags": null,
+        "barcode": null,
+        "type": "SUBSAMPLE",
+        "sample": {
+          "id": 163852,
+          "globalId": "SA163852",
+          "name": "multiS",
+          "description": null,
+          "created": "2021-10-10T14:19:15.000Z",
+          "createdBy": "user5e",
+          "lastModified": "2021-10-10T14:19:15.207Z",
+          "modifiedBy": "user5e",
+          "modifiedByFullName": null,
+          "deleted": false,
+          "deletedDate": null,
+          "revisionId": null,
+          "version": 1,
+          "historicalVersion": false,
+          "iconId": -1,
+          "quantity": {
+            "numericValue": 100,
+            "unitId": 3
+          },
+          "tags": null,
+          "barcode": null,
+          "type": "SAMPLE",
+          "templateId": null,
+          "templateVersion": null,
+          "template": false,
+          "owner": {
+            "id": -9,
+            "username": "user5e",
+            "email": "user5@researchspace.com",
+            "firstName": "user5",
+            "lastName": "user5",
+            "homeFolderId": 1,
+            "workbenchId": null,
+            "_links": []
+          },
+          "permittedActions": [],
+          "subSampleAlias": "aliquot",
+          "subSamplesCount": 10,
+          "storageTempMin": null,
+          "storageTempMax": null,
+          "sampleSource": "LAB_CREATED",
+          "expiryDate": null,
+          "attachments": [],
+          "_links": [
+            {
+              "link": "http://localhost:8080/api/inventory/v1/samples/163852",
+              "rel": "self"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "icon"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "thumbnail"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "image"
+            }
+          ]
+        },
+        "parentContainers": [
+          {
+            "id": 131085,
+            "globalId": "IC131085",
+            "name": "gridX",
+            "description": null,
+            "created": "2021-10-10T14:19:08.000Z",
+            "createdBy": "user5e",
+            "lastModified": "2021-10-10T14:19:08.482Z",
+            "modifiedBy": "user5e",
+            "modifiedByFullName": null,
+            "deleted": false,
+            "deletedDate": null,
+            "iconId": -1,
+            "quantity": null,
+            "tags": null,
+            "barcode": null,
+            "type": "CONTAINER",
+            "owner": {
+              "id": -9,
+              "username": "user5e",
+              "email": "user5@researchspace.com",
+              "firstName": "user5",
+              "lastName": "user5",
+              "homeFolderId": 1,
+              "workbenchId": null,
+              "_links": []
+            },
+            "permittedActions": [],
+            "locationsCount": 21,
+            "contentSummary": {
+              "totalCount": 10,
+              "subSampleCount": 10,
+              "containerCount": 0
+            },
+            "cType": "GRID",
+            "gridLayout": {
+              "columnsNumber": 3,
+              "rowsNumber": 7,
+              "columnsLabelType": "N123",
+              "rowsLabelType": "ABC"
+            },
+            "canStoreSamples": true,
+            "canStoreContainers": true,
+            "parentContainers": [
+              {
+                "id": 1,
+                "globalId": "BE1",
+                "name": "WB user5e",
+                "description": null,
+                "created": "2021-09-30T22:52:54.000Z",
+                "createdBy": "user5e",
+                "lastModified": "2021-09-30T22:52:53.640Z",
+                "modifiedBy": "user5e",
+                "modifiedByFullName": null,
+                "deleted": false,
+                "deletedDate": null,
+                "iconId": -1,
+                "quantity": null,
+                "tags": null,
+                "barcode": null,
+                "type": "CONTAINER",
+                "owner": {
+                  "id": -9,
+                  "username": "user5e",
+                  "email": "user5@researchspace.com",
+                  "firstName": "user5",
+                  "lastName": "user5",
+                  "homeFolderId": 1,
+                  "workbenchId": null,
+                  "_links": []
+                },
+                "permittedActions": [],
+                "locationsCount": null,
+                "contentSummary": {
+                  "totalCount": 1377,
+                  "subSampleCount": 1320,
+                  "containerCount": 57
+                },
+                "cType": "WORKBENCH",
+                "gridLayout": null,
+                "canStoreSamples": true,
+                "canStoreContainers": true,
+                "parentContainers": [],
+                "parentLocation": null,
+                "lastNonWorkbenchParent": null,
+                "lastMoveDate": null,
+                "attachments": [],
+                "_links": []
+              }
+            ],
+            "parentLocation": {
+              "id": 1607,
+              "coordX": 1377,
+              "coordY": 1
+            },
+            "lastNonWorkbenchParent": null,
+            "lastMoveDate": null,
+            "attachments": [],
+            "_links": []
+          },
+          {
+            "id": 1,
+            "globalId": "BE1",
+            "name": "WB user5e",
+            "description": null,
+            "created": "2021-09-30T22:52:54.000Z",
+            "createdBy": "user5e",
+            "lastModified": "2021-09-30T22:52:53.640Z",
+            "modifiedBy": "user5e",
+            "modifiedByFullName": null,
+            "deleted": false,
+            "deletedDate": null,
+            "iconId": -1,
+            "quantity": null,
+            "tags": null,
+            "barcode": null,
+            "type": "CONTAINER",
+            "owner": {
+              "id": -9,
+              "username": "user5e",
+              "email": "user5@researchspace.com",
+              "firstName": "user5",
+              "lastName": "user5",
+              "homeFolderId": 1,
+              "workbenchId": null,
+              "_links": []
+            },
+            "permittedActions": [],
+            "locationsCount": null,
+            "contentSummary": {
+              "totalCount": 1377,
+              "subSampleCount": 1320,
+              "containerCount": 57
+            },
+            "cType": "WORKBENCH",
+            "gridLayout": null,
+            "canStoreSamples": true,
+            "canStoreContainers": true,
+            "parentContainers": [],
+            "parentLocation": null,
+            "lastNonWorkbenchParent": null,
+            "lastMoveDate": null,
+            "attachments": [],
+            "_links": []
+          }
+        ],
+        "parentLocation": {
+          "id": 1622,
+          "coordX": 2,
+          "coordY": 5
+        },
+        "lastNonWorkbenchParent": null,
+        "lastMoveDate": "2021-10-10T14:19:29.168Z",
+        "attachments": [],
+        "_links": [
+          {
+            "link": "http://localhost:8080/api/inventory/v1/subSamples/163956",
+            "rel": "self"
+          },
+          {
+            "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+            "rel": "image"
+          },
+          {
+            "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+            "rel": "thumbnail"
+          }
+        ]
+      }
+    },
+    {
+      "id": 1623,
+      "coordX": 2,
+      "coordY": 6,
+      "content": {
+        "id": 163957,
+        "globalId": "SS163957",
+        "name": "multiS.06",
+        "description": null,
+        "created": "2021-10-10T14:19:15.000Z",
+        "createdBy": "user5e",
+        "lastModified": "2021-10-10T14:19:15.207Z",
+        "modifiedBy": "user5e",
+        "modifiedByFullName": "user5 user5",
+        "deleted": false,
+        "deletedDate": null,
+        "deletedOnSampleDeletion": false,
+        "revisionId": null,
+        "owner": {
+          "id": -9,
+          "username": "user5e",
+          "email": "user5@researchspace.com",
+          "firstName": "user5",
+          "lastName": "user5",
+          "homeFolderId": 1,
+          "workbenchId": null,
+          "_links": []
+        },
+        "permittedActions": [
+          "UPDATE",
+          "CHANGE_OWNER"
+        ],
+        "iconId": -1,
+        "quantity": {
+          "numericValue": 10,
+          "unitId": 3
+        },
+        "tags": null,
+        "barcode": null,
+        "type": "SUBSAMPLE",
+        "sample": {
+          "id": 163852,
+          "globalId": "SA163852",
+          "name": "multiS",
+          "description": null,
+          "created": "2021-10-10T14:19:15.000Z",
+          "createdBy": "user5e",
+          "lastModified": "2021-10-10T14:19:15.207Z",
+          "modifiedBy": "user5e",
+          "modifiedByFullName": null,
+          "deleted": false,
+          "deletedDate": null,
+          "revisionId": null,
+          "version": 1,
+          "historicalVersion": false,
+          "iconId": -1,
+          "quantity": {
+            "numericValue": 100,
+            "unitId": 3
+          },
+          "tags": null,
+          "barcode": null,
+          "type": "SAMPLE",
+          "templateId": null,
+          "templateVersion": null,
+          "template": false,
+          "owner": {
+            "id": -9,
+            "username": "user5e",
+            "email": "user5@researchspace.com",
+            "firstName": "user5",
+            "lastName": "user5",
+            "homeFolderId": 1,
+            "workbenchId": null,
+            "_links": []
+          },
+          "permittedActions": [],
+          "subSampleAlias": "aliquot",
+          "subSamplesCount": 10,
+          "storageTempMin": null,
+          "storageTempMax": null,
+          "sampleSource": "LAB_CREATED",
+          "expiryDate": null,
+          "attachments": [],
+          "_links": [
+            {
+              "link": "http://localhost:8080/api/inventory/v1/samples/163852",
+              "rel": "self"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "icon"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "thumbnail"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "image"
+            }
+          ]
+        },
+        "parentContainers": [
+          {
+            "id": 131085,
+            "globalId": "IC131085",
+            "name": "gridX",
+            "description": null,
+            "created": "2021-10-10T14:19:08.000Z",
+            "createdBy": "user5e",
+            "lastModified": "2021-10-10T14:19:08.482Z",
+            "modifiedBy": "user5e",
+            "modifiedByFullName": null,
+            "deleted": false,
+            "deletedDate": null,
+            "iconId": -1,
+            "quantity": null,
+            "tags": null,
+            "barcode": null,
+            "type": "CONTAINER",
+            "owner": {
+              "id": -9,
+              "username": "user5e",
+              "email": "user5@researchspace.com",
+              "firstName": "user5",
+              "lastName": "user5",
+              "homeFolderId": 1,
+              "workbenchId": null,
+              "_links": []
+            },
+            "permittedActions": [],
+            "locationsCount": 21,
+            "contentSummary": {
+              "totalCount": 10,
+              "subSampleCount": 10,
+              "containerCount": 0
+            },
+            "cType": "GRID",
+            "gridLayout": {
+              "columnsNumber": 3,
+              "rowsNumber": 7,
+              "columnsLabelType": "N123",
+              "rowsLabelType": "ABC"
+            },
+            "canStoreSamples": true,
+            "canStoreContainers": true,
+            "parentContainers": [
+              {
+                "id": 1,
+                "globalId": "BE1",
+                "name": "WB user5e",
+                "description": null,
+                "created": "2021-09-30T22:52:54.000Z",
+                "createdBy": "user5e",
+                "lastModified": "2021-09-30T22:52:53.640Z",
+                "modifiedBy": "user5e",
+                "modifiedByFullName": null,
+                "deleted": false,
+                "deletedDate": null,
+                "iconId": -1,
+                "quantity": null,
+                "tags": null,
+                "barcode": null,
+                "type": "CONTAINER",
+                "owner": {
+                  "id": -9,
+                  "username": "user5e",
+                  "email": "user5@researchspace.com",
+                  "firstName": "user5",
+                  "lastName": "user5",
+                  "homeFolderId": 1,
+                  "workbenchId": null,
+                  "_links": []
+                },
+                "permittedActions": [],
+                "locationsCount": null,
+                "contentSummary": {
+                  "totalCount": 1377,
+                  "subSampleCount": 1320,
+                  "containerCount": 57
+                },
+                "cType": "WORKBENCH",
+                "gridLayout": null,
+                "canStoreSamples": true,
+                "canStoreContainers": true,
+                "parentContainers": [],
+                "parentLocation": null,
+                "lastNonWorkbenchParent": null,
+                "lastMoveDate": null,
+                "attachments": [],
+                "_links": []
+              }
+            ],
+            "parentLocation": {
+              "id": 1607,
+              "coordX": 1377,
+              "coordY": 1
+            },
+            "lastNonWorkbenchParent": null,
+            "lastMoveDate": null,
+            "attachments": [],
+            "_links": []
+          },
+          {
+            "id": 1,
+            "globalId": "BE1",
+            "name": "WB user5e",
+            "description": null,
+            "created": "2021-09-30T22:52:54.000Z",
+            "createdBy": "user5e",
+            "lastModified": "2021-09-30T22:52:53.640Z",
+            "modifiedBy": "user5e",
+            "modifiedByFullName": null,
+            "deleted": false,
+            "deletedDate": null,
+            "iconId": -1,
+            "quantity": null,
+            "tags": null,
+            "barcode": null,
+            "type": "CONTAINER",
+            "owner": {
+              "id": -9,
+              "username": "user5e",
+              "email": "user5@researchspace.com",
+              "firstName": "user5",
+              "lastName": "user5",
+              "homeFolderId": 1,
+              "workbenchId": null,
+              "_links": []
+            },
+            "permittedActions": [],
+            "locationsCount": null,
+            "contentSummary": {
+              "totalCount": 1377,
+              "subSampleCount": 1320,
+              "containerCount": 57
+            },
+            "cType": "WORKBENCH",
+            "gridLayout": null,
+            "canStoreSamples": true,
+            "canStoreContainers": true,
+            "parentContainers": [],
+            "parentLocation": null,
+            "lastNonWorkbenchParent": null,
+            "lastMoveDate": null,
+            "attachments": [],
+            "_links": []
+          }
+        ],
+        "parentLocation": {
+          "id": 1623,
+          "coordX": 2,
+          "coordY": 6
+        },
+        "lastNonWorkbenchParent": null,
+        "lastMoveDate": "2021-10-10T14:19:29.169Z",
+        "attachments": [],
+        "_links": [
+          {
+            "link": "http://localhost:8080/api/inventory/v1/subSamples/163957",
+            "rel": "self"
+          },
+          {
+            "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+            "rel": "image"
+          },
+          {
+            "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+            "rel": "thumbnail"
+          }
+        ]
+      }
+    },
+    {
+      "id": 1624,
+      "coordX": 2,
+      "coordY": 7,
+      "content": {
+        "id": 163958,
+        "globalId": "SS163958",
+        "name": "multiS.07",
+        "description": null,
+        "created": "2021-10-10T14:19:15.000Z",
+        "createdBy": "user5e",
+        "lastModified": "2021-10-10T14:19:15.207Z",
+        "modifiedBy": "user5e",
+        "modifiedByFullName": "user5 user5",
+        "deleted": false,
+        "deletedDate": null,
+        "deletedOnSampleDeletion": false,
+        "revisionId": null,
+        "owner": {
+          "id": -9,
+          "username": "user5e",
+          "email": "user5@researchspace.com",
+          "firstName": "user5",
+          "lastName": "user5",
+          "homeFolderId": 1,
+          "workbenchId": null,
+          "_links": []
+        },
+        "permittedActions": [
+          "UPDATE",
+          "CHANGE_OWNER"
+        ],
+        "iconId": -1,
+        "quantity": {
+          "numericValue": 10,
+          "unitId": 3
+        },
+        "tags": null,
+        "barcode": null,
+        "type": "SUBSAMPLE",
+        "sample": {
+          "id": 163852,
+          "globalId": "SA163852",
+          "name": "multiS",
+          "description": null,
+          "created": "2021-10-10T14:19:15.000Z",
+          "createdBy": "user5e",
+          "lastModified": "2021-10-10T14:19:15.207Z",
+          "modifiedBy": "user5e",
+          "modifiedByFullName": null,
+          "deleted": false,
+          "deletedDate": null,
+          "revisionId": null,
+          "version": 1,
+          "historicalVersion": false,
+          "iconId": -1,
+          "quantity": {
+            "numericValue": 100,
+            "unitId": 3
+          },
+          "tags": null,
+          "barcode": null,
+          "type": "SAMPLE",
+          "templateId": null,
+          "templateVersion": null,
+          "template": false,
+          "owner": {
+            "id": -9,
+            "username": "user5e",
+            "email": "user5@researchspace.com",
+            "firstName": "user5",
+            "lastName": "user5",
+            "homeFolderId": 1,
+            "workbenchId": null,
+            "_links": []
+          },
+          "permittedActions": [],
+          "subSampleAlias": "aliquot",
+          "subSamplesCount": 10,
+          "storageTempMin": null,
+          "storageTempMax": null,
+          "sampleSource": "LAB_CREATED",
+          "expiryDate": null,
+          "attachments": [],
+          "_links": [
+            {
+              "link": "http://localhost:8080/api/inventory/v1/samples/163852",
+              "rel": "self"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "icon"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "thumbnail"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+              "rel": "image"
+            }
+          ]
+        },
+        "parentContainers": [
+          {
+            "id": 131085,
+            "globalId": "IC131085",
+            "name": "gridX",
+            "description": null,
+            "created": "2021-10-10T14:19:08.000Z",
+            "createdBy": "user5e",
+            "lastModified": "2021-10-10T14:19:08.482Z",
+            "modifiedBy": "user5e",
+            "modifiedByFullName": null,
+            "deleted": false,
+            "deletedDate": null,
+            "iconId": -1,
+            "quantity": null,
+            "tags": null,
+            "barcode": null,
+            "type": "CONTAINER",
+            "owner": {
+              "id": -9,
+              "username": "user5e",
+              "email": "user5@researchspace.com",
+              "firstName": "user5",
+              "lastName": "user5",
+              "homeFolderId": 1,
+              "workbenchId": null,
+              "_links": []
+            },
+            "permittedActions": [],
+            "locationsCount": 21,
+            "contentSummary": {
+              "totalCount": 10,
+              "subSampleCount": 10,
+              "containerCount": 0
+            },
+            "cType": "GRID",
+            "gridLayout": {
+              "columnsNumber": 3,
+              "rowsNumber": 7,
+              "columnsLabelType": "N123",
+              "rowsLabelType": "ABC"
+            },
+            "canStoreSamples": true,
+            "canStoreContainers": true,
+            "parentContainers": [
+              {
+                "id": 1,
+                "globalId": "BE1",
+                "name": "WB user5e",
+                "description": null,
+                "created": "2021-09-30T22:52:54.000Z",
+                "createdBy": "user5e",
+                "lastModified": "2021-09-30T22:52:53.640Z",
+                "modifiedBy": "user5e",
+                "modifiedByFullName": null,
+                "deleted": false,
+                "deletedDate": null,
+                "iconId": -1,
+                "quantity": null,
+                "tags": null,
+                "barcode": null,
+                "type": "CONTAINER",
+                "owner": {
+                  "id": -9,
+                  "username": "user5e",
+                  "email": "user5@researchspace.com",
+                  "firstName": "user5",
+                  "lastName": "user5",
+                  "homeFolderId": 1,
+                  "workbenchId": null,
+                  "_links": []
+                },
+                "permittedActions": [],
+                "locationsCount": null,
+                "contentSummary": {
+                  "totalCount": 1377,
+                  "subSampleCount": 1320,
+                  "containerCount": 57
+                },
+                "cType": "WORKBENCH",
+                "gridLayout": null,
+                "canStoreSamples": true,
+                "canStoreContainers": true,
+                "parentContainers": [],
+                "parentLocation": null,
+                "lastNonWorkbenchParent": null,
+                "lastMoveDate": null,
+                "attachments": [],
+                "_links": []
+              }
+            ],
+            "parentLocation": {
+              "id": 1607,
+              "coordX": 1377,
+              "coordY": 1
+            },
+            "lastNonWorkbenchParent": null,
+            "lastMoveDate": null,
+            "attachments": [],
+            "_links": []
+          },
+          {
+            "id": 1,
+            "globalId": "BE1",
+            "name": "WB user5e",
+            "description": null,
+            "created": "2021-09-30T22:52:54.000Z",
+            "createdBy": "user5e",
+            "lastModified": "2021-09-30T22:52:53.640Z",
+            "modifiedBy": "user5e",
+            "modifiedByFullName": null,
+            "deleted": false,
+            "deletedDate": null,
+            "iconId": -1,
+            "quantity": null,
+            "tags": null,
+            "barcode": null,
+            "type": "CONTAINER",
+            "owner": {
+              "id": -9,
+              "username": "user5e",
+              "email": "user5@researchspace.com",
+              "firstName": "user5",
+              "lastName": "user5",
+              "homeFolderId": 1,
+              "workbenchId": null,
+              "_links": []
+            },
+            "permittedActions": [],
+            "locationsCount": null,
+            "contentSummary": {
+              "totalCount": 1377,
+              "subSampleCount": 1320,
+              "containerCount": 57
+            },
+            "cType": "WORKBENCH",
+            "gridLayout": null,
+            "canStoreSamples": true,
+            "canStoreContainers": true,
+            "parentContainers": [],
+            "parentLocation": null,
+            "lastNonWorkbenchParent": null,
+            "lastMoveDate": null,
+            "attachments": [],
+            "_links": []
+          }
+        ],
+        "parentLocation": {
+          "id": 1624,
+          "coordX": 2,
+          "coordY": 7
+        },
+        "lastNonWorkbenchParent": null,
+        "lastMoveDate": "2021-10-10T14:19:29.169Z",
+        "attachments": [],
+        "_links": [
+          {
+            "link": "http://localhost:8080/api/inventory/v1/subSamples/163958",
+            "rel": "self"
+          },
+          {
+            "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+            "rel": "image"
+          },
+          {
+            "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/163852/icon/-1",
+            "rel": "thumbnail"
+          }
+        ]
+      }
+    }
+  ],
+  "attachments": [],
+  "_links": [
+    {
+      "link": "http://localhost:8080/api/inventory/v1/containers/131085",
+      "rel": "self"
+    }
+  ],
+  "contentSummary": {
+    "totalCount": 10,
+    "subSampleCount": 10,
+    "containerCount": 0
+  }
+}

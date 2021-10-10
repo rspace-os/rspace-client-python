@@ -7,7 +7,57 @@ from rspace_client.inv import quantity_unit as qu
 from typing import Optional, Sequence, Union
 import re
 
+class GridContainer:
+    """
+     Encapsulates results from create_grid_container or get_grid_container_by_id
+    """
+    
+    def __init__(self, grid_container: dict):
+        if 'cType' not  in grid_container.keys():
+            raise ValueError("no 'cType' container type entry - is this really a container?")
+        if grid_container['cType'] != 'GRID':
+            raise ValueError(f"required grid container but is of cType {grid_container['cType']}")
 
+        self.data = grid_container;  
+        
+    def row_count(self)  -> int  :
+        return self.data['gridLayout']['rowsNumber']
+    
+    def column_count(self) -> int:
+        return self.data['gridLayout']['columnsNumber']
+    
+    def capacity(self) -> int:
+        return self.row_count() * self.column_count()
+      
+    def free(self) -> int:
+        return self.capacity() - self.in_use()
+    
+    
+    def in_use(self) -> int :
+        return len(self.data['locations'])
+    
+    def percent_full(self) -> float:
+        return (self.in_use() / self.capacity()) * 100
+    
+    def used_locations(self):
+        """
+        
+        Returns
+        -------
+        list of tuples of x,y coords of cells with content; 1-based, where x is column number and y is row number
+
+        """
+        return [ (item['coordX'], item['coordY']) for item in self.data['locations']]
+    
+    def free_locations(self):
+        rc = []
+        used = self.used_locations()
+        for col in range (1, self.column_count()+ 1):
+            for row in range (1, self.row_count()+1):
+                if(col,row) not in used :
+                    rc.append ((col,row))
+        return rc
+          
 class DeletedItemFilter(Enum):
     EXCLUDE = 1
     INCLUDE = 2
@@ -78,10 +128,10 @@ class Id:
     def as_id(self) -> int:
         return self.id
 
-    def is_container(self, maybe: bool = False):
+    def is_container(self, maybe: bool = False) -> bool:
         return self._check("IC", maybe)
 
-    def is_subsample(self, maybe: bool = False):
+    def is_subsample(self, maybe: bool = False) -> bool:
         return self._check("SS", maybe)
 
     def _check(self, prefix, maybe: bool):
@@ -460,10 +510,10 @@ class InventoryClient(ClientBase):
     def add_subsamples_to_grid_container(
         self,
         target_container_id: Union[str, int],
-        row_index: int,
         column_index: int,
-        total_rows: int,
+        row_index: int,
         total_columns: int,
+        total_rows: int,
         *subsample_ids: Union[str, int],
         filling_strategy=FillingStrategy.BY_ROW,
     ) -> list:
@@ -475,8 +525,8 @@ class InventoryClient(ClientBase):
         ----------
         target_container_id : Union[str, int]
             The Grid container to move to.
-        row_index : The starting row index
         column_index : The starting column index
+        row_index : The starting row index
         filling_strategy: If adding multiple subsamples, the order in which
          the grid is filled
         *subsample_ids : Union[str, int]
@@ -548,17 +598,19 @@ class InventoryClient(ClientBase):
     ):
         print(f"moving {len(sub_samples)}")
         coords = []  # array of x,y coords
-        ## fill by row
-        counter = 0
+        ## 
+        counter = _calculate_start_index(column_index, row_index, total_columns, total_rows, filling_strategy)
+        print (f"starting at {counter} position")
         for ss_id in sub_samples:
-            x = 0
-            y = 0
+            x = column_index
+            y = row_index
             if FillingStrategy.BY_ROW == filling_strategy:
                 x = counter % total_columns + 1
                 y = int(counter / total_columns) + 1
             elif FillingStrategy.BY_COLUMN == filling_strategy:
                 x = int(counter / total_rows) + 1
                 y = counter % total_rows + 1
+            print (f"x is {x}, y is {y}, ssid is {ss_id.as_id()}")
             coords.append(
                 {
                     "type": "SUBSAMPLE",
@@ -570,44 +622,21 @@ class InventoryClient(ClientBase):
             counter = counter + 1
         print(f"coords is {len(coords)}")
         return {"operationType": "MOVE", "records": coords}
-    
-def _calculate_start_index(col_start, row_start, total_columns, total_rows, filling_strategy):
+
+
+def _calculate_start_index(
+    col_start, row_start, total_columns, total_rows, filling_strategy
+):
     if col_start < 1 or row_start < 1:
         raise ValueError("Columns and row starting position must be >= 1")
     if col_start > total_columns or row_start > total_rows:
-        raise ValueError(f"Columns and row starting position must fit in grid: {total_rows} rows x {total_columns} columns")
+        raise ValueError(
+            f"Columns and row starting position must fit in grid: {total_rows} rows x {total_columns} columns"
+        )
 
-    index = 0 
+    index = 0
     if FillingStrategy.BY_ROW == filling_strategy:
-        index = ((row_start -1) * total_columns ) +col_start
+        index = ((row_start - 1) * total_columns) + col_start
     elif FillingStrategy.BY_COLUMN == filling_strategy:
-        index = ((col_start -1) * total_rows) + row_start
-    return index -1
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        index = ((col_start - 1) * total_rows) + row_start
+    return index - 1

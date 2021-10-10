@@ -17,11 +17,11 @@ RSPACE_APIKEY_ENV = "RSPACE_API_KEY"
 
 
 def get_datafile(filename: str):
-    return os.path.join(os.path.dirname(__file__), filename)
+    return os.path.join(os.path.dirname(__file__), "data", filename)
 
 
 def get_any_datafile():
-    return get_datafile("data/fish_method.doc")
+    return get_datafile("fish_method.doc")
 
 
 def random_string(length=10):
