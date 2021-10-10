@@ -43,11 +43,10 @@ class GridContainerTest(unittest.TestCase):
         self.assertEqual(
             self.container.capacity(), len(free_locations) + len(used_locations)
         )
-        
+
     def test_container_of(self):
         raw_json = self.container.data
         grid2 = Container.of(raw_json)
         self.assertTrue(grid2.is_grid())
         self.assertFalse(grid2.is_list())
         self.assertTrue(isinstance(grid2, GridContainer))
-

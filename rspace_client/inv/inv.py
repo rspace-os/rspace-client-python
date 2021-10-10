@@ -11,8 +11,7 @@ from rspace_client.inv import quantity_unit as qu
 
 
 class Container:
-    
-    @classmethod 
+    @classmethod
     def of(clz, container: dict):
         """
         Factory method to create a specific container object from raw JSON
@@ -33,52 +32,54 @@ class Container:
 
         """
         Container._is_valid_container(container)
-        if container['cType'] == 'GRID':
+        if container["cType"] == "GRID":
             return GridContainer(container)
-        elif container['cType'] == 'LIST':
+        elif container["cType"] == "LIST":
             return ListContainer(container)
         else:
             raise ValueError(f"unsupported container type {container['cType']}")
-        
-    @staticmethod 
+
+    @staticmethod
     def _is_valid_container(container):
         if "cType" not in container.keys():
             raise ValueError(
                 "no 'cType' container type entry - is this really a container?"
-        )
-        
+            )
+
     def __init__(self, container: dict):
         Container._is_valid_container(container)
-    
+
     def _validate_type(self, c, expected_c_type):
-         if c["cType"] != expected_c_type:
+        if c["cType"] != expected_c_type:
             raise ValueError(
                 f"required {expected_c_type} container but is of cType {c['cType']}"
             )
-        
+
     def is_grid(self) -> bool:
         return False
-    
+
     def is_list(self) -> bool:
         return False
-    
-    def capacity(self) -> int :
+
+    def capacity(self) -> int:
         pass
-    
+
+
 class ListContainer(Container):
     def __init__(self, list_container: dict):
         super().__init__(list_container)
-        Container._validate_type(list_container, 'LIST')
+        Container._validate_type(list_container, "LIST")
         self.data = list_container
-        
-    def is_list() -> bool :
+
+    def is_list() -> bool:
         return True
-    
+
     def capacity(self) -> int:
         """
          Unlimited capacity
         """
         return sys.maxsize
+
 
 class GridContainer(Container):
     """
@@ -87,9 +88,9 @@ class GridContainer(Container):
 
     def __init__(self, grid_container: dict):
         super().__init__(grid_container)
-        self._validate_type(grid_container, 'GRID')
+        self._validate_type(grid_container, "GRID")
         self.data = grid_container
-    
+
     def is_grid(self) -> bool:
         return True
 
@@ -501,10 +502,12 @@ class InventoryClient(ClientBase):
             self._get_api_url() + "/containers", request_type="POST", params=data
         )
         return container
-    
+
     def get_container_by_id(self, container_id: Union[str, int]) -> dict:
         c_id = Id(container_id)
-        return self._retrieve_api_results(self._get_api_url + f"/containers/{c_id.as_id()}")
+        return self.retrieve_api_results(
+            self._get_api_url() + f"/containers/{c_id.as_id()}"
+        )
 
     def create_grid_container(
         self,
@@ -628,7 +631,6 @@ class InventoryClient(ClientBase):
         id_target = Id(target_container_id)
         if not id_target.is_container(maybe=True):
             raise ValueError("Target must be a container")
-        print(f" grid has {len(subsample_ids)} ss")
         datas = []
         ## assert there are no invalid global ids (things that are not subsamples)
         s_ids = []
@@ -678,13 +680,11 @@ class InventoryClient(ClientBase):
         filling_strategy: FillingStrategy,
         sub_samples: list,
     ):
-        print(f"moving {len(sub_samples)}")
         coords = []  # array of x,y coords
         ##
         counter = _calculate_start_index(
             column_index, row_index, total_columns, total_rows, filling_strategy
         )
-        print(f"starting at {counter} position")
         for ss_id in sub_samples:
             x = column_index
             y = row_index
@@ -694,7 +694,6 @@ class InventoryClient(ClientBase):
             elif FillingStrategy.BY_COLUMN == filling_strategy:
                 x = int(counter / total_rows) + 1
                 y = counter % total_rows + 1
-            print(f"x is {x}, y is {y}, ssid is {ss_id.as_id()}")
             coords.append(
                 {
                     "type": "SUBSAMPLE",
