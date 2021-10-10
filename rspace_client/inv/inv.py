@@ -1,63 +1,141 @@
 from enum import Enum
 import datetime
 import json
+import re
+import sys
 import requests
+from typing import Optional, Sequence, Union
+
 from rspace_client.client_base import ClientBase
 from rspace_client.inv import quantity_unit as qu
-from typing import Optional, Sequence, Union
-import re
 
-class GridContainer:
-    """
-     Encapsulates results from create_grid_container or get_grid_container_by_id
-    """
+
+class Container:
     
-    def __init__(self, grid_container: dict):
-        if 'cType' not  in grid_container.keys():
-            raise ValueError("no 'cType' container type entry - is this really a container?")
-        if grid_container['cType'] != 'GRID':
-            raise ValueError(f"required grid container but is of cType {grid_container['cType']}")
+    @classmethod 
+    def of(clz, container: dict):
+        """
+        Factory method to create a specific container object from raw JSON
 
-        self.data = grid_container;  
+        Parameters
+        ----------
+        container : dict
+          JSON returned from get_container_by_id or create_container methods
+
+        Raises
+        ------
+        ValueError
+            if the JSON is not of the correct type
+
+        Returns
+        -------
+            A subclass based on the 'cType' value of the container's JSON
+
+        """
+        Container._is_valid_container(container)
+        if container['cType'] == 'GRID':
+            return GridContainer(container)
+        elif container['cType'] == 'LIST':
+            return ListContainer(container)
+        else:
+            raise ValueError(f"unsupported container type {container['cType']}")
         
-    def row_count(self)  -> int  :
-        return self.data['gridLayout']['rowsNumber']
+    @staticmethod 
+    def _is_valid_container(container):
+        if "cType" not in container.keys():
+            raise ValueError(
+                "no 'cType' container type entry - is this really a container?"
+        )
+        
+    def __init__(self, container: dict):
+        Container._is_valid_container(container)
     
-    def column_count(self) -> int:
-        return self.data['gridLayout']['columnsNumber']
+    def _validate_type(self, c, expected_c_type):
+         if c["cType"] != expected_c_type:
+            raise ValueError(
+                f"required {expected_c_type} container but is of cType {c['cType']}"
+            )
+        
+    def is_grid(self) -> bool:
+        return False
+    
+    def is_list(self) -> bool:
+        return False
+    
+    def capacity(self) -> int :
+        pass
+    
+class ListContainer(Container):
+    def __init__(self, list_container: dict):
+        super().__init__(list_container)
+        Container._validate_type(list_container, 'LIST')
+        self.data = list_container
+        
+    def is_list() -> bool :
+        return True
     
     def capacity(self) -> int:
+        """
+         Unlimited capacity
+        """
+        return sys.maxsize
+
+class GridContainer(Container):
+    """
+     Encapsulates results from create_grid_container() or get_container_by_id()
+    """
+
+    def __init__(self, grid_container: dict):
+        super().__init__(grid_container)
+        self._validate_type(grid_container, 'GRID')
+        self.data = grid_container
+    
+    def is_grid(self) -> bool:
+        return True
+
+    def row_count(self) -> int:
+        return self.data["gridLayout"]["rowsNumber"]
+
+    def column_count(self) -> int:
+        return self.data["gridLayout"]["columnsNumber"]
+
+    def capacity(self) -> int:
         return self.row_count() * self.column_count()
-      
+
     def free(self) -> int:
         return self.capacity() - self.in_use()
-    
-    
-    def in_use(self) -> int :
-        return len(self.data['locations'])
-    
+
+    def in_use(self) -> int:
+        return len(self.data["locations"])
+
     def percent_full(self) -> float:
         return (self.in_use() / self.capacity()) * 100
-    
+
     def used_locations(self):
         """
-        
         Returns
         -------
         list of tuples of x,y coords of cells with content; 1-based, where x is column number and y is row number
 
         """
-        return [ (item['coordX'], item['coordY']) for item in self.data['locations']]
-    
+        return [(item["coordX"], item["coordY"]) for item in self.data["locations"]]
+
     def free_locations(self):
+        """
+        The inverse of 'used_locations' - gets empty grid cells
+        Returns 
+        -------
+        list of tuples of x,y coords of empty cells; 1-based, where x is column number and y is row number
+        """
         rc = []
         used = self.used_locations()
-        for col in range (1, self.column_count()+ 1):
-            for row in range (1, self.row_count()+1):
-                if(col,row) not in used :
-                    rc.append ((col,row))
+        for col in range(1, self.column_count() + 1):
+            for row in range(1, self.row_count() + 1):
+                if (col, row) not in used:
+                    rc.append((col, row))
         return rc
-          
+
+
 class DeletedItemFilter(Enum):
     EXCLUDE = 1
     INCLUDE = 2
@@ -423,6 +501,10 @@ class InventoryClient(ClientBase):
             self._get_api_url() + "/containers", request_type="POST", params=data
         )
         return container
+    
+    def get_container_by_id(self, container_id: Union[str, int]) -> dict:
+        c_id = Id(container_id)
+        return self._retrieve_api_results(self._get_api_url + f"/containers/{c_id.as_id()}")
 
     def create_grid_container(
         self,
@@ -557,7 +639,7 @@ class InventoryClient(ClientBase):
                 raise ValueError(f"Item to move '{item_id}' must be a subsample")
         print(f" creating has {len(s_ids)} ss")
 
-        bulk_post = self.create_bulk_move(
+        bulk_post = self._create_bulk_move(
             id_target,
             column_index,
             row_index,
@@ -586,7 +668,7 @@ class InventoryClient(ClientBase):
 
         return updated_containers
 
-    def create_bulk_move(
+    def _create_bulk_move(
         self,
         grid_id: Id,
         column_index: int,
@@ -598,9 +680,11 @@ class InventoryClient(ClientBase):
     ):
         print(f"moving {len(sub_samples)}")
         coords = []  # array of x,y coords
-        ## 
-        counter = _calculate_start_index(column_index, row_index, total_columns, total_rows, filling_strategy)
-        print (f"starting at {counter} position")
+        ##
+        counter = _calculate_start_index(
+            column_index, row_index, total_columns, total_rows, filling_strategy
+        )
+        print(f"starting at {counter} position")
         for ss_id in sub_samples:
             x = column_index
             y = row_index
@@ -610,7 +694,7 @@ class InventoryClient(ClientBase):
             elif FillingStrategy.BY_COLUMN == filling_strategy:
                 x = int(counter / total_rows) + 1
                 y = counter % total_rows + 1
-            print (f"x is {x}, y is {y}, ssid is {ss_id.as_id()}")
+            print(f"x is {x}, y is {y}, ssid is {ss_id.as_id()}")
             coords.append(
                 {
                     "type": "SUBSAMPLE",
