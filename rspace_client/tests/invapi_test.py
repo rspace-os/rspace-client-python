@@ -153,26 +153,20 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(moved[0]["parentContainers"][0]["name"], target["name"])
         self.assertEqual(moved[1]["parentContainers"][0]["name"], target["name"])
 
-    
-
     def test_move_single_item_to_grid(self):
-          grid_c = self.invapi.create_grid_container("gridX", 3, 2)
-          sample = self.invapi.create_sample(name="multiS", subsample_count=10)
-          rc = self.invapi.add_subsamples_to_grid_container(
-            grid_c["id"],
-            2,
-            1,
-            2,
-            3, sample['subSamples'][0]['id'])
-          
-            ## now reload the container, which should show subsamples
-          updated_container_json = self.invapi.get_container_by_id(grid_c["id"])
-          container = inv.Container.of(updated_container_json)
-          self.assertEqual(6, container.capacity())
-          self.assertEqual(5, container.free())
-          self.assertEqual(1, container.in_use())
-          self.assertTrue((2,1) in container.used_locations())
-          
+        grid_c = self.invapi.create_grid_container("gridX", 3, 2)
+        sample = self.invapi.create_sample(name="multiS", subsample_count=10)
+        rc = self.invapi.add_subsamples_to_grid_container(
+            grid_c["id"], 2, 1, 2, 3, sample["subSamples"][0]["id"]
+        )
+
+        ## now reload the container, which should show subsamples
+        updated_container_json = self.invapi.get_container_by_id(grid_c["id"])
+        container = inv.Container.of(updated_container_json)
+        self.assertEqual(6, container.capacity())
+        self.assertEqual(5, container.free())
+        self.assertEqual(1, container.in_use())
+        self.assertTrue((2, 1) in container.used_locations())
 
     def test_bulk_move_to_grid(self):
         grid_c = self.invapi.create_grid_container("gridX", 7, 3)

@@ -68,7 +68,7 @@ class Container:
 class ListContainer(Container):
     def __init__(self, list_container: dict):
         super().__init__(list_container)
-        Container._validate_type(list_container, "LIST")
+        self._validate_type(list_container, "LIST")
         self.data = list_container
 
     def is_list() -> bool:
@@ -185,12 +185,12 @@ class ResultType(Enum):
 class Id:
     """
     Supports integer or string representation of a globalId or
-    numeric ID
+    numeric ID or a dict / object representation of an Inventory object
     """
 
     Pattern = r"([A-Z]{2})?\d+"
 
-    def __init__(self, value: Union[int, str]):
+    def __init__(self, value: Union[int, str, dict, Container]):
 
         if isinstance(value, str):
             if re.match(Id.Pattern, value) is None:
@@ -201,8 +201,22 @@ class Id:
                 self.id = int(value[2:])
             else:
                 self.id = int(value)
-        else:
+        elif isinstance(value, Container):
+            self.prefix = "IC"
+            self.id= value.data['id']
+        elif isinstance(value, dict):
+            if 'id' in value.keys():
+                self.id = value['id']
+            else:
+                raise ValueError("Could not interpet dict as an identifiable Inventory item.")
+
+            if 'globalId' in value.keys():
+                 self.prefix = value['globalId'][0:2]
+                
+        elif isinstance(value, int):
             self.id = value
+        else:
+            raise ValueError(f"Could not interpet {value} as an identifiable Inventory item.")
 
     def as_id(self) -> int:
         return self.id
@@ -594,7 +608,7 @@ class InventoryClient(ClientBase):
 
     def add_subsamples_to_grid_container(
         self,
-        target_container_id: Union[str, int],
+        target_container_id: Union[str, int, GridContainer],
         column_index: int,
         row_index: int,
         total_columns: int,
@@ -628,6 +642,9 @@ class InventoryClient(ClientBase):
             A list of updated subsamples showing their current position
 
         """
+        if isinstance(target_container_id, GridContainer):
+            if target_container_id.free() < len(subsample_ids):
+                raise ValueError(f"not enough space in {target_container_id.data['globalId']} to store {len(subsample_ids)} - only {target_container_id.free()} spaces free.")
         id_target = Id(target_container_id)
         if not id_target.is_container(maybe=True):
             raise ValueError("Target must be a container")
