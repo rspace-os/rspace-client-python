@@ -22,15 +22,13 @@ class IdUnitTest(unittest.TestCase):
         self.assertRaises(ValueError, Id, "!!!!")
 
     def test_id_from_dict(self):
-        id_a = Id({'id':1234, 'globalId':'SA1234'})
+        id_a = Id({"id": 1234, "globalId": "SA1234"})
         self.assertEqual(1234, id_a.as_id())
-        self.assertEqual('SA', id_a.prefix)
-        
-        self.assertRaises(ValueError, Id, {'x_not_an_id':23})
-        
+        self.assertEqual("SA", id_a.prefix)
+
+        self.assertRaises(ValueError, Id, {"x_not_an_id": 23})
+
     def test_id_from_container(self):
-        minimal_container = {'id':123, 'globalId':'IC123', 'cType':'LIST'}
+        minimal_container = {"id": 123, "globalId": "IC123", "cType": "LIST"}
         c = Id(ListContainer(minimal_container))
         self.assertEqual(123, c.as_id())
-
-        

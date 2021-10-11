@@ -155,9 +155,9 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_move_single_item_to_grid(self):
         grid_c = self.invapi.create_grid_container("gridX", 3, 2)
-        sample = self.invapi.create_sample(name="multiS", subsample_count=10)
-        rc = self.invapi.add_subsamples_to_grid_container(
-            grid_c["id"], 2, 1, 2, 3, sample["subSamples"][0]["id"]
+        sample = self.invapi.create_sample(name="multiS", subsample_count=1)
+        self.invapi.add_subsamples_to_grid_container(
+            grid_c, 2, 1, 2, 3, sample["subSamples"][0]["id"]
         )
 
         ## now reload the container, which should show subsamples
@@ -167,6 +167,34 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(5, container.free())
         self.assertEqual(1, container.in_use())
         self.assertTrue((2, 1) in container.used_locations())
+        
+    def test_cannot_move_too_many_items_b4_request(self):
+        grid_c = self.invapi.create_grid_container("gridX", 2, 2)
+        sample = self.invapi.create_sample(name="toomany", subsample_count=5)
+        
+        ss_ids = [x["id"] for x in sample["subSamples"]]
+        ## using GridContainer object, we can check capacity before requesting
+        self.assertRaises(ValueError, self.invapi.add_subsamples_to_grid_container,
+            inv.GridContainer(grid_c), 1,1, 2, 2, *ss_ids
+        )
+        
+    def test_cannot_move_too_many_items_with_request(self):
+        grid_c = self.invapi.create_grid_container("gridX", 1, 2)
+        sample = self.invapi.create_sample(name="toomany", subsample_count=4)
+        
+        ss_ids = [x["id"] for x in sample["subSamples"]]
+        ## using just id, we try to make request anyway
+        resp =  self.invapi.add_subsamples_to_grid_container(
+            grid_c['id'], 1,1, 2, 1, *ss_ids[0:2]
+        )
+        self.assertTrue(resp.is_ok())
+        ## overwrite, what happens
+        resp2 =  self.invapi.add_subsamples_to_grid_container(
+            grid_c['id'], 1,1, 2, 1, *ss_ids[2:4]
+        )
+        self.assertFalse(resp2.is_ok())
+        self.assertTrue(resp2.is_failed())
+
 
     def test_bulk_move_to_grid(self):
         grid_c = self.invapi.create_grid_container("gridX", 7, 3)
@@ -174,7 +202,7 @@ class InventoryApiTest(base.BaseApiTest):
         ss_ids = [x["id"] for x in sample["subSamples"]]
         print(" ss_ids are " + ",".join([str(x) for x in ss_ids]))
         rc = self.invapi.add_subsamples_to_grid_container(
-            grid_c["id"],
+            grid_c,
             2,
             1,
             3,

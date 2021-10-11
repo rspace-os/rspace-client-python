@@ -9,6 +9,17 @@ from typing import Optional, Sequence, Union
 from rspace_client.client_base import ClientBase
 from rspace_client.inv import quantity_unit as qu
 
+class BulkOperationResult:
+    def __init__(self, json):
+        self.data = json
+        
+    def is_ok(self):
+        return self.data['status'] == 'COMPLETED'
+    
+    def is_failed(self):
+        return not self.is_ok()
+        
+
 
 class Container:
     @classmethod
@@ -48,6 +59,7 @@ class Container:
 
     def __init__(self, container: dict):
         Container._is_valid_container(container)
+        self.data = container
 
     def _validate_type(self, c, expected_c_type):
         if c["cType"] != expected_c_type:
@@ -61,15 +73,22 @@ class Container:
     def is_list(self) -> bool:
         return False
 
+    def accept_subsamples(self) -> bool:
+        return self.data['canStoreSamples'] == True
+    
+    def accept_containers(self) -> bool:
+        return self.data['canStoreContainers'] == True
+
+    
     def capacity(self) -> int:
         pass
+    
 
 
 class ListContainer(Container):
     def __init__(self, list_container: dict):
         super().__init__(list_container)
         self._validate_type(list_container, "LIST")
-        self.data = list_container
 
     def is_list() -> bool:
         return True
@@ -89,7 +108,6 @@ class GridContainer(Container):
     def __init__(self, grid_container: dict):
         super().__init__(grid_container)
         self._validate_type(grid_container, "GRID")
-        self.data = grid_container
 
     def is_grid(self) -> bool:
         return True
@@ -101,12 +119,25 @@ class GridContainer(Container):
         return self.data["gridLayout"]["columnsNumber"]
 
     def capacity(self) -> int:
+        """
+          The number of cells in the grid - product of row and column counts
+        """
         return self.row_count() * self.column_count()
 
     def free(self) -> int:
+        """
+        Returns
+        -------
+        int Number of free cells available to hold new content
+        """
         return self.capacity() - self.in_use()
 
     def in_use(self) -> int:
+        """
+        Returns
+        -------
+        int Number of cells holding content
+        """
         return len(self.data["locations"])
 
     def percent_full(self) -> float:
@@ -203,20 +234,24 @@ class Id:
                 self.id = int(value)
         elif isinstance(value, Container):
             self.prefix = "IC"
-            self.id= value.data['id']
+            self.id = value.data["id"]
         elif isinstance(value, dict):
-            if 'id' in value.keys():
-                self.id = value['id']
+            if "id" in value.keys():
+                self.id = value["id"]
             else:
-                raise ValueError("Could not interpet dict as an identifiable Inventory item.")
+                raise ValueError(
+                    "Could not interpet dict as an identifiable Inventory item."
+                )
 
-            if 'globalId' in value.keys():
-                 self.prefix = value['globalId'][0:2]
-                
+            if "globalId" in value.keys():
+                self.prefix = value["globalId"][0:2]
+
         elif isinstance(value, int):
             self.id = value
         else:
-            raise ValueError(f"Could not interpet {value} as an identifiable Inventory item.")
+            raise ValueError(
+                f"Could not interpet {value} as an identifiable Inventory item."
+            )
 
     def as_id(self) -> int:
         return self.id
@@ -615,7 +650,7 @@ class InventoryClient(ClientBase):
         total_rows: int,
         *subsample_ids: Union[str, int],
         filling_strategy=FillingStrategy.BY_ROW,
-    ) -> list:
+    ) -> BulkOperationResult:
         """
         Add one or more subsamples to a grid container, starting at given row/ column
         index
@@ -644,7 +679,9 @@ class InventoryClient(ClientBase):
         """
         if isinstance(target_container_id, GridContainer):
             if target_container_id.free() < len(subsample_ids):
-                raise ValueError(f"not enough space in {target_container_id.data['globalId']} to store {len(subsample_ids)} - only {target_container_id.free()} spaces free.")
+                raise ValueError(
+                    f"not enough space in {target_container_id.data['globalId']} to store {len(subsample_ids)} - only {target_container_id.free()} spaces free."
+                )
         id_target = Id(target_container_id)
         if not id_target.is_container(maybe=True):
             raise ValueError("Target must be a container")
@@ -671,9 +708,10 @@ class InventoryClient(ClientBase):
         ## iterate over grid (0 or 1 based?)
         ## use bulk API?
 
-        return self.retrieve_api_results(
+        resp_json = self.retrieve_api_results(
             self._get_api_url() + "/bulk", request_type="POST", params=bulk_post
         )
+        return BulkOperationResult(resp_json)
 
     def _do_add_to_list_container(self, datas, id_target, endpoint):
         updated_containers = []

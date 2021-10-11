@@ -50,3 +50,12 @@ class GridContainerTest(unittest.TestCase):
         self.assertTrue(grid2.is_grid())
         self.assertFalse(grid2.is_list())
         self.assertTrue(isinstance(grid2, GridContainer))
+        
+    def test_storable_content_types(self):
+        raw_json = self.container.data
+        raw_json['canStoreContainers'] = False
+        grid = Container.of(raw_json)
+        self.assertTrue(grid.accept_subsamples())
+        self.assertFalse(grid.accept_containers())
+
+
