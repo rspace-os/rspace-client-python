@@ -9,16 +9,16 @@ from typing import Optional, Sequence, Union
 from rspace_client.client_base import ClientBase
 from rspace_client.inv import quantity_unit as qu
 
+
 class BulkOperationResult:
     def __init__(self, json):
         self.data = json
-        
+
     def is_ok(self):
-        return self.data['status'] == 'COMPLETED'
-    
+        return self.data["status"] == "COMPLETED"
+
     def is_failed(self):
         return not self.is_ok()
-        
 
 
 class Container:
@@ -74,15 +74,13 @@ class Container:
         return False
 
     def accept_subsamples(self) -> bool:
-        return self.data['canStoreSamples'] == True
-    
-    def accept_containers(self) -> bool:
-        return self.data['canStoreContainers'] == True
+        return self.data["canStoreSamples"] == True
 
-    
+    def accept_containers(self) -> bool:
+        return self.data["canStoreContainers"] == True
+
     def capacity(self) -> int:
         pass
-    
 
 
 class ListContainer(Container):
@@ -220,6 +218,8 @@ class Id:
     """
 
     Pattern = r"([A-Z]{2})?\d+"
+    
+    PREFIX_TO_TYPE = {'IC':'CONTAINER', 'SS': 'SUBSAMPLE', 'SA':'SAMPLE'}
 
     def __init__(self, value: Union[int, str, dict, Container]):
 
@@ -261,6 +261,12 @@ class Id:
 
     def is_subsample(self, maybe: bool = False) -> bool:
         return self._check("SS", maybe)
+    
+    def is_movable(self, maybe: bool = False) -> bool:
+        return self.is_subsample(maybe) or self.is_container(maybe)
+    
+    def get_type(self):
+        return Id.PREFIX_TO_TYPE[self.prefix]        
 
     def _check(self, prefix, maybe: bool):
         if maybe:
@@ -641,18 +647,18 @@ class InventoryClient(ClientBase):
 
         return self._do_add_to_list_container(datas, id_target, "subSamples")
 
-    def add_subsamples_to_grid_container(
+    def add_items_to_grid_container(
         self,
         target_container_id: Union[str, int, GridContainer],
         column_index: int,
         row_index: int,
         total_columns: int,
         total_rows: int,
-        *subsample_ids: Union[str, int],
+        *item_global_ids: str,
         filling_strategy=FillingStrategy.BY_ROW,
     ) -> BulkOperationResult:
         """
-        Add one or more subsamples to a grid container, starting at given row/ column
+        Add one or more subsamples or containers to a grid container, starting at given row/ column
         index
 
         Parameters
@@ -663,8 +669,8 @@ class InventoryClient(ClientBase):
         row_index : The starting row index
         filling_strategy: If adding multiple subsamples, the order in which
          the grid is filled
-        *subsample_ids : Union[str, int]
-            One or more subsample ids, either as 'SS' global ids or numeric ids
+        *item_global ids : Union[str, int]
+            One or more  globalids, either subsamples - 'SS' ot containers 'IC'
 
         Raises
         ------
@@ -678,21 +684,20 @@ class InventoryClient(ClientBase):
 
         """
         if isinstance(target_container_id, GridContainer):
-            if target_container_id.free() < len(subsample_ids):
+            if target_container_id.free() < len(item_global_ids):
                 raise ValueError(
-                    f"not enough space in {target_container_id.data['globalId']} to store {len(subsample_ids)} - only {target_container_id.free()} spaces free."
+                    f"not enough space in {target_container_id.data['globalId']} to store {len(item_global_ids)} - only {target_container_id.free()} spaces free."
                 )
         id_target = Id(target_container_id)
         if not id_target.is_container(maybe=True):
             raise ValueError("Target must be a container")
-        datas = []
         ## assert there are no invalid global ids (things that are not subsamples)
         s_ids = []
-        for item_id in subsample_ids:
+        for item_id in item_global_ids:
             id_ob = Id(item_id)
             s_ids.append(id_ob)
-            if not id_ob.is_subsample(maybe=True):
-                raise ValueError(f"Item to move '{item_id}' must be a subsample")
+            if not id_ob.is_movable():
+                raise ValueError(f"Item to move '{item_id}' must be a subsample or container")
         print(f" creating has {len(s_ids)} ss")
 
         bulk_post = self._create_bulk_move(
@@ -733,14 +738,16 @@ class InventoryClient(ClientBase):
         total_columns: int,
         total_rows: int,
         filling_strategy: FillingStrategy,
-        sub_samples: list,
+        items: list,
+        
     ):
         coords = []  # array of x,y coords
         ##
         counter = _calculate_start_index(
             column_index, row_index, total_columns, total_rows, filling_strategy
         )
-        for ss_id in sub_samples:
+        for ss_id in items:
+            
             x = column_index
             y = row_index
             if FillingStrategy.BY_ROW == filling_strategy:
@@ -751,7 +758,7 @@ class InventoryClient(ClientBase):
                 y = counter % total_rows + 1
             coords.append(
                 {
-                    "type": "SUBSAMPLE",
+                    "type": ss_id.get_type(),
                     "id": ss_id.as_id(),
                     "parentContainers": [{"id": grid_id.as_id()}],
                     "parentLocation": {"coordX": x, "coordY": y},
