@@ -167,13 +167,15 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(5, container.free())
         self.assertEqual(1, container.in_use())
         self.assertTrue((2, 1) in container.used_locations())
-        
+
     def test_move_container_and_subsample_to_grid(self):
         grid_c = self.invapi.create_grid_container("gridX", 3, 2)
         sample = self.invapi.create_sample(name="multiS", subsample_count=1)
         other_container = self.invapi.create_list_container("toMove")
-        ids_to_move=[sample['subSamples'][0]['globalId'], other_container['globalId']]
-        result = self.invapi.add_items_to_grid_container(grid_c, 1,1,3,2, *ids_to_move)
+        ids_to_move = [sample["subSamples"][0]["globalId"], other_container["globalId"]]
+        result = self.invapi.add_items_to_grid_container(
+            grid_c, 1, 1, 3, 2, *ids_to_move
+        )
         self.assertTrue(result.is_ok())
 
     def test_cannot_move_too_many_items_b4_request(self):

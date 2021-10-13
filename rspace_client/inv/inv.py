@@ -4,11 +4,73 @@ import json
 import re
 import sys
 import requests
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence, Union, List
 
 from rspace_client.client_base import ClientBase
 from rspace_client.inv import quantity_unit as qu
 
+class GridPlacement:
+    def __init__(self, items_to_move: str):
+        for item in items_to_move:
+         toMove = Id(item)
+         if not toMove.is_movable():
+             raise ValueError(f" Can't move {item} - not a movable type")
+        self.items_to_move = items_to_move
+
+class AutoFit(GridPlacement):
+    def __init__(self, column_index: int,
+        row_index: int,
+        total_columns: int,
+        total_rows: int, items_to_move):
+        if len(items_to_move) == 0:
+            raise ValueError("Provide at least one item to move")
+        for arg in (row_index, column_index, total_columns, total_rows):
+            if arg < 1:
+                raise ValueError("All row/column indices must be >= 1")
+        if column_index > total_columns or row_index > total_rows:
+            raise ValueError(f"Column and row indexes({column_index},{row_index}"+
+                             " must fit in dimentsions ({total_columns}, {total_rows}")
+        super().__init__(items_to_move)
+        self.row_index=row_index
+        self.column_index=column_index
+        self.total_columns=total_columns
+        self.total_rows=total_rows
+        
+class GridLocation:
+    def __init__(self, x: int, y: int):
+        if x < 1 or y < 1:
+                raise ValueError("Grid location coordinates must be >= 1")
+        self.x=x
+        self.y=y
+    
+class ByRow(AutoFit): 
+    def __init__(self, column_index: int,
+        row_index: int,
+        total_columns: int,
+        total_rows: int, *items_to_move):
+        super().__init__(column_index, row_index, total_columns, total_rows,items_to_move)
+        self.fitting  = FillingStrategy.BY_ROW
+        
+class ByColumn(AutoFit):
+    def __init__(self, column_index: int,
+        row_index: int,
+        total_columns: int,
+        total_rows: int, *items_to_move):
+        super().__init__(column_index, row_index, total_columns, total_rows,items_to_move)
+        self.filling_strategy = FillingStrategy.BY_COLUMN
+
+class ByLocation(GridPlacement):
+    """
+     Place one or more items by exact location
+    """
+    def __init__(self, locations: List[GridLocation], *items_to_move):
+        if len(locations) != len(items_to_move):
+            raise ValueError(f"locations list (length {len(locations)}) is not the same length as items list ({len(items_to_move)})")
+        super().__init__(items_to_move)
+        self.filling_strategy = FillingStrategy.EXACT
+        self.locations=locations
+        
+    
 
 class BulkOperationResult:
     def __init__(self, json):
@@ -175,6 +237,7 @@ class DeletedItemFilter(Enum):
 class FillingStrategy(Enum):
     BY_ROW = 1
     BY_COLUMN = 2
+    EXACT=3
 
 
 class SampleFilter:
@@ -646,6 +709,8 @@ class InventoryClient(ClientBase):
             datas.append(data)
 
         return self._do_add_to_list_container(datas, id_target, "subSamples")
+
+     
 
     def add_items_to_grid_container(
         self,
