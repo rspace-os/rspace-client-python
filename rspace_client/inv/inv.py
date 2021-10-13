@@ -218,8 +218,8 @@ class Id:
     """
 
     Pattern = r"([A-Z]{2})?\d+"
-    
-    PREFIX_TO_TYPE = {'IC':'CONTAINER', 'SS': 'SUBSAMPLE', 'SA':'SAMPLE'}
+
+    PREFIX_TO_TYPE = {"IC": "CONTAINER", "SS": "SUBSAMPLE", "SA": "SAMPLE"}
 
     def __init__(self, value: Union[int, str, dict, Container]):
 
@@ -261,12 +261,12 @@ class Id:
 
     def is_subsample(self, maybe: bool = False) -> bool:
         return self._check("SS", maybe)
-    
+
     def is_movable(self, maybe: bool = False) -> bool:
         return self.is_subsample(maybe) or self.is_container(maybe)
-    
+
     def get_type(self):
-        return Id.PREFIX_TO_TYPE[self.prefix]        
+        return Id.PREFIX_TO_TYPE[self.prefix]
 
     def _check(self, prefix, maybe: bool):
         if maybe:
@@ -697,7 +697,9 @@ class InventoryClient(ClientBase):
             id_ob = Id(item_id)
             s_ids.append(id_ob)
             if not id_ob.is_movable():
-                raise ValueError(f"Item to move '{item_id}' must be a subsample or container")
+                raise ValueError(
+                    f"Item to move '{item_id}' must be a subsample or container"
+                )
         print(f" creating has {len(s_ids)} ss")
 
         bulk_post = self._create_bulk_move(
@@ -722,7 +724,7 @@ class InventoryClient(ClientBase):
         updated_containers = []
         for data in datas:
             container = self.retrieve_api_results(
-                self._get_api_url() + f"/{endpoint}/{data['id']}",
+                self._get_api_url() + f"/{endpoint}/{data['id'].as_id()}",
                 request_type="PUT",
                 params=data["to_put"],
             )
@@ -739,7 +741,6 @@ class InventoryClient(ClientBase):
         total_rows: int,
         filling_strategy: FillingStrategy,
         items: list,
-        
     ):
         coords = []  # array of x,y coords
         ##
@@ -747,7 +748,7 @@ class InventoryClient(ClientBase):
             column_index, row_index, total_columns, total_rows, filling_strategy
         )
         for ss_id in items:
-            
+
             x = column_index
             y = row_index
             if FillingStrategy.BY_ROW == filling_strategy:

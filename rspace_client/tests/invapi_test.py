@@ -211,7 +211,7 @@ class InventoryApiTest(base.BaseApiTest):
             grid_c, 2, 1, 3, 7, *ss_ids, filling_strategy=inv.FillingStrategy.BY_COLUMN
         )
         ## get list of updated subsamples
-        self.assertEqual(10, len(rc["results"]))
+        self.assertEqual(10, len(rc.data["results"]))
 
         ## now reload the container, which should show subsamples
         updated_container_json = self.invapi.get_container_by_id(grid_c["id"])
