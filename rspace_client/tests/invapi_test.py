@@ -136,9 +136,10 @@ class InventoryApiTest(base.BaseApiTest):
         toMove = self.invapi.create_list_container(name)
         name_target = base.random_string() + "_target"
         target = self.invapi.create_list_container(name_target)
-        moved = self.invapi.add_items_to_list_container(target["id"], toMove["globalId"])
+        moved = self.invapi.add_items_to_list_container(
+            target["id"], toMove["globalId"]
+        )
         self.assertTrue(moved.is_ok())
-
 
     def test_move_subsamples_to_list_container(self):
         name = base.random_string() + "_to_move"
@@ -148,9 +149,7 @@ class InventoryApiTest(base.BaseApiTest):
 
         ## get the 2 subsample ids ad move to container
         subsample_ids = [ss["globalId"] for ss in toMove["subSamples"]]
-        moved = self.invapi.add_items_to_list_container(
-            target["id"], *subsample_ids
-        )
+        moved = self.invapi.add_items_to_list_container(target["id"], *subsample_ids)
         self.assertTrue(moved.is_ok())
 
     def test_move_single_item_to_grid(self):

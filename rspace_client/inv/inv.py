@@ -35,7 +35,6 @@ class GridPlacement:
         self.filling_strategy = filling_strategy
 
 
-
 class AutoFit(GridPlacement):
     def __init__(
         self,
@@ -107,7 +106,6 @@ class ByColumn(AutoFit):
             items_to_move,
             filling_strategy=FillingStrategy.BY_COLUMN,
         )
-
 
 
 class ByLocation(GridPlacement):
@@ -729,7 +727,6 @@ class InventoryClient(ClientBase):
 
         return self._do_add_to_list_container(valid_item_ids, id_target)
 
-
     def add_items_to_grid_container(
         self,
         target_container_id: Union[str, int, GridContainer],
@@ -778,21 +775,18 @@ class InventoryClient(ClientBase):
     def _do_add_to_list_container(self, items, id_target):
         coords = []
         for item in items:
-              coords.append(
-                    {
-                        "type": item.get_type(),
-                        "id": item.as_id(),
-                        "parentContainers": [{"id": id_target.as_id()}],
-                    }
-                )
-        to_post = {"operationType": "MOVE", "records": coords}
-        
-            
-        resp_json = self.retrieve_api_results(
-                self._get_api_url() + "/bulk",
-                request_type="POST",
-                params=to_post
+            coords.append(
+                {
+                    "type": item.get_type(),
+                    "id": item.as_id(),
+                    "parentContainers": [{"id": id_target.as_id()}],
+                }
             )
+        to_post = {"operationType": "MOVE", "records": coords}
+
+        resp_json = self.retrieve_api_results(
+            self._get_api_url() + "/bulk", request_type="POST", params=to_post
+        )
 
         return BulkOperationResult(resp_json)
 
