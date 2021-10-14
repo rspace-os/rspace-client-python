@@ -174,7 +174,7 @@ class InventoryApiTest(base.BaseApiTest):
         other_container = self.invapi.create_list_container("toMove")
         ids_to_move = [sample["subSamples"][0]["globalId"], other_container["globalId"]]
         result = self.invapi.add_items_to_grid_container(
-            grid_c, 1, 1, 3, 2, *ids_to_move
+            grid_c, inv.ByRow(1, 1, 3, 2, *ids_to_move)
         )
         self.assertTrue(result.is_ok())
 
@@ -187,12 +187,12 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertRaises(
             ValueError,
             self.invapi.add_items_to_grid_container,
-            inv.GridContainer(grid_c),
+            inv.GridContainer(grid_c), inv.ByRow(
             1,
             1,
             2,
             2,
-            *ss_ids
+            *ss_ids)
         )
 
     def test_cannot_move_too_many_items_with_request(self):
@@ -202,13 +202,14 @@ class InventoryApiTest(base.BaseApiTest):
         ss_ids = [x["globalId"] for x in sample["subSamples"]]
         ## using just id, we try to make request anyway
         resp = self.invapi.add_items_to_grid_container(
-            grid_c["id"], 1, 1, 2, 1, *ss_ids[0:2]
+            grid_c["id"], inv.ByRow(1, 1, 2, 1, *ss_ids[0:2])
         )
         self.assertTrue(resp.is_ok())
         ## overwrite, what happens
         resp2 = self.invapi.add_items_to_grid_container(
-            grid_c["id"], 1, 1, 2, 1, *ss_ids[2:4]
-        )
+            grid_c["id"], inv.ByRow(1, 1, 2, 1, *ss_ids[2:4])
+            )
+        
         self.assertFalse(resp2.is_ok())
         self.assertTrue(resp2.is_failed())
 
@@ -218,7 +219,7 @@ class InventoryApiTest(base.BaseApiTest):
         ss_ids = [x["globalId"] for x in sample["subSamples"]]
         print(" ss_ids are " + ",".join([str(x) for x in ss_ids]))
         rc = self.invapi.add_items_to_grid_container(
-            grid_c, 2, 1, 3, 7, *ss_ids, filling_strategy=inv.FillingStrategy.BY_COLUMN
+            grid_c, inv.ByColumn(2, 1, 3, 7, *ss_ids)
         )
         ## get list of updated subsamples
         self.assertEqual(10, len(rc.data["results"]))
