@@ -690,11 +690,11 @@ class InventoryClient(ClientBase):
         )
         return container
 
-    def add_containers_to_list_container(
-        self, target_container_id: Union[str, int], *item_ids: Union[str, int],
+    def add_items_to_list_container(
+        self, target_container_id: Union[str, int], *item_ids: str,
     ) -> list:
         """
-        Adds 1 or more containers to a list container
+        Adds 1 or more items to a list container
 
         Parameters
         ----------
@@ -702,17 +702,16 @@ class InventoryClient(ClientBase):
             The id of a List container
             
         *item_ids : Union[str, int]
-            One or more ids of containers  to move into the target container
+            One or more globalids of items  to move into the target container
 
         Raises
         ------
         ValueError
-            If any item_id is not that of a container
+            If any item_id is not movable
 
         Returns
         -------
-        list
-            A List of moved containers, showing their new location
+        BulkoperationResult
 
         """
         id_target = Id(target_container_id)
@@ -724,31 +723,12 @@ class InventoryClient(ClientBase):
         ## assert there are no invalid globai ids
         for item_id in item_ids:
             id_ob = Id(item_id)
-            if not id_ob.is_container(maybe=True):
+            if not id_ob.is_movable():
                 raise ValueError(f"Item to move '{item_id}' must be a container")
             valid_item_ids.append(id_ob)
 
-        return self._do_add_to_list_container(valid_item_ids, id_target, "containers")
+        return self._do_add_to_list_container(valid_item_ids, id_target)
 
-    def add_subsamples_to_list_container(
-        self, target_container_id: Union[str, int], *subsample_ids: Union[str, int],
-    ) -> list:
-        id_target = Id(target_container_id)
-        if not id_target.is_container(maybe=True):
-            raise ValueError("Target must be a container")
-
-        datas = []
-        ## assert there are no invalid global ids (not subsamples)
-        for item_id in subsample_ids:
-            id_ob = Id(item_id)
-            if not id_ob.is_subsample(maybe=True):
-                raise ValueError(f"Item to move '{item_id}' must be a subsample")
-            data = {}
-            data["id"] = id_ob
-            data["to_put"] = {"parentContainers": [{"id": id_target.as_id()}]}
-            datas.append(data)
-
-        return self._do_add_to_list_container(datas, id_target, "subSamples")
 
     def add_items_to_grid_container(
         self,
@@ -795,17 +775,26 @@ class InventoryClient(ClientBase):
         )
         return BulkOperationResult(resp_json)
 
-    def _do_add_to_list_container(self, datas, id_target, endpoint):
-        updated_containers = []
-        for data in datas:
-            container = self.retrieve_api_results(
-                self._get_api_url() + f"/{endpoint}/{data['id'].as_id()}",
-                request_type="PUT",
-                params=data["to_put"],
+    def _do_add_to_list_container(self, items, id_target):
+        coords = []
+        for item in items:
+              coords.append(
+                    {
+                        "type": item.get_type(),
+                        "id": item.as_id(),
+                        "parentContainers": [{"id": id_target.as_id()}],
+                    }
+                )
+        to_post = {"operationType": "MOVE", "records": coords}
+        
+            
+        resp_json = self.retrieve_api_results(
+                self._get_api_url() + "/bulk",
+                request_type="POST",
+                params=to_post
             )
-            updated_containers.append(container)
 
-        return updated_containers
+        return BulkOperationResult(resp_json)
 
     def _create_bulk_move(self, grid_id: Id, gp: GridPlacement):
         coords = []  # array of x,y coords
