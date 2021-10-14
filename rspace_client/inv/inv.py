@@ -809,16 +809,17 @@ class InventoryClient(ClientBase):
         coords = []  # array of x,y coords
         ##
         if FillingStrategy.EXACT == gp.filling_strategy:
-           for  (item, coord) in zip(gp.items_to_move, gp.locations):
-                 coords.append(
-                {
-                    "type": item.get_type(),
-                    "id": item.as_id(),
-                    "parentContainers": [{"id": grid_id.as_id()}],
-                    "parentLocation": {"coordX": coord.x, "coordY": coord.y},
-                })
-            
-           return {"operationType": "MOVE", "records": coords}
+            for (item, coord) in zip(gp.items_to_move, gp.locations):
+                coords.append(
+                    {
+                        "type": item.get_type(),
+                        "id": item.as_id(),
+                        "parentContainers": [{"id": grid_id.as_id()}],
+                        "parentLocation": {"coordX": coord.x, "coordY": coord.y},
+                    }
+                )
+
+            return {"operationType": "MOVE", "records": coords}
         else:
             counter = _calculate_start_index(
                 gp.column_index,
@@ -826,9 +827,9 @@ class InventoryClient(ClientBase):
                 gp.total_columns,
                 gp.total_rows,
                 gp.filling_strategy,
-                )
+            )
             for ss_id in gp.items_to_move:
-                
+
                 x = gp.column_index
                 y = gp.row_index
                 if FillingStrategy.BY_ROW == gp.filling_strategy:
@@ -838,13 +839,13 @@ class InventoryClient(ClientBase):
                     x = int(counter / gp.total_rows) + 1
                     y = counter % gp.total_rows + 1
                     coords.append(
-                            {
-                                "type": ss_id.get_type(),
-                                "id": ss_id.as_id(),
-                                "parentContainers": [{"id": grid_id.as_id()}],
-                                "parentLocation": {"coordX": x, "coordY": y},
-                                }
-                            )
+                        {
+                            "type": ss_id.get_type(),
+                            "id": ss_id.as_id(),
+                            "parentContainers": [{"id": grid_id.as_id()}],
+                            "parentLocation": {"coordX": x, "coordY": y},
+                        }
+                    )
                     counter = counter + 1
             print(f"coords is {len(coords)}")
             return {"operationType": "MOVE", "records": coords}
