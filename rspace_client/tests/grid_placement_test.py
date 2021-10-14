@@ -51,3 +51,7 @@ class GridPlacementUnitTest(unittest.TestCase):
     def test_validate_movable_type(self):
         ss = make_n_items_to_move(10, "SA")  # can't move samples, only subsamples
         self.assertRaises(ValueError, inv.ByColumn, 2, 3, 3, 2, *ss)
+
+    def test_positive_grid_location(self):
+        self.assertRaises(ValueError, inv.GridLocation, 0, 1)
+        self.assertRaises(ValueError, inv.GridLocation, 1, 0)

@@ -174,7 +174,7 @@ class InventoryApiTest(base.BaseApiTest):
         other_container = self.invapi.create_list_container("toMove")
         ids_to_move = [sample["subSamples"][0]["globalId"], other_container["globalId"]]
         result = self.invapi.add_items_to_grid_container(
-            grid_c, 1, 1, 3, 2, *ids_to_move
+            grid_c, inv.ByRow(1, 1, 3, 2, *ids_to_move)
         )
         self.assertTrue(result.is_ok())
 
@@ -188,12 +188,26 @@ class InventoryApiTest(base.BaseApiTest):
             ValueError,
             self.invapi.add_items_to_grid_container,
             inv.GridContainer(grid_c),
-            1,
-            1,
-            2,
-            2,
-            *ss_ids
+            inv.ByRow(1, 1, 2, 2, *ss_ids),
         )
+
+    def test_place_by_location(self):
+        grid_c = self.invapi.create_grid_container("gridExact", 2, 5)
+        sample = self.invapi.create_sample(
+            name="placing_in_container", subsample_count=5
+        )
+        ids_to_move = [x["globalId"] for x in sample["subSamples"]]
+        ## place items in the top row
+        locations = [inv.GridLocation(x + 1, 1) for x in range(5)]
+        result = self.invapi.add_items_to_grid_container(
+            grid_c, inv.ByLocation(locations, *ids_to_move)
+        )
+        self.assertTrue(result.is_ok())
+        ## get container
+        updated_container_json = self.invapi.get_container_by_id(grid_c["id"])
+        container = inv.Container.of(updated_container_json)
+        self.assertEqual(10, container.capacity())
+        self.assertEqual(5, container.in_use())
 
     def test_cannot_move_too_many_items_with_request(self):
         grid_c = self.invapi.create_grid_container("gridX", 1, 2)
@@ -202,13 +216,14 @@ class InventoryApiTest(base.BaseApiTest):
         ss_ids = [x["globalId"] for x in sample["subSamples"]]
         ## using just id, we try to make request anyway
         resp = self.invapi.add_items_to_grid_container(
-            grid_c["id"], 1, 1, 2, 1, *ss_ids[0:2]
+            grid_c["id"], inv.ByRow(1, 1, 2, 1, *ss_ids[0:2])
         )
         self.assertTrue(resp.is_ok())
         ## overwrite, what happens
         resp2 = self.invapi.add_items_to_grid_container(
-            grid_c["id"], 1, 1, 2, 1, *ss_ids[2:4]
+            grid_c["id"], inv.ByRow(1, 1, 2, 1, *ss_ids[2:4])
         )
+
         self.assertFalse(resp2.is_ok())
         self.assertTrue(resp2.is_failed())
 
@@ -218,7 +233,7 @@ class InventoryApiTest(base.BaseApiTest):
         ss_ids = [x["globalId"] for x in sample["subSamples"]]
         print(" ss_ids are " + ",".join([str(x) for x in ss_ids]))
         rc = self.invapi.add_items_to_grid_container(
-            grid_c, 2, 1, 3, 7, *ss_ids, filling_strategy=inv.FillingStrategy.BY_COLUMN
+            grid_c, inv.ByColumn(2, 1, 3, 7, *ss_ids)
         )
         ## get list of updated subsamples
         self.assertEqual(10, len(rc.data["results"]))

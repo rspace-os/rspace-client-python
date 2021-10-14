@@ -10,13 +10,30 @@ from rspace_client.client_base import ClientBase
 from rspace_client.inv import quantity_unit as qu
 
 
+class DeletedItemFilter(Enum):
+    EXCLUDE = 1
+    INCLUDE = 2
+    DELETED_ONLY = 3
+
+
+class FillingStrategy(Enum):
+    BY_ROW = 1
+    BY_COLUMN = 2
+    EXACT = 3
+
+
 class GridPlacement:
-    def __init__(self, items_to_move: str):
+    def __init__(self, items_to_move: str, filling_strategy: FillingStrategy):
+        ids = []
         for item in items_to_move:
             toMove = Id(item)
             if not toMove.is_movable():
                 raise ValueError(f" Can't move {item} - not a movable type")
-        self.items_to_move = items_to_move
+            ids.append(toMove)
+        print(f"fs is {filling_strategy}")
+        self.items_to_move = ids
+        self.filling_strategy = filling_strategy
+
 
 
 class AutoFit(GridPlacement):
@@ -27,6 +44,7 @@ class AutoFit(GridPlacement):
         total_columns: int,
         total_rows: int,
         items_to_move,
+        filling_strategy,
     ):
         if len(items_to_move) == 0:
             raise ValueError("Provide at least one item to move")
@@ -36,9 +54,9 @@ class AutoFit(GridPlacement):
         if column_index > total_columns or row_index > total_rows:
             raise ValueError(
                 f"Column and row indexes({column_index},{row_index}"
-                + " must fit in dimentsions ({total_columns}, {total_rows}"
+                + " must fit in dimensions ({total_columns}, {total_rows}"
             )
-        super().__init__(items_to_move)
+        super().__init__(items_to_move, filling_strategy)
         self.row_index = row_index
         self.column_index = column_index
         self.total_columns = total_columns
@@ -63,9 +81,13 @@ class ByRow(AutoFit):
         *items_to_move,
     ):
         super().__init__(
-            column_index, row_index, total_columns, total_rows, items_to_move
+            column_index,
+            row_index,
+            total_columns,
+            total_rows,
+            items_to_move,
+            filling_strategy=FillingStrategy.BY_ROW,
         )
-        self.fitting = FillingStrategy.BY_ROW
 
 
 class ByColumn(AutoFit):
@@ -78,9 +100,14 @@ class ByColumn(AutoFit):
         *items_to_move,
     ):
         super().__init__(
-            column_index, row_index, total_columns, total_rows, items_to_move
+            column_index,
+            row_index,
+            total_columns,
+            total_rows,
+            items_to_move,
+            filling_strategy=FillingStrategy.BY_COLUMN,
         )
-        self.filling_strategy = FillingStrategy.BY_COLUMN
+
 
 
 class ByLocation(GridPlacement):
@@ -93,8 +120,7 @@ class ByLocation(GridPlacement):
             raise ValueError(
                 f"locations list (length {len(locations)}) is not the same length as items list ({len(items_to_move)})"
             )
-        super().__init__(items_to_move)
-        self.filling_strategy = FillingStrategy.EXACT
+        super().__init__(items_to_move, filling_strategy=FillingStrategy.EXACT)
         self.locations = locations
 
 
@@ -252,18 +278,6 @@ class GridContainer(Container):
                 if (col, row) not in used:
                     rc.append((col, row))
         return rc
-
-
-class DeletedItemFilter(Enum):
-    EXCLUDE = 1
-    INCLUDE = 2
-    DELETED_ONLY = 3
-
-
-class FillingStrategy(Enum):
-    BY_ROW = 1
-    BY_COLUMN = 2
-    EXACT = 3
 
 
 class SampleFilter:
@@ -739,12 +753,7 @@ class InventoryClient(ClientBase):
     def add_items_to_grid_container(
         self,
         target_container_id: Union[str, int, GridContainer],
-        column_index: int,
-        row_index: int,
-        total_columns: int,
-        total_rows: int,
-        *item_global_ids: str,
-        filling_strategy=FillingStrategy.BY_ROW,
+        grid_placement: GridPlacement,
     ) -> BulkOperationResult:
         """
         Add one or more subsamples or containers to a grid container, starting at given row/ column
@@ -754,13 +763,7 @@ class InventoryClient(ClientBase):
         ----------
         target_container_id : Union[str, int]
             The Grid container to move to.
-        column_index : The starting column index
-        row_index : The starting row index
-        filling_strategy: If adding multiple subsamples, the order in which
-         the grid is filled
-        *item_global ids : Union[str, int]
-            One or more  globalids, either subsamples - 'SS' ot containers 'IC'
-
+        grid_placement: configuration for how to place items in the grid
         Raises
         ------
         ValueError
@@ -769,37 +772,20 @@ class InventoryClient(ClientBase):
         Returns
         -------
         list
-            A list of updated subsamples showing their current position
+            A list of updated items showing their current position
 
         """
         if isinstance(target_container_id, GridContainer):
-            if target_container_id.free() < len(item_global_ids):
+            if target_container_id.free() < len(grid_placement.item_global_ids):
                 raise ValueError(
-                    f"not enough space in {target_container_id.data['globalId']} to store {len(item_global_ids)} - only {target_container_id.free()} spaces free."
+                    f"not enough space in {target_container_id.data['globalId']} to store {len(grid_placement.item_global_ids)} - only {target_container_id.free()} spaces free."
                 )
         id_target = Id(target_container_id)
         if not id_target.is_container(maybe=True):
             raise ValueError("Target must be a container")
         ## assert there are no invalid global ids (things that are not subsamples)
-        s_ids = []
-        for item_id in item_global_ids:
-            id_ob = Id(item_id)
-            s_ids.append(id_ob)
-            if not id_ob.is_movable():
-                raise ValueError(
-                    f"Item to move '{item_id}' must be a subsample or container"
-                )
-        print(f" creating has {len(s_ids)} ss")
 
-        bulk_post = self._create_bulk_move(
-            id_target,
-            column_index,
-            row_index,
-            total_columns,
-            total_rows,
-            filling_strategy,
-            s_ids,
-        )
+        bulk_post = self._create_bulk_move(id_target, grid_placement)
         ## get target - are there enough spaces?
         ## iterate over grid (0 or 1 based?)
         ## use bulk API?
@@ -821,42 +807,50 @@ class InventoryClient(ClientBase):
 
         return updated_containers
 
-    def _create_bulk_move(
-        self,
-        grid_id: Id,
-        column_index: int,
-        row_index: int,
-        total_columns: int,
-        total_rows: int,
-        filling_strategy: FillingStrategy,
-        items: list,
-    ):
+    def _create_bulk_move(self, grid_id: Id, gp: GridPlacement):
         coords = []  # array of x,y coords
         ##
-        counter = _calculate_start_index(
-            column_index, row_index, total_columns, total_rows, filling_strategy
-        )
-        for ss_id in items:
+        if FillingStrategy.EXACT == gp.filling_strategy:
+            for (item, coord) in zip(gp.items_to_move, gp.locations):
+                coords.append(
+                    {
+                        "type": item.get_type(),
+                        "id": item.as_id(),
+                        "parentContainers": [{"id": grid_id.as_id()}],
+                        "parentLocation": {"coordX": coord.x, "coordY": coord.y},
+                    }
+                )
 
-            x = column_index
-            y = row_index
-            if FillingStrategy.BY_ROW == filling_strategy:
-                x = counter % total_columns + 1
-                y = int(counter / total_columns) + 1
-            elif FillingStrategy.BY_COLUMN == filling_strategy:
-                x = int(counter / total_rows) + 1
-                y = counter % total_rows + 1
-            coords.append(
-                {
-                    "type": ss_id.get_type(),
-                    "id": ss_id.as_id(),
-                    "parentContainers": [{"id": grid_id.as_id()}],
-                    "parentLocation": {"coordX": x, "coordY": y},
-                }
+            return {"operationType": "MOVE", "records": coords}
+        else:
+            counter = _calculate_start_index(
+                gp.column_index,
+                gp.row_index,
+                gp.total_columns,
+                gp.total_rows,
+                gp.filling_strategy,
             )
-            counter = counter + 1
-        print(f"coords is {len(coords)}")
-        return {"operationType": "MOVE", "records": coords}
+            for ss_id in gp.items_to_move:
+
+                x = gp.column_index
+                y = gp.row_index
+                if FillingStrategy.BY_ROW == gp.filling_strategy:
+                    x = counter % gp.total_columns + 1
+                    y = int(counter / gp.total_columns) + 1
+                elif FillingStrategy.BY_COLUMN == gp.filling_strategy:
+                    x = int(counter / gp.total_rows) + 1
+                    y = counter % gp.total_rows + 1
+                    coords.append(
+                        {
+                            "type": ss_id.get_type(),
+                            "id": ss_id.as_id(),
+                            "parentContainers": [{"id": grid_id.as_id()}],
+                            "parentLocation": {"coordX": x, "coordY": y},
+                        }
+                    )
+                    counter = counter + 1
+            print(f"coords is {len(coords)}")
+            return {"operationType": "MOVE", "records": coords}
 
 
 def _calculate_start_index(
