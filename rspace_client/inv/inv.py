@@ -278,7 +278,7 @@ class GridContainer(Container):
         return rc
 
 
-class SampleFilter:
+class SearchFilter:
     def __init__(
         self, deleted_item_filter=DeletedItemFilter.EXCLUDE, owned_by: str = None
     ):
@@ -292,13 +292,13 @@ class SampleFilter:
 class Pagination:
     def __init__(
         self,
-        page_nunber: int = 0,
+        page_number: int = 0,
         page_size: int = 10,
         order_by: str = None,
         sort_order: str = "asc",
     ):
         self.data = {
-            "pageNumber": page_nunber,
+            "pageNumber": page_number,
             "pageSize": page_size,
         }
         if order_by is not None:
@@ -306,9 +306,9 @@ class Pagination:
 
 
 class ResultType(Enum):
-    SAMPLE = (1,)
-    SUBSAMPLE = (2,)
-    TEMPLATE = (3,)
+    SAMPLE = 1
+    SUBSAMPLE = 2
+    TEMPLATE = 3
     CONTAINER = 4
 
 
@@ -494,7 +494,7 @@ class InventoryClient(ClientBase):
         )
 
     def list_samples(
-        self, pagination: Pagination = Pagination(), sample_filter: SampleFilter = None
+        self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
     ):
         """
         Parameters
@@ -505,16 +505,46 @@ class InventoryClient(ClientBase):
         -------
         Paginated Search result. Use 'next' and 'prev' links to navigate
         """
+        return self._do_simple_list("samples", pagination, sample_filter)
+    
+    def list_containers(
+        self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
+    ):
+        """
+        Parameters
+        ----------
+        pagination : Pagination, optional
+            The default is Pagination().
+        Returns
+        -------
+        Paginated Search result. Use 'next' and 'prev' links to navigate
+        """
+        return self._do_simple_list("containers", pagination, sample_filter)
+    
+    def list_subsamples(
+        self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
+    ):
+        """
+        Parameters
+        ----------
+        pagination : Pagination, optional
+            The default is Pagination().
+        Returns
+        -------
+        Paginated Search result. Use 'next' and 'prev' links to navigate
+        """
+        return self._do_simple_list("subSamples", pagination, sample_filter)
 
+    def _do_simple_list(self, endpoint, pagination, sample_filter):
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
         self.serr(f"pg is {pagination.data}")
         return self.retrieve_api_results(
-            self._get_api_url() + "/samples", request_type="GET", params=pagination.data
+            self._get_api_url() + f"/{endpoint}", request_type="GET", params=pagination.data
         )
-
+        
     def stream_samples(
-        self, pagination: Pagination = Pagination(), sample_filter: SampleFilter = None
+        self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
     ):
         """
         Streams all samples. Pagination argument sets batch size and ordering.

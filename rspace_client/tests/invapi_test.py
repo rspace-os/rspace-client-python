@@ -81,10 +81,22 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(10, len(samples["samples"]))
 
     def test_paginated_samples(self):
-        pag = inv.Pagination(page_nunber=1, page_size=1, sort_order="desc")
+        pag = inv.Pagination(page_number=1, page_size=1, sort_order="desc")
         samples = self.invapi.list_samples(pag)
         self.assertEqual(1, samples["pageNumber"])
         self.assertEqual(1, len(samples["samples"]))
+        
+    def test_paginated_containers(self):
+        pag = inv.Pagination(page_number=0, page_size=1)
+        containers = self.invapi.list_containers(pag)
+        self.assertEqual(0, containers["pageNumber"])
+        self.assertEqual(1, len(containers["containers"]))
+    
+    def test_paginated_subsamples(self):
+        pag = inv.Pagination(page_number=0, page_size=1)
+        ss = self.invapi.list_subsamples(pag)
+        self.assertEqual(0, ss["pageNumber"])
+        self.assertEqual(1, len(ss["subSamples"]))
 
     def test_stream_samples(self):
         onePerPage = inv.Pagination(page_size=1)
@@ -95,7 +107,7 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertNotEqual(s1["id"], s2["id"])
 
         unknown_user = base.random_string(15)
-        sample_filter = inv.SampleFilter(owned_by=unknown_user)
+        sample_filter = inv.SearchFilter(owned_by=unknown_user)
         gen = self.invapi.stream_samples(onePerPage, sample_filter)
         result_count = 0
         for sample in gen:
@@ -322,13 +334,13 @@ class InventoryApiTest(base.BaseApiTest):
         total_samples = self.invapi.list_samples()
         total_samples_count = total_samples["totalHits"]
         total_deleted = self.invapi.list_samples(
-            sample_filter=inv.SampleFilter(
+            sample_filter=inv.SearchFilter(
                 deleted_item_filter=inv.DeletedItemFilter.DELETED_ONLY
             )
         )["totalHits"]
         self.invapi.delete_sample(total_samples["samples"][0]["id"])
         total_deleted2 = self.invapi.list_samples(
-            sample_filter=inv.SampleFilter(
+            sample_filter=inv.SearchFilter(
                 deleted_item_filter=inv.DeletedItemFilter.DELETED_ONLY
             )
         )["totalHits"]
