@@ -753,7 +753,7 @@ class InventoryClient(ClientBase):
 
         """
         if isinstance(target_container_id, GridContainer):
-            if target_container_id.free() < len(grid_placement.item_global_ids):
+            if target_container_id.free() < len(grid_placement.items_to_move):
                 raise ValueError(
                     f"not enough space in {target_container_id.data['globalId']} to store {len(grid_placement.item_global_ids)} - only {target_container_id.free()} spaces free."
                 )
@@ -813,6 +813,7 @@ class InventoryClient(ClientBase):
                 gp.total_rows,
                 gp.filling_strategy,
             )
+            print (f"{len(gp.items_to_move)}")
             for ss_id in gp.items_to_move:
 
                 x = gp.column_index
@@ -823,7 +824,7 @@ class InventoryClient(ClientBase):
                 elif FillingStrategy.BY_COLUMN == gp.filling_strategy:
                     x = int(counter / gp.total_rows) + 1
                     y = counter % gp.total_rows + 1
-                    coords.append(
+                coords.append(
                         {
                             "type": ss_id.get_type(),
                             "id": ss_id.as_id(),
@@ -831,7 +832,7 @@ class InventoryClient(ClientBase):
                             "parentLocation": {"coordX": x, "coordY": y},
                         }
                     )
-                    counter = counter + 1
+                counter = counter + 1
             print(f"coords is {len(coords)}")
             return {"operationType": "MOVE", "records": coords}
 

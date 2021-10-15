@@ -156,7 +156,7 @@ class InventoryApiTest(base.BaseApiTest):
         grid_c = self.invapi.create_grid_container("gridX", 3, 2)
         sample = self.invapi.create_sample(name="multiS", subsample_count=1)
         self.invapi.add_items_to_grid_container(
-            grid_c, 2, 1, 2, 3, sample["subSamples"][0]["globalId"]
+            grid_c, inv.ByRow(2, 1, 2, 3, sample["subSamples"][0]["globalId"])
         )
 
         ## now reload the container, which should show subsamples
