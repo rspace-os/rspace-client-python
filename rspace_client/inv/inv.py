@@ -675,9 +675,12 @@ class InventoryClient(ClientBase):
         ss_id = Id(subsample)
         if not ss_id.is_subsample(True):
             raise ValueError("Supplied id is not a subsamples")
-        data = {'content': note}
-        return self.retrieve_api_results(self._get_api_url()+f"/subSamples/{ss_id.as_id()}/notes", 
-                                         request_type="POST", params=data)
+        data = {"content": note}
+        return self.retrieve_api_results(
+            self._get_api_url() + f"/subSamples/{ss_id.as_id()}/notes",
+            request_type="POST",
+            params=data,
+        )
 
     def create_list_container(
         self,
