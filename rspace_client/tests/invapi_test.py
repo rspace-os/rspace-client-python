@@ -79,19 +79,28 @@ class InventoryApiTest(base.BaseApiTest):
 
         self.assertEqual(0, samples["pageNumber"])
         self.assertEqual(10, len(samples["samples"]))
+        
+    def test_add_note_to_subsample(self):
+        note=" a note about a subsample " + base.random_string()
+        sample = self.invapi.create_sample("with_note", subsample_count=1)
+        ss= sample['subSamples'][0]
+        updated = self.invapi.add_note_to_subsample(ss, note)
+        self.assertEqual(1, len(updated['notes']))
+        self.assertEqual(note, updated['notes'][0]['content'])
+        
 
     def test_paginated_samples(self):
         pag = inv.Pagination(page_number=1, page_size=1, sort_order="desc")
         samples = self.invapi.list_samples(pag)
         self.assertEqual(1, samples["pageNumber"])
         self.assertEqual(1, len(samples["samples"]))
-        
+
     def test_paginated_containers(self):
         pag = inv.Pagination(page_number=0, page_size=1)
         containers = self.invapi.list_containers(pag)
         self.assertEqual(0, containers["pageNumber"])
         self.assertEqual(1, len(containers["containers"]))
-    
+
     def test_paginated_subsamples(self):
         pag = inv.Pagination(page_number=0, page_size=1)
         ss = self.invapi.list_subsamples(pag)

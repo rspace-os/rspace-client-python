@@ -506,7 +506,7 @@ class InventoryClient(ClientBase):
         Paginated Search result. Use 'next' and 'prev' links to navigate
         """
         return self._do_simple_list("samples", pagination, sample_filter)
-    
+
     def list_containers(
         self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
     ):
@@ -520,7 +520,7 @@ class InventoryClient(ClientBase):
         Paginated Search result. Use 'next' and 'prev' links to navigate
         """
         return self._do_simple_list("containers", pagination, sample_filter)
-    
+
     def list_subsamples(
         self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
     ):
@@ -540,9 +540,11 @@ class InventoryClient(ClientBase):
             pagination.data.update(sample_filter.data)
         self.serr(f"pg is {pagination.data}")
         return self.retrieve_api_results(
-            self._get_api_url() + f"/{endpoint}", request_type="GET", params=pagination.data
+            self._get_api_url() + f"/{endpoint}",
+            request_type="GET",
+            params=pagination.data,
         )
-        
+
     def stream_samples(
         self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
     ):
@@ -668,6 +670,14 @@ class InventoryClient(ClientBase):
         if extra_fields is not None:
             data["extraFields"] = [ef.data for ef in extra_fields]
         return data
+
+    def add_note_to_subsample(self, subsample: Union[str, int, dict], note: str):
+        ss_id = Id(subsample)
+        if not ss_id.is_subsample(True):
+            raise ValueError("Supplied id is not a subsamples")
+        data = {'content': note}
+        return self.retrieve_api_results(self._get_api_url()+f"/subSamples/{ss_id.as_id()}/notes", 
+                                         request_type="POST", params=data)
 
     def create_list_container(
         self,
