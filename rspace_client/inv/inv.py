@@ -813,7 +813,7 @@ class InventoryClient(ClientBase):
                 gp.total_rows,
                 gp.filling_strategy,
             )
-            print (f"{len(gp.items_to_move)}")
+            print(f"{len(gp.items_to_move)}")
             for ss_id in gp.items_to_move:
 
                 x = gp.column_index
@@ -825,13 +825,13 @@ class InventoryClient(ClientBase):
                     x = int(counter / gp.total_rows) + 1
                     y = counter % gp.total_rows + 1
                 coords.append(
-                        {
-                            "type": ss_id.get_type(),
-                            "id": ss_id.as_id(),
-                            "parentContainers": [{"id": grid_id.as_id()}],
-                            "parentLocation": {"coordX": x, "coordY": y},
-                        }
-                    )
+                    {
+                        "type": ss_id.get_type(),
+                        "id": ss_id.as_id(),
+                        "parentContainers": [{"id": grid_id.as_id()}],
+                        "parentLocation": {"coordX": x, "coordY": y},
+                    }
+                )
                 counter = counter + 1
             print(f"coords is {len(coords)}")
             return {"operationType": "MOVE", "records": coords}
