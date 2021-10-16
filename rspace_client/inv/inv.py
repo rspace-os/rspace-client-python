@@ -591,7 +591,7 @@ class InventoryClient(ClientBase):
                 else:
                     break
 
-    def rename(self, sample_id: Union[str, dict ], new_name: str) -> dict:
+    def rename(self, sample_id: Union[str, dict], new_name: str) -> dict:
         """
         Parameters
         ----------
@@ -660,6 +660,17 @@ class InventoryClient(ClientBase):
             headers=headers,
         )
         return self._handle_response(response)
+    
+    def split_subsample(self, subsample: Union[int, str, dict], num_subsamples: int, 
+                        quantity: float = None ):
+        ss_id = Id(subsample)
+        to_post =  {
+                    "numSubSamples": num_subsamples,
+                    "split":True
+                }
+        return self.retrieve_api_results(self._get_api_url() + f"/subSamples/{ss_id.as_id()}/actions/split",
+                                         request_type="POST", params=to_post)
+    
 
     def duplicate(self, item_to_duplicate: Union[str, dict], new_name: str = None):
         """
@@ -676,7 +687,7 @@ class InventoryClient(ClientBase):
         """
         id_to_copy = Id(item_to_duplicate)
         endpoint = id_to_copy.get_api_endpoint()
-        rc =  self.retrieve_api_results(
+        rc = self.retrieve_api_results(
             self._get_api_url() + f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate",
             request_type="POST",
         )

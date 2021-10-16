@@ -146,22 +146,29 @@ class InventoryApiTest(base.BaseApiTest):
         results4 = self.invapi.search(query=name, result_type=inv.ResultType.CONTAINER)
         self.assertEqual(0, results4["totalHits"])
 
+    def test_split(self):
+        name = base.random_string()
+        sample = self.invapi.create_sample(name)
+        ss = sample["subSamples"][0]
+        splits = self.invapi.split_subsample(ss, num_subsamples=4)
+        self.assertEqual(3, len(splits))
+        self.assertAlmostEqual(7.5, sum([x['quantity']['numericValue'] for x in splits]))     
+
     def test_duplicate(self):
         name = base.random_string()
-        
+
         container = self.invapi.create_list_container("c_to_dup")
         container_dup = self.invapi.duplicate(container, f"{name}-newfromtest")
         self.assertNotEqual(container["id"], container_dup["id"])
-        self.assertEqual(f"{name}-newfromtest", container_dup['name'])
-        
+        self.assertEqual(f"{name}-newfromtest", container_dup["name"])
+
         sample = self.invapi.create_sample(name)
         sample_dup = self.invapi.duplicate(sample)
         self.assertNotEqual(sample["id"], sample_dup["id"])
-        
+
         ss = sample["subSamples"][0]
         ss_dup = self.invapi.duplicate(ss)
         self.assertNotEqual(ss["id"], ss_dup["id"])
-        
 
     def test_create_list_container(self):
         name = base.random_string()
