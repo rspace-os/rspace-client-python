@@ -145,7 +145,20 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(1, results3["totalHits"])
         results4 = self.invapi.search(query=name, result_type=inv.ResultType.CONTAINER)
         self.assertEqual(0, results4["totalHits"])
-
+        
+    def test_duplicate(self):
+        name = base.random_string()
+        sample = self.invapi.create_sample(name)
+        sample_dup = self.invapi.duplicate(sample)
+        self.assertNotEqual(sample['id'], sample_dup['id'])
+        ss = sample['subSamples'][0]
+        ss_dup = self.invapi.duplicate(ss)
+        self.assertNotEqual(ss['id'], ss_dup['id']) 
+        container =self.invapi.create_list_container("c_to_dup")
+        container_dup = self.invapi.duplicate(container)
+        self.assertNotEqual(container['id'], container_dup['id']) 
+        
+       
     def test_create_list_container(self):
         name = base.random_string()
         ct = self.invapi.create_list_container(name, tags="ab,cd,ef")

@@ -315,12 +315,14 @@ class ResultType(Enum):
 class Id:
     """
     Supports integer or string representation of a globalId or
-    numeric ID or a dict / object representation of an Inventory object
+    numeric ID or a dict / object representation of an Inventory item.
+    If a dict is passed, it must have 'id' and 'globalId' properties
     """
 
     Pattern = r"([A-Z]{2})?\d+"
 
-    PREFIX_TO_TYPE = {"IC": "CONTAINER", "SS": "SUBSAMPLE", "SA": "SAMPLE"}
+    PREFIX_TO_TYPE = {"IC": "CONTAINER", "SS": "SUBSAMPLE", "SA": "SAMPLE", "IT":"TEMPLATE"}
+    PREFIX_TO_API = {"IC": "containers", "SS": "subSamples", "SA": "samples", "IT":"templates"}
 
     def __init__(self, value: Union[int, str, dict, Container]):
 
@@ -368,6 +370,9 @@ class Id:
 
     def get_type(self):
         return Id.PREFIX_TO_TYPE[self.prefix]
+    
+    def get_api_endpoint(self):
+        return Id.PREFIX_TO_API[self.prefix]
 
     def _check(self, prefix, maybe: bool):
         if maybe:
@@ -644,6 +649,23 @@ class InventoryClient(ClientBase):
             headers=headers,
         )
         return self._handle_response(response)
+    
+    def duplicate(self, item_to_duplicate: Union[str,dict]):
+        """
+        Parameters
+        ----------
+        global_id : str
+            Global id of template,sample, subsample or container
+
+        Returns
+        -------
+        The duplicated item
+
+        """
+        id_to_copy = Id(item_to_duplicate)
+        endpoint = id_to_copy.get_api_endpoint()
+        return self.retrieve_api_results(self._get_api_url() 
+            + f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate", request_type="POST")
 
     def search(
         self, query: str, pagination=Pagination(), result_type: ResultType = None
