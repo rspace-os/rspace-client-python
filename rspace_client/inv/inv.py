@@ -321,8 +321,18 @@ class Id:
 
     Pattern = r"([A-Z]{2})?\d+"
 
-    PREFIX_TO_TYPE = {"IC": "CONTAINER", "SS": "SUBSAMPLE", "SA": "SAMPLE", "IT":"TEMPLATE"}
-    PREFIX_TO_API = {"IC": "containers", "SS": "subSamples", "SA": "samples", "IT":"templates"}
+    PREFIX_TO_TYPE = {
+        "IC": "CONTAINER",
+        "SS": "SUBSAMPLE",
+        "SA": "SAMPLE",
+        "IT": "TEMPLATE",
+    }
+    PREFIX_TO_API = {
+        "IC": "containers",
+        "SS": "subSamples",
+        "SA": "samples",
+        "IT": "templates",
+    }
 
     def __init__(self, value: Union[int, str, dict, Container]):
 
@@ -370,7 +380,7 @@ class Id:
 
     def get_type(self):
         return Id.PREFIX_TO_TYPE[self.prefix]
-    
+
     def get_api_endpoint(self):
         return Id.PREFIX_TO_API[self.prefix]
 
@@ -581,19 +591,20 @@ class InventoryClient(ClientBase):
                 else:
                     break
 
-    def rename_sample(self, sample_id: Union[int, str], new_name: str) -> dict:
+    def rename(self, sample_id: Union[str, dict ], new_name: str) -> dict:
         """
         Parameters
         ----------
-            id : Id Id of sample to rename
+            id : Id  of item to rename
             new_name : str The new name.
         Returns
         -------
-            dict : The updated sample
+            dict : The updated item
         """
         s_id = Id(sample_id)
+        endpoint = s_id.get_api_endpoint()
         return self.retrieve_api_results(
-            self._get_api_url() + f"/samples/{s_id.as_id()}",
+            self._get_api_url() + f"/{endpoint}/{s_id.as_id()}",
             request_type="PUT",
             params={"name": new_name},
         )
@@ -649,13 +660,14 @@ class InventoryClient(ClientBase):
             headers=headers,
         )
         return self._handle_response(response)
-    
-    def duplicate(self, item_to_duplicate: Union[str,dict]):
+
+    def duplicate(self, item_to_duplicate: Union[str, dict], new_name: str = None):
         """
         Parameters
         ----------
         global_id : str
-            Global id of template,sample, subsample or container
+            Global id  of template,sample, subsample or container or aict containing global_id
+        new_name : optional new name of the copy
 
         Returns
         -------
@@ -664,8 +676,13 @@ class InventoryClient(ClientBase):
         """
         id_to_copy = Id(item_to_duplicate)
         endpoint = id_to_copy.get_api_endpoint()
-        return self.retrieve_api_results(self._get_api_url() 
-            + f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate", request_type="POST")
+        rc =  self.retrieve_api_results(
+            self._get_api_url() + f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate",
+            request_type="POST",
+        )
+        if new_name is not None:
+            rc = self.rename(rc, new_name)
+        return rc
 
     def search(
         self, query: str, pagination=Pagination(), result_type: ResultType = None
