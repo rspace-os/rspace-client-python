@@ -660,17 +660,20 @@ class InventoryClient(ClientBase):
             headers=headers,
         )
         return self._handle_response(response)
-    
-    def split_subsample(self, subsample: Union[int, str, dict], num_subsamples: int, 
-                        quantity: float = None ):
+
+    def split_subsample(
+        self,
+        subsample: Union[int, str, dict],
+        num_subsamples: int,
+        quantity: float = None,
+    ):
         ss_id = Id(subsample)
-        to_post =  {
-                    "numSubSamples": num_subsamples,
-                    "split":True
-                }
-        return self.retrieve_api_results(self._get_api_url() + f"/subSamples/{ss_id.as_id()}/actions/split",
-                                         request_type="POST", params=to_post)
-    
+        to_post = {"numSubSamples": num_subsamples, "split": True}
+        return self.retrieve_api_results(
+            self._get_api_url() + f"/subSamples/{ss_id.as_id()}/actions/split",
+            request_type="POST",
+            params=to_post,
+        )
 
     def duplicate(self, item_to_duplicate: Union[str, dict], new_name: str = None):
         """

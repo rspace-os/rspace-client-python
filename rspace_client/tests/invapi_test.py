@@ -152,7 +152,9 @@ class InventoryApiTest(base.BaseApiTest):
         ss = sample["subSamples"][0]
         splits = self.invapi.split_subsample(ss, num_subsamples=4)
         self.assertEqual(3, len(splits))
-        self.assertAlmostEqual(7.5, sum([x['quantity']['numericValue'] for x in splits]))     
+        self.assertAlmostEqual(
+            7.5, sum([x["quantity"]["numericValue"] for x in splits])
+        )
 
     def test_duplicate(self):
         name = base.random_string()
