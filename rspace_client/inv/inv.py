@@ -505,14 +505,16 @@ class InventoryClient(ClientBase):
         """
         s_id = Id(sample_id)
         return self.retrieve_api_results(
-            self._get_api_url() + f"/samples/{s_id.as_id()}")
-    
-    def get_subsample_by_id(self,  subsample_id: Union[str,int]) -> dict:
+            self._get_api_url() + f"/samples/{s_id.as_id()}"
+        )
+
+    def get_subsample_by_id(self, subsample_id: Union[str, int]) -> dict:
         ss_id = Id(subsample_id)
-        if  ss_id.is_subsample is False:
+        if ss_id.is_subsample is False:
             raise ValueError(f"{ss_id} is not id of a subsample")
         return self.retrieve_api_results(
-            self._get_api_url() + f"/subSamples/{ss_id.as_id()}")
+            self._get_api_url() + f"/subSamples/{ss_id.as_id()}"
+        )
 
     def list_samples(
         self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
@@ -673,15 +675,15 @@ class InventoryClient(ClientBase):
         num_new_subsamples: int,
         quantity_per_subsample: float = None,
     ):
-        
         def _do_call(ss_id, params):
             return self.retrieve_api_results(
-             self._get_api_url() + f"/subSamples/{ss_id.as_id()}/actions/split",
-            request_type="POST",
-            params=params)
-            
+                self._get_api_url() + f"/subSamples/{ss_id.as_id()}/actions/split",
+                request_type="POST",
+                params=params,
+            )
+
         ss_id = Id(subsample)
-        if quantity_per_subsample is  None:
+        if quantity_per_subsample is None:
             to_post = {"numSubSamples": num_new_subsamples + 1, "split": True}
             return _do_call(ss_id, to_post)
         else:
@@ -689,35 +691,45 @@ class InventoryClient(ClientBase):
             curr_quantity = None
             if isinstance(subsample, dict) and ss_id.is_subsample(True):
                 ## we already have quantity info, don't need to call
-                curr_quantity = subsample['quantity']
+                curr_quantity = subsample["quantity"]
             else:
                 full_ss = self.get_subsample_by_id(ss_id.as_id())
-                curr_quantity = full_ss['quantity']
-            if qu_to_decrement_from_original > curr_quantity['numericValue']:
-                raise ValueError(f"Attempting to remove {qu_to_decrement_from_original}, but original subsample {ss_id.as_id()} has amount {curr_quantity['numericValue']}.")
-            to_post = {"numSubSamples": num_new_subsamples+1, "split": True}
+                curr_quantity = full_ss["quantity"]
+            if qu_to_decrement_from_original > curr_quantity["numericValue"]:
+                raise ValueError(
+                    f"Attempting to remove {qu_to_decrement_from_original}, but original subsample {ss_id.as_id()} has amount {curr_quantity['numericValue']}."
+                )
+            to_post = {"numSubSamples": num_new_subsamples + 1, "split": True}
             new_ss = _do_call(ss_id, to_post)
-            curr_quantity['numericValue'] = curr_quantity['numericValue'] -  qu_to_decrement_from_original
-            unit_id=curr_quantity['unitId']
+            curr_quantity["numericValue"] = (
+                curr_quantity["numericValue"] - qu_to_decrement_from_original
+            )
+            unit_id = curr_quantity["unitId"]
             records = []
-            records.append({'id':ss_id.as_id(), 'type': ss_id.get_type(),
-                            'quantity':curr_quantity})
+            records.append(
+                {
+                    "id": ss_id.as_id(),
+                    "type": ss_id.get_type(),
+                    "quantity": curr_quantity,
+                }
+            )
             for split_ss in new_ss:
-                split_ss_id =Id(split_ss)
-                records.append({'id':split_ss_id.as_id(), 'type': split_ss_id.get_type(),
-                            'quantity':{'unitId': unit_id,
-                                        'numericValue': quantity_per_subsample}
-                            })
-            bulk_post = {'records': records, 'operationType':'UPDATE'}
-            rc = self.retrieve_api_results(self._get_api_url() +"/bulk", request_type='POST',
-                                           params=bulk_post)
+                split_ss_id = Id(split_ss)
+                records.append(
+                    {
+                        "id": split_ss_id.as_id(),
+                        "type": split_ss_id.get_type(),
+                        "quantity": {
+                            "unitId": unit_id,
+                            "numericValue": quantity_per_subsample,
+                        },
+                    }
+                )
+            bulk_post = {"records": records, "operationType": "UPDATE"}
+            rc = self.retrieve_api_results(
+                self._get_api_url() + "/bulk", request_type="POST", params=bulk_post
+            )
             return BulkOperationResult(rc)
-            
-            
-            
-            
-            
-            
 
     def duplicate(self, item_to_duplicate: Union[str, dict], new_name: str = None):
         """
