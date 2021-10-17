@@ -181,6 +181,14 @@ class InventoryApiTest(base.BaseApiTest):
         ss_to_amount.pop(ss["id"])
         for v in ss_to_amount.values():
             self.assertAlmostEqual(1.2, v)
+            
+    def test_partial_split_rejects_impossible_quantity(self):
+        ## create 1 sample with 1 ss of 5ml
+        ss = {'id':1234, 'globalId':'SS1234', 'quantity': {'unitId':3, 'numericValue':5.0}}
+        self.assertRaises(ValueError, self.invapi.split_subsample, 
+            ss, 10, 0.51
+        )
+        
 
     def test_duplicate(self):
         name = base.random_string()
