@@ -907,7 +907,7 @@ class InventoryClient(ClientBase):
         if isinstance(target_container_id, GridContainer):
             if target_container_id.free() < len(grid_placement.items_to_move):
                 raise ValueError(
-                    f"not enough space in {target_container_id.data['globalId']} to store {len(grid_placement.item_global_ids)} - only {target_container_id.free()} spaces free."
+                    f"not enough space in {target_container_id.data['globalId']} to store {len(grid_placement.items_to_move)} - only {target_container_id.free()} spaces free."
                 )
         id_target = Id(target_container_id)
         if not id_target.is_container(maybe=True):
