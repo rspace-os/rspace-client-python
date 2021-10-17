@@ -206,6 +206,13 @@ class InventoryApiTest(base.BaseApiTest):
         ss = sample["subSamples"][0]
         ss_dup = self.invapi.duplicate(ss)
         self.assertNotEqual(ss["id"], ss_dup["id"])
+    
+    def test_get_workbenches(self):
+        workbenches = self.invapi.get_workbenches()
+        self.assertEqual(1, len(workbenches))
+        workbench_ob = inv.Container.of(workbenches[0])
+        self.assertTrue(workbench_ob.is_workbench())
+        print(workbench_ob.data)
 
     def test_create_list_container(self):
         name = base.random_string()
