@@ -6,6 +6,7 @@ Created on Sat Oct  2 22:09:40 2021
 @author: richard
 """
 import sys
+import json
 import datetime as dt
 import rspace_client.tests.base_test as base
 from rspace_client.inv import inv
@@ -146,15 +147,39 @@ class InventoryApiTest(base.BaseApiTest):
         results4 = self.invapi.search(query=name, result_type=inv.ResultType.CONTAINER)
         self.assertEqual(0, results4["totalHits"])
 
-    def test_split(self):
+    def test_equal_split(self):
         name = base.random_string()
         sample = self.invapi.create_sample(name)
         ss = sample["subSamples"][0]
-        splits = self.invapi.split_subsample(ss, num_subsamples=4)
+        splits = self.invapi.split_subsample(ss, num_new_subsamples=3)
         self.assertEqual(3, len(splits))
         self.assertAlmostEqual(
             7.5, sum([x["quantity"]["numericValue"] for x in splits])
         )
+        
+    def test_partial_split(self):
+        name = base.random_string()
+        sample_total = inv.Quantity(5, qu.QuantityUnit.of("ml"))
+        ## create 1 sample with 1 ss of 5ml
+        sample = self.invapi.create_sample(name, total_quantity=sample_total)
+        ss = sample["subSamples"][0]
+        bulk_result = self.invapi.split_subsample(ss, num_new_subsamples=3,
+                                                  quantity_per_subsample=1.2)
+        
+        self.assertTrue(bulk_result.is_ok())
+        results = bulk_result.data['results']
+        
+        ## should result in original with (5 - (3 *1.2) = 1.4, new ones with 1.2
+        ss_to_amount = {}
+        for updated_ss in results:
+            ss_to_amount[updated_ss['record']['id']] = updated_ss['record']['quantity']['numericValue']
+        
+        self.assertAlmostEqual(1.4, ss_to_amount[ss['id']])
+        ss_to_amount.pop(ss['id'])
+        for v in ss_to_amount.values():
+            self.assertAlmostEqual(1.2, v)
+            
+        
 
     def test_duplicate(self):
         name = base.random_string()
