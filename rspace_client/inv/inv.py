@@ -186,14 +186,13 @@ class Container:
 
     def is_list(self) -> bool:
         return False
-    
-    def is_workbench(self)->bool:
+
+    def is_workbench(self) -> bool:
         return False
 
     def accept_subsamples(self) -> bool:
         return self.data["canStoreSamples"] == True
-    
-    
+
     def accept_containers(self) -> bool:
         return self.data["canStoreContainers"] == True
 
@@ -214,17 +213,15 @@ class ListContainer(Container):
          Unlimited capacity
         """
         return sys.maxsize
-    
+
+
 class Workbench(Container):
-    
-     def __init__(self, workbench: dict):
+    def __init__(self, workbench: dict):
         super().__init__(workbench)
         self._validate_type(workbench, "WORKBENCH")
-        
-     def is_workbench(self)->bool:
+
+    def is_workbench(self) -> bool:
         return True
-        
-    
 
 
 class GridContainer(Container):
@@ -807,7 +804,7 @@ class InventoryClient(ClientBase):
             request_type="POST",
             params=data,
         )
-    
+
     def get_workbenches(self) -> Sequence[dict]:
         """
         Returns
@@ -817,9 +814,8 @@ class InventoryClient(ClientBase):
             your own workbench
 
         """
-        result =  self.retrieve_api_results(self._get_api_url() + "/workbenches")
-        return [wb for wb in result['containers']]
-        
+        result = self.retrieve_api_results(self._get_api_url() + "/workbenches")
+        return [wb for wb in result["containers"]]
 
     def create_list_container(
         self,
@@ -829,7 +825,7 @@ class InventoryClient(ClientBase):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_subsamples: bool = True,
-    ) -> dict :
+    ) -> dict:
 
         data = self._set_core_properties(name, tags, description, extra_fields)
         data["cType"] = "LIST"
