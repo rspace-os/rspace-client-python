@@ -382,7 +382,7 @@ class Id:
 
     def as_id(self) -> int:
         return self.id
-    
+
     def as_global_id(self) -> str:
         """
         Assumes that prefix has been set
@@ -675,12 +675,12 @@ class InventoryClient(ClientBase):
         -------
         Dict of the created InventoryFile
         """
-        global_id=Id(inventory_item)
+        global_id = Id(inventory_item)
         fs = {"parentGlobalId": global_id.as_global_id()}
         fsStr = json.dumps(fs)
         headers = self._get_headers()
         response = requests.post(
-            self._get_api_url()+"/files",
+            self._get_api_url() + "/files",
             files={"file": file, "fileSettings": (None, fsStr, "application/json")},
             headers=headers,
         )
@@ -748,7 +748,9 @@ class InventoryClient(ClientBase):
             )
             return BulkOperationResult(rc)
 
-    def duplicate(self, item_to_duplicate: Union[str, dict], new_name: str = None) -> dict:
+    def duplicate(
+        self, item_to_duplicate: Union[str, dict], new_name: str = None
+    ) -> dict:
         """
         Parameters
         ----------
@@ -772,7 +774,7 @@ class InventoryClient(ClientBase):
 
     def search(
         self, query: str, pagination=Pagination(), result_type: ResultType = None
-    )-> dict:
+    ) -> dict:
         params = {"query": query}
         params.update(pagination.data)
         if result_type is not None:
