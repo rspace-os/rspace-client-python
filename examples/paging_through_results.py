@@ -11,7 +11,7 @@ def print_document_names(response):
 
 
 # Parse command line parameters
-client = rspace_client.utils.createClient()
+client = rspace_client.utils.createELNClient()
 
 # Simple search
 response = client.get_documents()

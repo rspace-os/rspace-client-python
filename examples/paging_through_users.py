@@ -51,14 +51,14 @@ def delete_users():
 
 
 # Parse command line parameters
-client = rspace_client.utils.createClient()
+client = rspace_client.utils.createELNClient()
 
 # Simple search
 response = client.get_users(
     page_size=50,
     tempaccount_only=False,
-    last_login_before="2016-01-01",
-    created_before="2016-01-01",
+    last_login_before="2022-01-01",
+    created_before="2022-01-01",
 )
 print_users(response)
 

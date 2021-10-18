@@ -4,7 +4,7 @@ from __future__ import print_function
 import rspace_client
 
 # Parse command line parameters
-client = rspace_client.utils.createClient()
+client = rspace_client.utils.createELNClient()
 folder_id = client.create_folder("Word Import Folder")["id"]
 print(
     "Importing an example word file in 'resources' folder : {}".format(

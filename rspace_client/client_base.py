@@ -79,9 +79,7 @@ class ClientBase:
         """
         numeric_id = self._get_numeric_record_id(resource_id)
         return self.retrieve_api_results(
-             "/{}/{}".format(path, numeric_id),
-            content_type=None,
-            request_type="DELETE",
+            "/{}/{}".format(path, numeric_id), content_type=None, request_type="DELETE",
         )
 
     def retrieve_api_results(

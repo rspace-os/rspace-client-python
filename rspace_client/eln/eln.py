@@ -357,7 +357,10 @@ class ELNClient(ClientBase):
             data["caption"] = caption
 
         response = requests.post(
-            self._get_api_url()+"/files", files={"file": file}, data=data, headers=self._get_headers(),
+            self._get_api_url() + "/files",
+            files={"file": file},
+            data=data,
+            headers=self._get_headers(),
         )
         return self._handle_response(response)
 
@@ -739,7 +742,7 @@ class ELNClient(ClientBase):
             data["imageFolderId"] = numeric_imagefolder_id
 
         response = requests.post(
-            "/import/word",
+            self._get_api_url() + "/import/word",
             files={"file": file},
             data=data,
             headers=self._get_headers(),

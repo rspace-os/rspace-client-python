@@ -14,7 +14,7 @@ def printSharedItemNames(response):
 
 
 # Parse command line parameters
-client = rspace_client.utils.createClient()
+client = rspace_client.utils.createELNClient()
 
 groups = client.get_groups()
 if len(groups) == 0:

@@ -6,7 +6,7 @@ import json
 import rspace_client
 import sys
 
-client = rspace_client.utils.createClient()
+client = rspace_client.utils.createELNClient()
 
 print("Form ID to search for (for example, FM123)?")
 form_id = sys.stdin.readline().strip()
