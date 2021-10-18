@@ -6,7 +6,7 @@ import sys
 
 # Parse command line parameters
 # Parse command line parameters
-client = rspace_client.utils.createClient()
+client = rspace_client.utils.createELNClient()
 
 print("Document ID to search for (for example, numeric id 123 or global ID SD123)?")
 document_id = sys.stdin.readline().strip()

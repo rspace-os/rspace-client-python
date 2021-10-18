@@ -80,7 +80,7 @@ class ELNClient(ClientBase):
         Marks document as deleted.
         :param doc_id: numeric document ID or global ID
         """
-        return self.doDelete("documents", doc_id)
+        return self.doDelete("/documents", doc_id)
 
     def get_document_csv(self, doc_id):
         """
@@ -357,7 +357,7 @@ class ELNClient(ClientBase):
             data["caption"] = caption
 
         response = requests.post(
-            "/files", files={"file": file}, data=data, headers=self._get_headers(),
+            self._get_api_url()+"/files", files={"file": file}, data=data, headers=self._get_headers(),
         )
         return self._handle_response(response)
 
@@ -370,7 +370,7 @@ class ELNClient(ClientBase):
         :return: updated File response as a dictionary
         """
         response = requests.post(
-            "/files/{}/file".format(fileId),
+            self._get_api_url() + "/files/{}/file".format(fileId),
             files={"file": file},
             headers=self._get_headers(),
         )

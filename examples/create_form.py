@@ -17,7 +17,7 @@ def create_form(fields):
 
 
 # Parse command line parameters
-client = rspace_client.utils.createClient()
+client = rspace_client.utils.createELNClient()
 
 print("Listing all forms:")
 response = client.get_forms()

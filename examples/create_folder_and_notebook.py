@@ -10,7 +10,7 @@ def print_forms(response):
 
 
 # Parse command line parameters
-client = rspace_client.utils.createClient()
+client = rspace_client.utils.createELNClient()
 
 
 print("Creating a folder:")

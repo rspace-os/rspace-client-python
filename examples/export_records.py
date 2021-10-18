@@ -5,7 +5,7 @@ import rspace_client
 
 # Parse command line parameters
 # Parse command line parameters
-client = rspace_client.utils.createClient()
+client = rspace_client.utils.createELNClient()
 
 # Export current user's records in XML format
 print(

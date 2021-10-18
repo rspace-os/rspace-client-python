@@ -4,7 +4,7 @@ from __future__ import print_function
 import rspace_client
 
 # Parse command line parameters
-client = rspace_client.utils.createClient()
+client = rspace_client.utils.createELNClient()
 
 # Creating a new Basic document in Api Inbox folder
 new_document = client.create_document(

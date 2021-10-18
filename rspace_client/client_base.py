@@ -9,7 +9,6 @@ class ClientBase:
     def __init__(self, rspace_url, api_key):
         """
         Initializes RSpace client.
-        :param rspace_url: RSpace server URL (for example, https://community.researchspace.com)
         :param api_key: RSpace API key of a user can be found on 'My Profile' page
         """
         self.rspace_url = rspace_url
@@ -80,7 +79,7 @@ class ClientBase:
         """
         numeric_id = self._get_numeric_record_id(resource_id)
         return self.retrieve_api_results(
-            self._get_api_url() + "/{}/{}".format(path, numeric_id),
+             "/{}/{}".format(path, numeric_id),
             content_type=None,
             request_type="DELETE",
         )

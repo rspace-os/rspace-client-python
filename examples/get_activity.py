@@ -7,7 +7,7 @@ from datetime import date, timedelta
 
 # Parse command line parameters
 # Parse command line parameters
-client = rspace_client.utils.createClient()
+client = rspace_client.utils.createELNClient()
 
 # Get all activity related to documents being created or modified last week
 date_from = date.today() - timedelta(days=7)
