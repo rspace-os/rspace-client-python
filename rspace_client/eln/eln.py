@@ -41,7 +41,7 @@ class ELNClient(ClientBase):
         if query is not None:
             params["query"] = query
 
-        return self.retrieve_api_results(self._get_api_url() + "/documents", params)
+        return self.retrieve_api_results( "/documents", params)
 
     def get_documents_advanced_query(
         self, advanced_query, order_by="lastModified desc", page_number=0, page_size=20
@@ -62,7 +62,7 @@ class ELNClient(ClientBase):
             "pageSize": page_size,
             "pageNumber": page_number,
         }
-        return self.retrieve_api_results(self._get_api_url() + "/documents", params)
+        return self.retrieve_api_results( "/documents", params)
 
     def get_document(self, doc_id):
         """
@@ -74,7 +74,7 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(doc_id)
         return self.retrieve_api_results(
-            self._get_api_url() + "/documents/{}".format(numeric_doc_id)
+             "/documents/{}".format(numeric_doc_id)
         )
 
     def delete_document(self, doc_id):
@@ -94,7 +94,7 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(doc_id)
         return self.retrieve_api_results(
-            self._get_api_url() + "/documents/{}".format(numeric_doc_id),
+             "/documents/{}".format(numeric_doc_id),
             content_type="text/csv",
         )
 
@@ -135,7 +135,7 @@ class ELNClient(ClientBase):
             data["fields"] = fields
 
         return self.retrieve_api_results(
-            self._get_api_url() + "/documents", request_type="POST", params=data
+             "/documents", request_type="POST", params=data
         )
 
     def prepend_content(self, document_id, html_content, field_index=0):
@@ -244,7 +244,7 @@ class ELNClient(ClientBase):
             data["fields"] = fields
         numeric_doc_id = self._get_numeric_record_id(document_id)
         return self.retrieve_api_results(
-            self._get_api_url() + "/documents/{}".format(numeric_doc_id),
+             "/documents/{}".format(numeric_doc_id),
             request_type="PUT",
             params=data,
         )
@@ -274,7 +274,7 @@ class ELNClient(ClientBase):
             groupShare["sharedFolderId"] = sharedFolderId
         sharePost["groups"] = [groupShare]
         return self.retrieve_api_results(
-            self._get_api_url() + "/share", request_type="POST", params=sharePost
+             "/share", request_type="POST", params=sharePost
         )
 
     def unshareItem(self, sharingId):
@@ -294,7 +294,7 @@ class ELNClient(ClientBase):
         params = {"orderBy": order_by, "pageSize": page_size, "pageNumber": page_number}
         if query is not None:
             params["query"] = query
-        return self.retrieve_api_results(self._get_api_url() + "/share", params)
+        return self.retrieve_api_results( "/share", params)
 
     # File methods
 
@@ -321,7 +321,7 @@ class ELNClient(ClientBase):
             "orderBy": order_by,
             "mediaType": media_type,
         }
-        return self.retrieve_api_results(self._get_api_url() + "/files", params)
+        return self.retrieve_api_results( "/files", params)
 
     def get_file_info(self, file_id):
         """
@@ -332,7 +332,7 @@ class ELNClient(ClientBase):
         """
         numeric_file_id = self._get_numeric_record_id(file_id)
         return self.retrieve_api_results(
-            self._get_api_url() + "/files/{}".format(numeric_file_id)
+             "/files/{}".format(numeric_file_id)
         )
 
     def download_file(self, file_id, filename):
@@ -344,7 +344,7 @@ class ELNClient(ClientBase):
         """
         numeric_file_id = self._get_numeric_record_id(file_id)
         return self.download_link_to_file(
-            self._get_api_url() + "/files/{}/file".format(numeric_file_id), filename
+             "/files/{}/file".format(numeric_file_id), filename
         )
 
     def upload_file(self, file, folder_id=None, caption=None):
@@ -366,7 +366,7 @@ class ELNClient(ClientBase):
             data["caption"] = caption
 
         response = requests.post(
-            self._get_api_url() + "/files",
+             "/files",
             files={"file": file},
             data=data,
             headers=self._get_headers(),
@@ -382,7 +382,7 @@ class ELNClient(ClientBase):
         :return: updated File response as a dictionary
         """
         response = requests.post(
-            self._get_api_url() + "/files/{}/file".format(fileId),
+             "/files/{}/file".format(fileId),
             files={"file": file},
             headers=self._get_headers(),
         )
@@ -454,7 +454,7 @@ class ELNClient(ClientBase):
                 raise TypeError("Unexpected users type {}".format(type(users)))
 
         return self.retrieve_api_results(
-            self._get_api_url() + "/activity", params=params
+             "/activity", params=params
         )
 
     # Export
@@ -480,11 +480,11 @@ class ELNClient(ClientBase):
             )
 
         if uid is not None:
-            request_url = self._get_api_url() + "/export/{}/{}/{}".format(
+            request_url =  "/export/{}/{}/{}".format(
                 export_format, scope, uid
             )
         else:
-            request_url = self._get_api_url() + "/export/{}/{}".format(
+            request_url =  "/export/{}/{}".format(
                 export_format, scope
             )
 
@@ -547,7 +547,7 @@ class ELNClient(ClientBase):
         'STARTED', 'STARTING', 'RUNNING', 'COMPLETED', 'FAILED', 'ABANDONED')
         """
         return self.retrieve_api_results(
-            self._get_api_url() + "/jobs/{}".format(job_id)
+             "/jobs/{}".format(job_id)
         )
 
     # Form related methods
@@ -568,7 +568,7 @@ class ELNClient(ClientBase):
         if query is not None:
             params["query"] = query
 
-        return self.retrieve_api_results(self._get_api_url() + "/forms", params)
+        return self.retrieve_api_results( "/forms", params)
 
     def create_form(self, name, tags=None, fields=None):
         """
@@ -598,7 +598,7 @@ class ELNClient(ClientBase):
             raise ValueError("There has to be at least one field")
 
         return self.retrieve_api_results(
-            self._get_api_url() + "/forms", request_type="POST", params=data
+             "/forms", request_type="POST", params=data
         )
 
     def get_form(self, form_id):
@@ -610,7 +610,7 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(form_id)
         return self.retrieve_api_results(
-            self._get_api_url() + "/forms/{}".format(numeric_doc_id)
+             "/forms/{}".format(numeric_doc_id)
         )
 
     def delete_form(self, form_id):
@@ -629,7 +629,7 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(form_id)
         return self.retrieve_api_results(
-            self._get_api_url() + "/forms/{}/publish".format(numeric_doc_id),
+             "/forms/{}/publish".format(numeric_doc_id),
             request_type="PUT",
         )
 
@@ -642,7 +642,7 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(form_id)
         return self.retrieve_api_results(
-            self._get_api_url() + "/forms/{}/unpublish".format(numeric_doc_id),
+             "/forms/{}/unpublish".format(numeric_doc_id),
             request_type="PUT",
         )
 
@@ -655,7 +655,7 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(form_id)
         return self.retrieve_api_results(
-            self._get_api_url() + "/forms/{}/share".format(numeric_doc_id),
+             "/forms/{}/share".format(numeric_doc_id),
             request_type="PUT",
         )
 
@@ -669,7 +669,7 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(form_id)
         return self.retrieve_api_results(
-            self._get_api_url() + "/forms/{}/unshare".format(numeric_doc_id),
+             "/forms/{}/unshare".format(numeric_doc_id),
             request_type="PUT",
         )
 
@@ -696,7 +696,7 @@ class ELNClient(ClientBase):
             data["parentFolderId"] = numeric_folder_id
 
         return self.retrieve_api_results(
-            self._get_api_url() + "/folders", request_type="POST", params=data
+             "/folders", request_type="POST", params=data
         )
 
     def delete_folder(self, folder_id):
@@ -714,7 +714,7 @@ class ELNClient(ClientBase):
         """
         numeric_folder_id = self._get_numeric_record_id(folder_id)
         return self.retrieve_api_results(
-            self._get_api_url() + "/folders/{}".format(numeric_folder_id)
+             "/folders/{}".format(numeric_folder_id)
         )
 
     def list_folder_tree(self, folder_id=None, typesToInclude=[]):
@@ -727,9 +727,9 @@ class ELNClient(ClientBase):
         """
         url = ""
         if folder_id is not None:
-            url = self._get_api_url() + "/folders/tree/{}".format(folder_id)
+            url =  "/folders/tree/{}".format(folder_id)
         else:
-            url = self._get_api_url() + "/folders/tree"
+            url =  "/folders/tree"
         params = {}
         if len(typesToInclude) > 0:
             if (
@@ -749,7 +749,7 @@ class ELNClient(ClientBase):
         Gets a list of groups that you belong to. May be empty if you are not
         in any groups.
         """
-        return self.retrieve_api_results(self._get_api_url() + "/groups")
+        return self.retrieve_api_results( "/groups")
 
     # Import methods
     def import_word(self, file, folder_id=None, image_folder_id=None):
@@ -771,7 +771,7 @@ class ELNClient(ClientBase):
             data["imageFolderId"] = numeric_imagefolder_id
 
         response = requests.post(
-            self._get_api_url() + "/import/word",
+             "/import/word",
             files={"file": file},
             data=data,
             headers=self._get_headers(),
@@ -785,7 +785,7 @@ class ELNClient(ClientBase):
         More information on https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
         :return: parsed response as a dictionary (most important field is 'message' which is supposed to be 'OK')
         """
-        return self.retrieve_api_results(self._get_api_url() + "/status")
+        return self.retrieve_api_results( "/status")
 
     ##### Non - documented, non public API methods:
     # Sysadmin methods
@@ -810,7 +810,7 @@ class ELNClient(ClientBase):
             params["lastLoginBefore"] = last_login_before
 
         return self.retrieve_api_results(
-            self._get_api_url() + "/sysadmin/users", params
+             "/sysadmin/users", params
         )
 
     def deleteTempUser(self, user_id):

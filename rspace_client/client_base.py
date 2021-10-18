@@ -86,17 +86,18 @@ class ClientBase:
         )
 
     def retrieve_api_results(
-        self, url, params=None, content_type="application/json", request_type="GET"
+        self, endpoint, params=None, content_type="application/json", request_type="GET"
     ):
         """
         Makes the requested API call and returns either an exception or a parsed JSON response as a dictionary.
         Authentication header is automatically added. In most cases, a specialised method can be used instead.
-        :param url: URL to retrieve
+        :endpoint url: API endpoint
         :param request_type: 'GET', 'POST', 'PUT', 'DELETE'
         :param params: arguments to be added to the API request
         :param content_type: content type
         :return: parsed JSON response as a dictionary
         """
+        url = self._get_api_url() + endpoint
         headers = self._get_headers(content_type)
         try:
             if request_type == "GET":

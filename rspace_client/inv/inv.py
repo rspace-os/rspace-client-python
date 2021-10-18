@@ -495,7 +495,7 @@ class InventoryClient(ClientBase):
                 raise ValueError("attachments must be a list of open files")
 
         sample = self.retrieve_api_results(
-            self._get_api_url() + "/samples", request_type="POST", params=data
+             "/samples", request_type="POST", params=data
         )
         if attachments is not None:
             self.serr(f"adding {len(attachments)} attachments")
@@ -519,7 +519,7 @@ class InventoryClient(ClientBase):
         """
         s_id = Id(sample_id)
         return self.retrieve_api_results(
-            self._get_api_url() + f"/samples/{s_id.as_id()}"
+             f"/samples/{s_id.as_id()}"
         )
 
     def get_subsample_by_id(self, subsample_id: Union[str, int]) -> dict:
@@ -527,7 +527,7 @@ class InventoryClient(ClientBase):
         if ss_id.is_subsample is False:
             raise ValueError(f"{ss_id} is not id of a subsample")
         return self.retrieve_api_results(
-            self._get_api_url() + f"/subSamples/{ss_id.as_id()}"
+             f"/subSamples/{ss_id.as_id()}"
         )
 
     def list_samples(
@@ -577,7 +577,7 @@ class InventoryClient(ClientBase):
             pagination.data.update(sample_filter.data)
         self.serr(f"pg is {pagination.data}")
         return self.retrieve_api_results(
-            self._get_api_url() + f"/{endpoint}",
+             f"/{endpoint}",
             request_type="GET",
             params=pagination.data,
         )
@@ -595,7 +595,7 @@ class InventoryClient(ClientBase):
         ------
         item : One Sample at a time
         """
-        urlStr = self._get_api_url() + "/samples"
+        urlStr =  "/samples"
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
         next_link = (
@@ -626,7 +626,7 @@ class InventoryClient(ClientBase):
         s_id = Id(sample_id)
         endpoint = s_id.get_api_endpoint()
         return self.retrieve_api_results(
-            self._get_api_url() + f"/{endpoint}/{s_id.as_id()}",
+             f"/{endpoint}/{s_id.as_id()}",
             request_type="PUT",
             params={"name": new_name},
         )
@@ -653,7 +653,7 @@ class InventoryClient(ClientBase):
             toPut.append(ef.data)
         s_id = Id(sample_id)
         return self.retrieve_api_results(
-            self._get_api_url() + f"/samples/{s_id.as_id()}",
+             f"/samples/{s_id.as_id()}",
             request_type="PUT",
             params={"extraFields": toPut},
         )
@@ -677,7 +677,7 @@ class InventoryClient(ClientBase):
         fsStr = json.dumps(fs)
         headers = self._get_headers()
         response = requests.post(
-            self._get_api_url() + "/files",
+             "/files",
             files={"file": file, "fileSettings": (None, fsStr, "application/json")},
             headers=headers,
         )
@@ -691,7 +691,7 @@ class InventoryClient(ClientBase):
     ):
         def _do_call(ss_id, params):
             return self.retrieve_api_results(
-                self._get_api_url() + f"/subSamples/{ss_id.as_id()}/actions/split",
+                 f"/subSamples/{ss_id.as_id()}/actions/split",
                 request_type="POST",
                 params=params,
             )
@@ -741,7 +741,7 @@ class InventoryClient(ClientBase):
                 )
             bulk_post = {"records": records, "operationType": "UPDATE"}
             rc = self.retrieve_api_results(
-                self._get_api_url() + "/bulk", request_type="POST", params=bulk_post
+                 "/bulk", request_type="POST", params=bulk_post
             )
             return BulkOperationResult(rc)
 
@@ -761,7 +761,7 @@ class InventoryClient(ClientBase):
         id_to_copy = Id(item_to_duplicate)
         endpoint = id_to_copy.get_api_endpoint()
         rc = self.retrieve_api_results(
-            self._get_api_url() + f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate",
+             f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate",
             request_type="POST",
         )
         if new_name is not None:
@@ -775,7 +775,7 @@ class InventoryClient(ClientBase):
         params.update(pagination.data)
         if result_type is not None:
             params["resultType"] = result_type.name
-        return self.retrieve_api_results(self._get_api_url() + "/search", params=params)
+        return self.retrieve_api_results( "/search", params=params)
 
     def _set_core_properties(
         self,
@@ -800,7 +800,7 @@ class InventoryClient(ClientBase):
             raise ValueError("Supplied id is not a subsamples")
         data = {"content": note}
         return self.retrieve_api_results(
-            self._get_api_url() + f"/subSamples/{ss_id.as_id()}/notes",
+             f"/subSamples/{ss_id.as_id()}/notes",
             request_type="POST",
             params=data,
         )
@@ -814,7 +814,7 @@ class InventoryClient(ClientBase):
             your own workbench
 
         """
-        result = self.retrieve_api_results(self._get_api_url() + "/workbenches")
+        result = self.retrieve_api_results( "/workbenches")
         return [wb for wb in result["containers"]]
 
     def create_list_container(
@@ -833,14 +833,14 @@ class InventoryClient(ClientBase):
         data["canStoreSubsamples"] = can_store_subsamples
 
         container = self.retrieve_api_results(
-            self._get_api_url() + "/containers", request_type="POST", params=data
+             "/containers", request_type="POST", params=data
         )
         return container
 
     def get_container_by_id(self, container_id: Union[str, int]) -> dict:
         c_id = Id(container_id)
         return self.retrieve_api_results(
-            self._get_api_url() + f"/containers/{c_id.as_id()}"
+             f"/containers/{c_id.as_id()}"
         )
 
     def create_grid_container(
@@ -862,7 +862,7 @@ class InventoryClient(ClientBase):
         data["gridLayout"] = {"columnsNumber": column_count, "rowsNumber": row_count}
 
         container = self.retrieve_api_results(
-            self._get_api_url() + "/containers", request_type="POST", params=data
+             "/containers", request_type="POST", params=data
         )
         return container
 
@@ -946,7 +946,7 @@ class InventoryClient(ClientBase):
         ## use bulk API?
 
         resp_json = self.retrieve_api_results(
-            self._get_api_url() + "/bulk", request_type="POST", params=bulk_post
+             "/bulk", request_type="POST", params=bulk_post
         )
         return BulkOperationResult(resp_json)
 
@@ -963,7 +963,7 @@ class InventoryClient(ClientBase):
         to_post = {"operationType": "MOVE", "records": coords}
 
         resp_json = self.retrieve_api_results(
-            self._get_api_url() + "/bulk", request_type="POST", params=to_post
+             "/bulk", request_type="POST", params=to_post
         )
 
         return BulkOperationResult(resp_json)
