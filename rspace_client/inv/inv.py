@@ -1051,13 +1051,13 @@ class InventoryClient(ClientBase):
         return self.retrieve_api_results(
             "/listOfMaterials", request_type="POST", params=to_post
         )
-    
+
     def get_list_of_materials_for_document(self, document_id: Union[str, int]):
-        doc_id=self._get_numeric_record_id(document_id)
+        doc_id = self._get_numeric_record_id(document_id)
         return self.retrieve_api_results(f"/listOfMaterials/forDocument/{doc_id}")
-    
+
     def get_list_of_materials_for_field(self, field_id: Union[str, int]):
-        doc_id=self._get_numeric_record_id(field_id)
+        doc_id = self._get_numeric_record_id(field_id)
         return self.retrieve_api_results(f"/listOfMaterials/forField/{doc_id}")
 
 
