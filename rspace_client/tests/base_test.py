@@ -40,8 +40,8 @@ class BaseApiTest(unittest.TestCase):
             self.rspace_apikey = os.getenv(RSPACE_APIKEY_ENV)
 
         if (
-            self.rspace_url is None
-            or self.rspace_apikey is None
+            not hasattr(self, "rspace_url") 
+            or not hasattr(self, "rspace_apikey") 
             or len(self.rspace_url) == 0
             or len(self.rspace_apikey) == 0
         ):

@@ -1,16 +1,16 @@
 # rspace-client-python
 
-This project contains a client which helps calling RSpace APIs. There are some example Python scripts.
+This project contains a client which helps calling RSpace ELN and Inventory APIs. There are some example Python scripts.
 
-To begin with you'll need an account on an RSpace server and an API key which you can get from your profile page.
+To begin with, you'll need an account on an RSpace server and an API key which you can get from your profile page.
 You can sign up for a free RSpace account at https://community.researchspace.com
 
 In these examples we'll be using the rspace_client package (code is in rspace_client folder) which provides an abstraction over lower-level libraries. 
-It's compatible with Python 3.4 onwards, based on analysis by [vermin](https://pypi.org/project/vermin/vermin) 
+It's compatible with Python 3.7 onwards, based on analysis by [vermin](https://pypi.org/project/vermin/vermin) 
 
 All the code listed here is in the project.
 
-For full details of our API spec please see https://your.rspace.com/public/apiDocs
+For full details of our API spec please see https://<your.rspace.url>/public/apiDocs
 
 See [DEVELOPING.md](DEVELOPING.md) for details of running tests.
 

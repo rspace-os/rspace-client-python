@@ -410,14 +410,16 @@ class InventoryApiTest(base.BaseApiTest):
         )
 
     def test_delete_samples(self):
+        new_sample = self.invapi.create_sample("to_delete")
         total_samples = self.invapi.list_samples()
+
         total_samples_count = total_samples["totalHits"]
         total_deleted = self.invapi.list_samples(
             sample_filter=inv.SearchFilter(
                 deleted_item_filter=inv.DeletedItemFilter.DELETED_ONLY
             )
         )["totalHits"]
-        self.invapi.delete_sample(total_samples["samples"][0]["id"])
+        self.invapi.delete_sample(new_sample["id"])
         total_deleted2 = self.invapi.list_samples(
             sample_filter=inv.SearchFilter(
                 deleted_item_filter=inv.DeletedItemFilter.DELETED_ONLY
