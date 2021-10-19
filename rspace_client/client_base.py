@@ -94,7 +94,9 @@ class ClientBase:
         :param content_type: content type
         :return: parsed JSON response as a dictionary
         """
-        url = self._get_api_url() + endpoint
+        if not endpoint.startswith(self._get_api_url()):
+            url = self._get_api_url() + endpoint
+        
         headers = self._get_headers(content_type)
         try:
             if request_type == "GET":

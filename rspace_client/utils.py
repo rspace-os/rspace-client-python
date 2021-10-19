@@ -16,18 +16,20 @@ def _parse_args():
     args = parser.parse_args()
     return args
 
+
 def createELNClient():
     """
     Parses command line arguments: server, apiKey
-    """ 
+    """
     args = _parse_args()
     client = eln.ELNClient(args.server, args.apiKey)
     return client
 
+
 def createInventoryClient():
     """
     Parses command line arguments: server, apiKey
-    """ 
+    """
     args = _parse_args()
     client = inv.InventoryClient(args.server, args.apiKey)
     return client

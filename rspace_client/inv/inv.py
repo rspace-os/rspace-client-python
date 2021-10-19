@@ -598,7 +598,7 @@ class InventoryClient(ClientBase):
         ------
         item : One Sample at a time
         """
-        urlStr = "/samples"
+        urlStr = self._get_api_url()+"/samples"
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
         next_link = (
@@ -608,7 +608,9 @@ class InventoryClient(ClientBase):
         )
         while True:
             if next_link is not None:
+                print(next_link)
                 samples = self.retrieve_api_results(next_link)
+                print(samples)
                 for item in samples["samples"]:
                     yield item
                 if self.link_exists(samples, "next"):
@@ -865,6 +867,15 @@ class InventoryClient(ClientBase):
             "/containers", request_type="POST", params=data
         )
         return container
+    
+    def set_as_top_level_container(self, container: Union[int, str, dict, Container]):
+        data = { "removeFromParentContainerRequest": True }
+        c_id = Id(container)
+        
+        return self.retrieve_api_results(
+            f"/containers/{c_id.as_id()}", request_type="PUT", params=data
+        )
+        
 
     def add_items_to_list_container(
         self, target_container_id: Union[str, int], *item_ids: str,

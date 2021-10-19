@@ -97,6 +97,9 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_paginated_containers(self):
         pag = inv.Pagination(page_number=0, page_size=1)
+        name = base.random_string()
+        c= self.invapi.create_list_container(name)
+        c= self.invapi.set_as_top_level_container(c)
         containers = self.invapi.list_containers(pag)
         self.assertEqual(0, containers["pageNumber"])
         self.assertEqual(1, len(containers["containers"]))

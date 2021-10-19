@@ -10,7 +10,9 @@ import rspace_client
 
 inv_api = rspace_client.utils.createInventoryClient()
 
-print ("Creating a sample")
+print("Creating a sample")
 
 sample = inv_api.create_sample("My first sample")
-print(f"Sample with id {sample['id']} was created with {len(sample['subSamples'])} subsamples")
+print(
+    f"Sample with id {sample['id']} was created with {len(sample['subSamples'])} subsamples"
+)
