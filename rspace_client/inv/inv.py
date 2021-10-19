@@ -1032,6 +1032,25 @@ class InventoryClient(ClientBase):
             return {"operationType": "MOVE", "records": coords}
 
 
+
+    def create_list_of_materials(self, eln_field_id: int, name: str, description = None,
+                                 *materials: Union[str, dict]):
+        id_list = [Id(item) for item in materials]
+        materials = []
+        for item_id in id_list:
+            materials.append({"invRec": {"id": item_id.as_id(), "type": item_id.get_type()}})
+        
+        to_post = {
+            "name": name,
+            "elnFieldId": eln_field_id,
+            "materials": materials}
+        if description is not None:
+            to_post['description'] = description
+        return self.retrieve_api_results("/listOfMaterials", request_type="POST",
+                                         params=to_post)
+  
+  
+
 def _calculate_start_index(
     col_start, row_start, total_columns, total_rows, filling_strategy
 ):

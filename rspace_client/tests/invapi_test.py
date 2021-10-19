@@ -426,3 +426,5 @@ class InventoryApiTest(base.BaseApiTest):
             )
         )["totalHits"]
         self.assertEqual(total_deleted2, total_deleted + 1)
+    
+    
