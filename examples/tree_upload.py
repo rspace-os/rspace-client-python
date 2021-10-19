@@ -548,8 +548,10 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
             )
         )
         docname = "eCAT gallery images for documents in " + os.path.basename(parentDir)
-        folder_link = "Gallery Images in Documents in this folder:\n<docId={}>\n".format(
-            gifolders[parentDir]
+        folder_link = (
+            "Gallery Images in Documents in this folder:\n<docId={}>\n".format(
+                gifolders[parentDir]
+            )
         )
         new_document_id = -1
         if not dirName in sdocs:

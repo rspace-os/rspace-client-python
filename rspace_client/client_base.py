@@ -79,7 +79,9 @@ class ClientBase:
         """
         numeric_id = self._get_numeric_record_id(resource_id)
         return self.retrieve_api_results(
-            "/{}/{}".format(path, numeric_id), content_type=None, request_type="DELETE",
+            "/{}/{}".format(path, numeric_id),
+            content_type=None,
+            request_type="DELETE",
         )
 
     def retrieve_api_results(
@@ -94,9 +96,10 @@ class ClientBase:
         :param content_type: content type
         :return: parsed JSON response as a dictionary
         """
+        url = endpoint
         if not endpoint.startswith(self._get_api_url()):
             url = self._get_api_url() + endpoint
-        
+
         headers = self._get_headers(content_type)
         try:
             if request_type == "GET":

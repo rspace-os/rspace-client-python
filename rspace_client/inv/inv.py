@@ -110,7 +110,7 @@ class ByColumn(AutoFit):
 
 class ByLocation(GridPlacement):
     """
-     Place one or more items by exact location
+    Place one or more items by exact location
     """
 
     def __init__(self, locations: List[GridLocation], *items_to_move):
@@ -210,7 +210,7 @@ class ListContainer(Container):
 
     def capacity(self) -> int:
         """
-         Unlimited capacity
+        Unlimited capacity
         """
         return sys.maxsize
 
@@ -226,7 +226,7 @@ class Workbench(Container):
 
 class GridContainer(Container):
     """
-     Encapsulates results from create_grid_container() or get_container_by_id()
+    Encapsulates results from create_grid_container() or get_container_by_id()
     """
 
     def __init__(self, grid_container: dict):
@@ -244,7 +244,7 @@ class GridContainer(Container):
 
     def capacity(self) -> int:
         """
-          The number of cells in the grid - product of row and column counts
+        The number of cells in the grid - product of row and column counts
         """
         return self.row_count() * self.column_count()
 
@@ -279,7 +279,7 @@ class GridContainer(Container):
     def free_locations(self):
         """
         The inverse of 'used_locations' - gets empty grid cells
-        Returns 
+        Returns
         -------
         list of tuples of x,y coords of empty cells; 1-based, where x is column number and y is row number
         """
@@ -582,7 +582,9 @@ class InventoryClient(ClientBase):
             pagination.data.update(sample_filter.data)
         self.serr(f"pg is {pagination.data}")
         return self.retrieve_api_results(
-            f"/{endpoint}", request_type="GET", params=pagination.data,
+            f"/{endpoint}",
+            request_type="GET",
+            params=pagination.data,
         )
 
     def stream_samples(
@@ -598,7 +600,7 @@ class InventoryClient(ClientBase):
         ------
         item : One Sample at a time
         """
-        urlStr = self._get_api_url()+"/samples"
+        urlStr = self._get_api_url() + "/samples"
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
         next_link = (
@@ -768,7 +770,8 @@ class InventoryClient(ClientBase):
         id_to_copy = Id(item_to_duplicate)
         endpoint = id_to_copy.get_api_endpoint()
         rc = self.retrieve_api_results(
-            f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate", request_type="POST",
+            f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate",
+            request_type="POST",
         )
         if new_name is not None:
             rc = self.rename(rc, new_name)
@@ -806,7 +809,9 @@ class InventoryClient(ClientBase):
             raise ValueError("Supplied id is not a subsamples")
         data = {"content": note}
         return self.retrieve_api_results(
-            f"/subSamples/{ss_id.as_id()}/notes", request_type="POST", params=data,
+            f"/subSamples/{ss_id.as_id()}/notes",
+            request_type="POST",
+            params=data,
         )
 
     def get_workbenches(self) -> Sequence[dict]:
@@ -867,18 +872,19 @@ class InventoryClient(ClientBase):
             "/containers", request_type="POST", params=data
         )
         return container
-    
+
     def set_as_top_level_container(self, container: Union[int, str, dict, Container]):
-        data = { "removeFromParentContainerRequest": True }
+        data = {"removeFromParentContainerRequest": True}
         c_id = Id(container)
-        
+
         return self.retrieve_api_results(
             f"/containers/{c_id.as_id()}", request_type="PUT", params=data
         )
-        
 
     def add_items_to_list_container(
-        self, target_container_id: Union[str, int], *item_ids: str,
+        self,
+        target_container_id: Union[str, int],
+        *item_ids: str,
     ) -> list:
         """
         Adds 1 or more items to a list container
@@ -887,7 +893,7 @@ class InventoryClient(ClientBase):
         ----------
         target_container_id : Union[str, int]
             The id of a List container
-            
+
         *item_ids : Union[str, int]
             One or more globalids of items  to move into the target container
 
