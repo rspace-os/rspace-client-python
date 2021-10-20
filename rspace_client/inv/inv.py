@@ -20,6 +20,7 @@ class FillingStrategy(Enum):
     """
     Strategy for filling grid containers
     """
+
     BY_ROW = 1
     BY_COLUMN = 2
     EXACT = 3
@@ -554,7 +555,7 @@ class InventoryClient(ClientBase):
 
     def list_containers(
         self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
-    )-> dict:
+    ) -> dict:
         """
         Parameters
         ----------
@@ -784,7 +785,7 @@ class InventoryClient(ClientBase):
         self, query: str, pagination=Pagination(), result_type: ResultType = None
     ) -> dict:
         """
-        Searches by a query, optionally paginated or restricted to a particular type (container, 
+        Searches by a query, optionally paginated or restricted to a particular type (container,
                                                                                       sample, subsample or template)
         Parameters
         ----------
@@ -824,7 +825,9 @@ class InventoryClient(ClientBase):
             data["extraFields"] = [ef.data for ef in extra_fields]
         return data
 
-    def add_note_to_subsample(self, subsample: Union[str, int, dict], note: str)->dict:
+    def add_note_to_subsample(
+        self, subsample: Union[str, int, dict], note: str
+    ) -> dict:
         ss_id = Id(subsample)
         if not ss_id.is_subsample(True):
             raise ValueError("Supplied id is not a subsamples")
