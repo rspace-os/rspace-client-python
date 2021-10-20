@@ -1059,6 +1059,9 @@ class InventoryClient(ClientBase):
     def get_list_of_materials_for_field(self, field_id: Union[str, int]):
         doc_id = self._get_numeric_record_id(field_id)
         return self.retrieve_api_results(f"/listOfMaterials/forField/{doc_id}")
+    
+    def get_list_of_materials(self,  lom_id: int) -> dict:
+        return self.retrieve_api_results(f"/listOfMaterials/{lom_id}")
 
 
 def _calculate_start_index(

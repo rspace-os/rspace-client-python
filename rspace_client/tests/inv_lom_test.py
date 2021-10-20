@@ -35,3 +35,7 @@ class LomApiTest(base.BaseApiTest):
 
         lom_for_field = self.invapi.get_list_of_materials_for_field(field_id)
         self.assertEqual(created_id, lom_for_field[0]["id"])
+        
+        lom_by_id = self.invapi.get_list_of_materials(lom['id'])
+        self.assertEqual(created_id, lom_by_id['id'])
+
