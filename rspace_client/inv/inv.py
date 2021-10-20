@@ -17,6 +17,9 @@ class DeletedItemFilter(Enum):
 
 
 class FillingStrategy(Enum):
+    """
+    Strategy for filling grid containers
+    """
     BY_ROW = 1
     BY_COLUMN = 2
     EXACT = 3
@@ -537,7 +540,7 @@ class InventoryClient(ClientBase):
 
     def list_samples(
         self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
-    ):
+    ) -> dict:
         """
         Parameters
         ----------
@@ -551,7 +554,7 @@ class InventoryClient(ClientBase):
 
     def list_containers(
         self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
-    ):
+    )-> dict:
         """
         Parameters
         ----------
@@ -565,7 +568,7 @@ class InventoryClient(ClientBase):
 
     def list_subsamples(
         self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
-    ):
+    ) -> dict:
         """
         Parameters
         ----------
@@ -653,7 +656,7 @@ class InventoryClient(ClientBase):
         id_to_delete = Id(sample_id)
         self.doDelete("samples", id_to_delete.as_id())
 
-    def add_extra_fields(self, sample_id: Union[int, str], *ExtraField):
+    def add_extra_fields(self, sample_id: Union[int, str], *ExtraField) -> dict:
         toPut = []
         for ef in ExtraField:
             ef.data["newFieldRequest"] = True
@@ -780,6 +783,24 @@ class InventoryClient(ClientBase):
     def search(
         self, query: str, pagination=Pagination(), result_type: ResultType = None
     ) -> dict:
+        """
+        Searches by a query, optionally paginated or restricted to a particular type (container, 
+                                                                                      sample, subsample or template)
+        Parameters
+        ----------
+        query : str
+            Any text string. Will search against name, tag, description
+        pagination : optional
+            The default is Pagination().
+        result_type : ResultType, optional
+         The default is None.
+
+        Returns
+        -------
+        dict
+            Search result summary and first page of results.
+
+        """
         params = {"query": query}
         params.update(pagination.data)
         if result_type is not None:
@@ -803,7 +824,7 @@ class InventoryClient(ClientBase):
             data["extraFields"] = [ef.data for ef in extra_fields]
         return data
 
-    def add_note_to_subsample(self, subsample: Union[str, int, dict], note: str):
+    def add_note_to_subsample(self, subsample: Union[str, int, dict], note: str)->dict:
         ss_id = Id(subsample)
         if not ss_id.is_subsample(True):
             raise ValueError("Supplied id is not a subsamples")
@@ -1059,8 +1080,8 @@ class InventoryClient(ClientBase):
     def get_list_of_materials_for_field(self, field_id: Union[str, int]):
         doc_id = self._get_numeric_record_id(field_id)
         return self.retrieve_api_results(f"/listOfMaterials/forField/{doc_id}")
-    
-    def get_list_of_materials(self,  lom_id: int) -> dict:
+
+    def get_list_of_materials(self, lom_id: int) -> dict:
         return self.retrieve_api_results(f"/listOfMaterials/{lom_id}")
 
 
