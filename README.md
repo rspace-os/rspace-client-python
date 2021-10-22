@@ -35,6 +35,26 @@ python3 ExampleScript.py https://your.rspace.com MyAPIKey
 replacing MyAPIKey with your key, and ExampleScript.py with the name of the script you want to run.
 
 
+### Using the rspace_client library
+
+You'll need a running RSpace instance to send requests to
+
+The simplest way to read in the URL and API key from environment variables.
+
+```
+import os
+import rspace_client.inv.inv as inv
+import rspace_client.eln.eln as eln
+
+
+inv_cli = inv.InventoryClient(os.getenv("RSPACE_URL"), os.getenv("RSPACE_API_KEY"))
+eln_cli = eln.ELNClient(os.getenv("RSPACE_URL"), os.getenv("RSPACE_API_KEY"))
+
+samples = inv_cli.list_samples())
+print (f"There are {samples['totalHits']} samples")
+
+print(eln_cli.get_status())
+```
 
 ### A basic query to list documents
 
