@@ -2,7 +2,8 @@
 
 This project contains a client which helps calling RSpace ELN and Inventory APIs. There are some example Python scripts.
 
-To begin with, you'll need an account on an RSpace server and an API key which you can get from your profile page.
+To begin with, you'll need an account on an RSpace server and an API key which you can get from your [profile page](https://researchspace.helpdocs.io/article/v0dxtfvj7u-rspace-api-introduction
+).
 You can sign up for a free RSpace account at https://community.researchspace.com
 
 In these examples we'll be using the rspace_client package (code is in rspace_client folder) which provides an abstraction over lower-level libraries. 
@@ -10,7 +11,7 @@ It's compatible with Python 3.7 onwards, based on analysis by [vermin](https://p
 
 All the code listed here is in the project.
 
-For full details of our API spec please see https://<your.rspace.url>/public/apiDocs
+For full details of our API spec please see https://$RSPACE_API/public/apiDocs
 
 See [DEVELOPING.md](DEVELOPING.md) for details of running tests.
 
@@ -22,24 +23,22 @@ pip3 install rspace-client
 ```
 
 You may need to install `requests` module:
+
 ``` bash
 pip3 install  requests
 ```
 
-To run the example scripts in the examples folder, cd to that folder, then run
+### Using the rspace_client library in your own code
 
-```bash
-python3 ExampleScript.py https://your.rspace.com MyAPIKey
+You'll need a running RSpace instance to send requests to.
+
+The simplest way to read in the URL and API key is from environment variables, e.g.
+
 ```
-
-replacing MyAPIKey with your key, and ExampleScript.py with the name of the script you want to run.
-
-
-### Using the rspace_client library
-
-You'll need a running RSpace instance to send requests to
-
-The simplest way to read in the URL and API key from environment variables.
+bash> export RSPACE_URL=https:/myrspace.com
+bash> export RSPACE_API_KEY=abcdefgh...
+```
+substituting in your own values.
 
 ```
 import os
@@ -55,6 +54,16 @@ print (f"There are {samples['totalHits']} samples")
 
 print(eln_cli.get_status())
 ```
+
+## Running example scripts
+
+To run the example scripts in the examples folder, cd to that folder, then run
+
+```bash
+python3 ExampleScript.py $RSPACE_URL $RSPACE_API_KEY
+```
+
+replacing $RSPACE_API_KEY with your key, and ExampleScript.py with the name of the script you want to run.
 
 ### A basic query to list documents
 
