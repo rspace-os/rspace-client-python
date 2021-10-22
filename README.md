@@ -63,7 +63,7 @@ To run the example scripts in the examples folder, cd to that folder, then run
 python3 ExampleScript.py $RSPACE_URL $RSPACE_API_KEY
 ```
 
-replacing $RSPACE_API_KEY with your key, and ExampleScript.py with the name of the script you want to run.
+replacing ExampleScript.py with the name of the script you want to run.
 
 ### A basic query to list documents
 
