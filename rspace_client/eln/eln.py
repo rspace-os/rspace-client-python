@@ -92,8 +92,7 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(doc_id)
         return self.retrieve_api_results(
-            "/documents/{}".format(numeric_doc_id),
-            content_type="text/csv",
+            "/documents/{}".format(numeric_doc_id), content_type="text/csv",
         )
 
     def create_document(
@@ -240,9 +239,7 @@ class ELNClient(ClientBase):
             data["fields"] = fields
         numeric_doc_id = self._get_numeric_record_id(document_id)
         return self.retrieve_api_results(
-            "/documents/{}".format(numeric_doc_id),
-            request_type="PUT",
-            params=data,
+            "/documents/{}".format(numeric_doc_id), request_type="PUT", params=data,
         )
 
     # Sharing methods
@@ -611,8 +608,7 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(form_id)
         return self.retrieve_api_results(
-            "/forms/{}/publish".format(numeric_doc_id),
-            request_type="PUT",
+            "/forms/{}/publish".format(numeric_doc_id), request_type="PUT",
         )
 
     def unpublish_form(self, form_id):
@@ -624,8 +620,7 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(form_id)
         return self.retrieve_api_results(
-            "/forms/{}/unpublish".format(numeric_doc_id),
-            request_type="PUT",
+            "/forms/{}/unpublish".format(numeric_doc_id), request_type="PUT",
         )
 
     def share_form(self, form_id):
@@ -637,8 +632,7 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(form_id)
         return self.retrieve_api_results(
-            "/forms/{}/share".format(numeric_doc_id),
-            request_type="PUT",
+            "/forms/{}/share".format(numeric_doc_id), request_type="PUT",
         )
 
     def unshare_form(self, form_id):
@@ -651,8 +645,7 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(form_id)
         return self.retrieve_api_results(
-            "/forms/{}/unshare".format(numeric_doc_id),
-            request_type="PUT",
+            "/forms/{}/unshare".format(numeric_doc_id), request_type="PUT",
         )
 
     # Folder / notebook methods

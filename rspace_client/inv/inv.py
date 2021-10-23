@@ -14,11 +14,11 @@ class DeletedItemFilter(Enum):
     EXCLUDE = 1
     INCLUDE = 2
     DELETED_ONLY = 3
-    
+
 
 class Barcode(Enum):
-    BARCODE=1
-    QR=2
+    BARCODE = 1
+    QR = 2
 
 
 class FillingStrategy(Enum):
@@ -29,22 +29,21 @@ class FillingStrategy(Enum):
     BY_ROW = 1
     BY_COLUMN = 2
     EXACT = 3
-    
+
+
 class Sample:
     def __init__(self, data: dict):
-        self.data=data
-        
+        self.data = data
+
     def wherep(self):
         bcumbs = set()
-        for ss in self.data['subSamples']:
-            b_crumb= ' -> '.join([x['name'] for x in ss['parentContainers']][::-1])
+        for ss in self.data["subSamples"]:
+            b_crumb = " -> ".join([x["name"] for x in ss["parentContainers"]][::-1])
             bcumbs.add(b_crumb)
-        return ','.join(bcumbs)
-    
-    
+        return ",".join(bcumbs)
+
     def __str__(self):
         return f"Sample: id = {self.data['id']}, name = {self.data['name']}, creationDate = {self.data['created']}"
-    
 
 
 class GridPlacement:
@@ -607,9 +606,7 @@ class InventoryClient(ClientBase):
             pagination.data.update(sample_filter.data)
         self.serr(f"pg is {pagination.data}")
         return self.retrieve_api_results(
-            f"/{endpoint}",
-            request_type="GET",
-            params=pagination.data,
+            f"/{endpoint}", request_type="GET", params=pagination.data,
         )
 
     def stream_samples(
@@ -795,8 +792,7 @@ class InventoryClient(ClientBase):
         id_to_copy = Id(item_to_duplicate)
         endpoint = id_to_copy.get_api_endpoint()
         rc = self.retrieve_api_results(
-            f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate",
-            request_type="POST",
+            f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate", request_type="POST",
         )
         if new_name is not None:
             rc = self.rename(rc, new_name)
@@ -854,9 +850,7 @@ class InventoryClient(ClientBase):
             raise ValueError("Supplied id is not a subsamples")
         data = {"content": note}
         return self.retrieve_api_results(
-            f"/subSamples/{ss_id.as_id()}/notes",
-            request_type="POST",
-            params=data,
+            f"/subSamples/{ss_id.as_id()}/notes", request_type="POST", params=data,
         )
 
     def get_workbenches(self) -> Sequence[dict]:
@@ -927,9 +921,7 @@ class InventoryClient(ClientBase):
         )
 
     def add_items_to_list_container(
-        self,
-        target_container_id: Union[str, int],
-        *item_ids: str,
+        self, target_container_id: Union[str, int], *item_ids: str,
     ) -> list:
         """
         Adds 1 or more items to a list container
@@ -1107,9 +1099,13 @@ class InventoryClient(ClientBase):
 
     def get_list_of_materials(self, lom_id: int) -> dict:
         return self.retrieve_api_results(f"/listOfMaterials/{lom_id}")
-    
-    def barcode(self, global_id:Union[str, dict], outfile: str = None,
-                barcode_type: Barcode =Barcode.BARCODE) -> bytes:
+
+    def barcode(
+        self,
+        global_id: Union[str, dict],
+        outfile: str = None,
+        barcode_type: Barcode = Barcode.BARCODE,
+    ) -> bytes:
         """
         Generates a QR code or barcode image, optionally saving to file if filepath supplied.
         Parameters
@@ -1124,19 +1120,18 @@ class InventoryClient(ClientBase):
             Bytes of the image.
 
         """
-        Id(global_id)## validate is identifier
-        data = {'content':global_id, 'barcodeType':barcode_type.name}
-        url=f"{self._get_api_url()}/barcodes"
+        Id(global_id)  ## validate is identifier
+        data = {"content": global_id, "barcodeType": barcode_type.name}
+        url = f"{self._get_api_url()}/barcodes"
         headers = {"apiKey": self.api_key, "Accept": "image/png"}
 
-        resp  = requests.get(url, headers=headers, params=data)
+        resp = requests.get(url, headers=headers, params=data)
         resp.raise_for_status()
         content = resp.content
         if outfile is not None:
-            with open (outfile, "wb") as fd:
+            with open(outfile, "wb") as fd:
                 fd.write(content)
-        return content        
-        
+        return content
 
 
 def _calculate_start_index(

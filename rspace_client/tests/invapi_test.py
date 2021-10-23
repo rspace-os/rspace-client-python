@@ -50,7 +50,7 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(expiry_date.isoformat(), sample["expiryDate"])
         self.assertEqual(1, len(sample["attachments"]))
         s_ob = inv.Sample(sample)
-        print (s_ob)
+        print(s_ob)
 
     def test_create_sample_name_only(self):
         sample = self.invapi.create_sample(base.random_string(5))
@@ -410,12 +410,14 @@ class InventoryApiTest(base.BaseApiTest):
             4,
             inv.FillingStrategy.BY_ROW,
         )
-        
+
     def test_barcode(self):
         barcode_bytes = self.invapi.barcode("SA14567")
         self.assertEqual(99, len(barcode_bytes))
-        
-        qr_bytes = self.invapi.barcode("SA12345", outfile="out10.png", barcode_type=inv.Barcode.QR)
+
+        qr_bytes = self.invapi.barcode(
+            "SA12345", outfile="out10.png", barcode_type=inv.Barcode.QR
+        )
         self.assertEqual(293, len(qr_bytes))
 
     def test_delete_samples(self):
