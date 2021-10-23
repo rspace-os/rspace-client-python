@@ -14,6 +14,11 @@ class DeletedItemFilter(Enum):
     EXCLUDE = 1
     INCLUDE = 2
     DELETED_ONLY = 3
+    
+
+class Barcode(Enum):
+    BARCODE=1
+    QR=2
 
 
 class FillingStrategy(Enum):
@@ -24,6 +29,22 @@ class FillingStrategy(Enum):
     BY_ROW = 1
     BY_COLUMN = 2
     EXACT = 3
+    
+class Sample:
+    def __init__(self, data: dict):
+        self.data=data
+        
+    def wherep(self):
+        bcumbs = set()
+        for ss in self.data['subSamples']:
+            b_crumb= ' -> '.join([x['name'] for x in ss['parentContainers']][::-1])
+            bcumbs.add(b_crumb)
+        return ','.join(bcumbs)
+    
+    
+    def __str__(self):
+        return f"Sample: id = {self.data['id']}, name = {self.data['name']}, creationDate = {self.data['created']}"
+    
 
 
 class GridPlacement:
@@ -1059,8 +1080,8 @@ class InventoryClient(ClientBase):
         self,
         eln_field_id: int,
         name: str,
-        description=None,
         *materials: Union[str, dict],
+        description=None,
     ) -> dict:
         id_list = [Id(item) for item in materials]
         materials = []
@@ -1086,6 +1107,36 @@ class InventoryClient(ClientBase):
 
     def get_list_of_materials(self, lom_id: int) -> dict:
         return self.retrieve_api_results(f"/listOfMaterials/{lom_id}")
+    
+    def barcode(self, global_id:Union[str, dict], outfile: str = None,
+                barcode_type: Barcode =Barcode.BARCODE) -> bytes:
+        """
+        Generates a QR code or barcode image, optionally saving to file if filepath supplied.
+        Parameters
+        ----------
+        global_id : Union[str, dict]
+        
+        barcode_type:
+             The default is Barcode.BARCODE.
+
+        Returns
+        -------
+            Bytes of the image.
+
+        """
+        Id(global_id)## validate is identifier
+        data = {'content':global_id, 'barcodeType':barcode_type.name}
+        url=f"{self._get_api_url()}/barcodes"
+        headers = {"apiKey": self.api_key, "Accept": "image/png"}
+
+        resp  = requests.get(url, headers=headers, params=data)
+        resp.raise_for_status()
+        content = resp.content
+        if outfile is not None:
+            with open (outfile, "wb") as fd:
+                fd.write(content)
+        return content        
+        
 
 
 def _calculate_start_index(
