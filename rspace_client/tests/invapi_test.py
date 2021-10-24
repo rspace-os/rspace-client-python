@@ -132,8 +132,12 @@ class InventoryApiTest(base.BaseApiTest):
         sample = self.invapi.create_sample(base.random_string())
         ef1 = inv.ExtraField(name="ef1", content="ef1 content")
         ef2 = inv.ExtraField(name="ef2", content="ef2 content")
-        updatedS = self.invapi.add_extra_fields(sample["id"], ef1, ef2)
+        updatedS = self.invapi.add_extra_fields(sample["globalId"], ef1, ef2)
         self.assertEqual(2, len(updatedS["extraFields"]))
+        
+        container = self.invapi.create_list_container("any list container")
+        updatedC = self.invapi.add_extra_fields(container,  ef2)
+        self.assertEqual(1, len(updatedC["extraFields"]))
 
     def test_search_sample(self):
         name = base.random_string()

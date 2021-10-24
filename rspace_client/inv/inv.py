@@ -675,14 +675,15 @@ class InventoryClient(ClientBase):
         id_to_delete = Id(sample_id)
         self.doDelete("samples", id_to_delete.as_id())
 
-    def add_extra_fields(self, sample_id: Union[int, str], *ExtraField) -> dict:
+    def add_extra_fields(self, item_id: Union[str, dict], *ExtraField) -> dict:
+        s_id = Id(item_id)
+        endpoint=s_id.get_api_endpoint()
         toPut = []
         for ef in ExtraField:
             ef.data["newFieldRequest"] = True
             toPut.append(ef.data)
-        s_id = Id(sample_id)
         return self.retrieve_api_results(
-            f"/samples/{s_id.as_id()}",
+            f"/{endpoint}/{s_id.as_id()}",
             request_type="PUT",
             params={"extraFields": toPut},
         )
@@ -1073,7 +1074,7 @@ class InventoryClient(ClientBase):
         eln_field_id: int,
         name: str,
         *materials: Union[str, dict],
-        description:str=None,
+        description: str = None,
     ) -> dict:
         """
         Creates a new ListOfMaterials, attached to an ELN text field.
