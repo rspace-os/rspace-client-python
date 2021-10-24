@@ -1073,8 +1073,30 @@ class InventoryClient(ClientBase):
         eln_field_id: int,
         name: str,
         *materials: Union[str, dict],
-        description=None,
+        description:str=None,
     ) -> dict:
+        """
+        Creates a new ListOfMaterials, attached to an ELN text field.
+
+        Parameters
+        ----------
+        eln_field_id : int
+            The ID of the field
+        name : str
+            A label for the LoM
+        *materials : Union[str, dict]
+            One or more globalIds or objects representing samples, subsamples or containers
+        description : str, optional
+            DESC. The default is None.
+         : TYPE
+            A decription of the purpose or the LoM
+
+        Returns
+        -------
+        dict
+            The newly created ListOfMaterials.
+
+        """
         id_list = [Id(item) for item in materials]
         materials = []
         for item_id in id_list:
@@ -1089,15 +1111,53 @@ class InventoryClient(ClientBase):
             "/listOfMaterials", request_type="POST", params=to_post
         )
 
-    def get_list_of_materials_for_document(self, document_id: Union[str, int]):
+    def get_list_of_materials_for_document(self, document_id: Union[str, int, dict]):
+        """
+        Gets all ListsOfMaterials belonging to one ELN document
+
+        Parameters
+        ----------
+        document_id : Union[str, int, dict]
+            The document id, globalId or a dict of the document
+
+        Returns
+        -------
+        A List of List Of Materials
+
+        """
         doc_id = self._get_numeric_record_id(document_id)
         return self.retrieve_api_results(f"/listOfMaterials/forDocument/{doc_id}")
 
     def get_list_of_materials_for_field(self, field_id: Union[str, int]):
+        """
+        Gets all lists of materials belongong to an ELN document field
+
+        Parameters
+        ----------
+        field_id : Union[str, int]
+
+        Returns
+        -------
+        A List of List Of Materials
+
+        """
         doc_id = self._get_numeric_record_id(field_id)
         return self.retrieve_api_results(f"/listOfMaterials/forField/{doc_id}")
 
     def get_list_of_materials(self, lom_id: int) -> dict:
+        """
+        Gets one List Of Materials by its id
+
+        Parameters
+        ----------
+        lom_id : int
+
+        Returns
+        -------
+        dict
+            The list of materials.
+
+        """
         return self.retrieve_api_results(f"/listOfMaterials/{lom_id}")
 
     def barcode(
