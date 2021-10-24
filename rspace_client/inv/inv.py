@@ -607,9 +607,9 @@ class InventoryClient(ClientBase):
         return self.retrieve_api_results(
             f"/{endpoint}", request_type="GET", params=pagination.data,
         )
-    
-    
-    def stream_samples(self,  pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
+
+    def stream_samples(
+        self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
     ):
         """
         Streams all samples. Pagination argument sets batch size and ordering.
@@ -622,8 +622,9 @@ class InventoryClient(ClientBase):
         item : One Sample at a time
         """
         return self._stream("samples", pagination, sample_filter)
-    
-    def stream_top_level_containers(self,  pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
+
+    def stream_top_level_containers(
+        self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
     ):
         """
         Streams all containers. Pagination argument sets batch size and ordering.
@@ -638,17 +639,16 @@ class InventoryClient(ClientBase):
         return self._stream("containers", pagination, sample_filter)
 
     def _stream(
-        self, inv_type:str, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
+        self,
+        inv_type: str,
+        pagination: Pagination = Pagination(),
+        sample_filter: SearchFilter = None,
     ):
-      
+
         urlStr = f"{self._get_api_url()}/{inv_type}"
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
-        next_link = (
-            requests.Request(url=urlStr, params=pagination.data)
-            .prepare()
-            .url
-        )
+        next_link = requests.Request(url=urlStr, params=pagination.data).prepare().url
         while True:
             if next_link is not None:
                 items = self.retrieve_api_results(next_link)

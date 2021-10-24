@@ -110,15 +110,16 @@ class InventoryApiTest(base.BaseApiTest):
         ss = self.invapi.list_subsamples(pag)
         self.assertEqual(0, ss["pageNumber"])
         self.assertEqual(1, len(ss["subSamples"]))
-        
+
     def test_stream_containers(self):
-        pag = inv.Pagination(page_number=0, page_size=1, order_by="creationDate", sort_order="desc")
+        pag = inv.Pagination(
+            page_number=0, page_size=1, order_by="creationDate", sort_order="desc"
+        )
         name_gen = base.random_string_gen()
         c1 = self.invapi.create_list_container(next(name_gen))
         c2 = self.invapi.create_list_container(next(name_gen))
         self.invapi.set_as_top_level_container(c1)
         self.invapi.set_as_top_level_container(c2)
-
 
         gen = self.invapi.stream_top_level_containers(pag)
         # get 2 items
@@ -126,7 +127,6 @@ class InventoryApiTest(base.BaseApiTest):
         c1_l = next(gen)
         self.assertEqual(c1["id"], c1_l["id"])
         self.assertEqual(c2["id"], c2_l["id"])
-
 
     def test_stream_samples(self):
         onePerPage = inv.Pagination(page_size=1)
