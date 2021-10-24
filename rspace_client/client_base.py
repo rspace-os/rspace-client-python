@@ -59,10 +59,8 @@ class ClientBase:
             if ClientBase._responseContainsJson(response):
                 return response.json()
             elif response.text:
-                print(" is text", file=sys.stderr)
                 return response.text
             else:
-                print(" binary response ", file=sys.stderr)
                 return response
         except:
             if "application/json" in response.headers["Content-Type"]:
@@ -105,8 +103,6 @@ class ClientBase:
         try:
             if request_type == "GET":
                 response = requests.get(url, params=params, headers=headers)
-                print(response.headers)
-                print(response.url)
             elif (
                 request_type == "PUT"
                 or request_type == "POST"

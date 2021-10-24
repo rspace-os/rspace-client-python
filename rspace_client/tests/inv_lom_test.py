@@ -24,7 +24,7 @@ class LomApiTest(base.BaseApiTest):
         field_id = doc["fields"][0]["id"]
         item_to_add = self.invapi.create_sample("s1")
         lom = self.invapi.create_list_of_materials(
-            field_id, "lom1", "description", item_to_add, item_to_add["subSamples"][0]
+            field_id, "lom1", item_to_add, item_to_add["subSamples"][0], description="description"
         )
         self.assertEqual("lom1", lom["name"])
         self.assertEqual("description", lom["description"])

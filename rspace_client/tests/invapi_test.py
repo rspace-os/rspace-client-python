@@ -50,7 +50,6 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(expiry_date.isoformat(), sample["expiryDate"])
         self.assertEqual(1, len(sample["attachments"]))
         s_ob = inv.Sample(sample)
-        print(s_ob)
 
     def test_create_sample_name_only(self):
         sample = self.invapi.create_sample(base.random_string(5))
@@ -102,7 +101,7 @@ class InventoryApiTest(base.BaseApiTest):
         name = base.random_string()
         c = self.invapi.create_list_container(name)
         c = self.invapi.set_as_top_level_container(c)
-        containers = self.invapi.list_containers(pag)
+        containers = self.invapi.list_top_level_containers(pag)
         self.assertEqual(0, containers["pageNumber"])
         self.assertEqual(1, len(containers["containers"]))
 
@@ -111,6 +110,23 @@ class InventoryApiTest(base.BaseApiTest):
         ss = self.invapi.list_subsamples(pag)
         self.assertEqual(0, ss["pageNumber"])
         self.assertEqual(1, len(ss["subSamples"]))
+        
+    def test_stream_containers(self):
+        pag = inv.Pagination(page_number=0, page_size=1, order_by="creationDate", sort_order="desc")
+        name_gen = base.random_string_gen()
+        c1 = self.invapi.create_list_container(next(name_gen))
+        c2 = self.invapi.create_list_container(next(name_gen))
+        self.invapi.set_as_top_level_container(c1)
+        self.invapi.set_as_top_level_container(c2)
+
+
+        gen = self.invapi.stream_top_level_containers(pag)
+        # get 2 items
+        c2_l = next(gen)
+        c1_l = next(gen)
+        self.assertEqual(c1["id"], c1_l["id"])
+        self.assertEqual(c2["id"], c2_l["id"])
+
 
     def test_stream_samples(self):
         onePerPage = inv.Pagination(page_size=1)
@@ -125,7 +141,7 @@ class InventoryApiTest(base.BaseApiTest):
         gen = self.invapi.stream_samples(onePerPage, sample_filter)
         result_count = 0
         for sample in gen:
-            result_count = result_count + 1
+            result_count += 1
         self.assertEqual(0, result_count)
 
     def test_add_extra_fields(self):
@@ -134,9 +150,9 @@ class InventoryApiTest(base.BaseApiTest):
         ef2 = inv.ExtraField(name="ef2", content="ef2 content")
         updatedS = self.invapi.add_extra_fields(sample["globalId"], ef1, ef2)
         self.assertEqual(2, len(updatedS["extraFields"]))
-        
+
         container = self.invapi.create_list_container("any list container")
-        updatedC = self.invapi.add_extra_fields(container,  ef2)
+        updatedC = self.invapi.add_extra_fields(container, ef2)
         self.assertEqual(1, len(updatedC["extraFields"]))
 
     def test_search_sample(self):
@@ -221,7 +237,6 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(1, len(workbenches))
         workbench_ob = inv.Container.of(workbenches[0])
         self.assertTrue(workbench_ob.is_workbench())
-        print(workbench_ob.data)
 
     def test_create_list_container(self):
         name = base.random_string()
@@ -327,7 +342,6 @@ class InventoryApiTest(base.BaseApiTest):
         grid_c = self.invapi.create_grid_container("gridX", 7, 3)
         sample = self.invapi.create_sample(name="multiS", subsample_count=10)
         ss_ids = [x["globalId"] for x in sample["subSamples"]]
-        print(" ss_ids are " + ",".join([str(x) for x in ss_ids]))
         rc = self.invapi.add_items_to_grid_container(
             grid_c, inv.ByColumn(2, 1, 3, 7, *ss_ids)
         )

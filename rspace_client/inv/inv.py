@@ -54,7 +54,6 @@ class GridPlacement:
             if not toMove.is_movable():
                 raise ValueError(f" Can't move {item} - not a movable type")
             ids.append(toMove)
-        print(f"fs is {filling_strategy}")
         self.items_to_move = ids
         self.filling_strategy = filling_strategy
 
@@ -573,7 +572,7 @@ class InventoryClient(ClientBase):
         """
         return self._do_simple_list("samples", pagination, sample_filter)
 
-    def list_containers(
+    def list_top_level_containers(
         self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
     ) -> dict:
         """
@@ -608,9 +607,9 @@ class InventoryClient(ClientBase):
         return self.retrieve_api_results(
             f"/{endpoint}", request_type="GET", params=pagination.data,
         )
-
-    def stream_samples(
-        self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
+    
+    
+    def stream_samples(self,  pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
     ):
         """
         Streams all samples. Pagination argument sets batch size and ordering.
@@ -622,23 +621,41 @@ class InventoryClient(ClientBase):
         ------
         item : One Sample at a time
         """
-        urlStr = self._get_api_url() + "/samples"
+        return self._stream("samples", pagination, sample_filter)
+    
+    def stream_top_level_containers(self,  pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
+    ):
+        """
+        Streams all containers. Pagination argument sets batch size and ordering.
+        Parameters
+        ----------
+        pagination : Pagination, optional. The default is Pagination().
+
+        Yields
+        ------
+        item : One Container at a time
+        """
+        return self._stream("containers", pagination, sample_filter)
+
+    def _stream(
+        self, inv_type:str, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
+    ):
+      
+        urlStr = f"{self._get_api_url()}/{inv_type}"
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
         next_link = (
-            requests.Request(method="GET", url=urlStr, params=pagination.data)
+            requests.Request(url=urlStr, params=pagination.data)
             .prepare()
             .url
         )
         while True:
             if next_link is not None:
-                print(next_link)
-                samples = self.retrieve_api_results(next_link)
-                print(samples)
-                for item in samples["samples"]:
+                items = self.retrieve_api_results(next_link)
+                for item in items[inv_type]:
                     yield item
-                if self.link_exists(samples, "next"):
-                    next_link = self.get_link(samples, "next")
+                if self.link_exists(items, "next"):
+                    next_link = self.get_link(items, "next")
                 else:
                     break
 
@@ -677,7 +694,7 @@ class InventoryClient(ClientBase):
 
     def add_extra_fields(self, item_id: Union[str, dict], *ExtraField) -> dict:
         s_id = Id(item_id)
-        endpoint=s_id.get_api_endpoint()
+        endpoint = s_id.get_api_endpoint()
         toPut = []
         for ef in ExtraField:
             ef.data["newFieldRequest"] = True
@@ -1046,7 +1063,6 @@ class InventoryClient(ClientBase):
                 gp.total_rows,
                 gp.filling_strategy,
             )
-            print(f"{len(gp.items_to_move)}")
             for ss_id in gp.items_to_move:
 
                 x = gp.column_index
@@ -1066,7 +1082,6 @@ class InventoryClient(ClientBase):
                     }
                 )
                 counter = counter + 1
-            print(f"coords is {len(coords)}")
             return {"operationType": "MOVE", "records": coords}
 
     def create_list_of_materials(

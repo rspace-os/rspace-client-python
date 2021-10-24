@@ -31,7 +31,10 @@ def random_string(length=10):
     letters = string.ascii_lowercase
     return "".join(random.choice(letters) for i in range(length))
 
-
+def random_string_gen(length=10):
+    while True:
+        yield random_string(length)
+    
 class BaseApiTest(unittest.TestCase):
     def assertClientCredentials(self):
         if os.getenv(RSPACE_URL_ENV) is not None:
