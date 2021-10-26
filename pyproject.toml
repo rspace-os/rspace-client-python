@@ -13,7 +13,7 @@ repository = "https://github.com/rspace-os/rspace-client-python"
 documentation = "https://github.com/rspace-os/rspace-client-python"
 keywords = ["RSpace", "ResearchSpace", "ELN", "Inventory"]
 classifiers = [
-  "Development Status :: Alpha",
+  "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
   "Topic :: Software Development :: Libraries",
