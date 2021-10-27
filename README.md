@@ -49,7 +49,7 @@ import rspace_client.eln.eln as eln
 inv_cli = inv.InventoryClient(os.getenv("RSPACE_URL"), os.getenv("RSPACE_API_KEY"))
 eln_cli = eln.ELNClient(os.getenv("RSPACE_URL"), os.getenv("RSPACE_API_KEY"))
 
-samples = inv_cli.list_samples())
+samples = inv_cli.list_samples()
 print (f"There are {samples['totalHits']} samples")
 
 print(eln_cli.get_status())
