@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 import rspace_client
-
+import os
 # Parse command line parameters
 client = rspace_client.utils.createELNClient()
 folder_id = client.create_folder("Word Import Folder")["id"]
@@ -11,7 +11,7 @@ print(
         "fish_method.doc"
     )
 )
-with open("resources/fish_method.doc", "rb") as f:
+with open(os.sep.join(["resources", "fish_method.doc"]), "rb") as f:
     rspaceDoc = client.import_word(f, folder_id)
     print(
         'File "{}" was imported to  folder {} as {} ({})'.format(
