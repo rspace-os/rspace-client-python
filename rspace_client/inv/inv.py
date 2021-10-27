@@ -6,7 +6,7 @@ import sys
 import requests
 from typing import Optional, Sequence, Union, List
 
-from rspace_client.client_base import ClientBase
+from rspace_client.client_base import ClientBase, Pagination
 from rspace_client.inv import quantity_unit as qu
 
 
@@ -326,21 +326,6 @@ class SearchFilter:
             self.data["ownedBy"] = owned_by
 
 
-class Pagination:
-    def __init__(
-        self,
-        page_number: int = 0,
-        page_size: int = 10,
-        order_by: str = None,
-        sort_order: str = "asc",
-    ):
-        self.data = {
-            "pageNumber": page_number,
-            "pageSize": page_size,
-        }
-        if order_by is not None:
-            self.data["orderBy"] = f"{order_by} {sort_order}"
-
 
 class ResultType(Enum):
     SAMPLE = 1
@@ -621,7 +606,9 @@ class InventoryClient(ClientBase):
         ------
         item : One Sample at a time
         """
-        return self._stream("samples", pagination, sample_filter)
+        if sample_filter is not None:
+            pagination.data.update(sample_filter.data)
+        return self._stream("samples", pagination)
 
     def stream_top_level_containers(
         self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
@@ -636,28 +623,11 @@ class InventoryClient(ClientBase):
         ------
         item : One Container at a time
         """
-        return self._stream("containers", pagination, sample_filter)
-
-    def _stream(
-        self,
-        inv_type: str,
-        pagination: Pagination = Pagination(),
-        sample_filter: SearchFilter = None,
-    ):
-
-        urlStr = f"{self._get_api_url()}/{inv_type}"
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
-        next_link = requests.Request(url=urlStr, params=pagination.data).prepare().url
-        while True:
-            if next_link is not None:
-                items = self.retrieve_api_results(next_link)
-                for item in items[inv_type]:
-                    yield item
-                if self.link_exists(items, "next"):
-                    next_link = self.get_link(items, "next")
-                else:
-                    break
+        return self._stream("containers", pagination)
+
+    
 
     def rename(self, sample_id: Union[str, dict], new_name: str) -> dict:
         """

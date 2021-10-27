@@ -1,7 +1,25 @@
 import re
 import requests
 import sys
-import os
+
+
+class Pagination:
+    """ 
+      For setting page size, number and orderby/ sort fields of listings
+    """
+    def __init__(
+        self,
+        page_number: int = 0,
+        page_size: int = 10,
+        order_by: str = None,
+        sort_order: str = "asc",
+    ):
+        self.data = {
+            "pageNumber": page_number,
+            "pageSize": page_size,
+        }
+        if order_by is not None:
+            self.data["orderBy"] = f"{order_by} {sort_order}"
 
 
 class ClientBase:
@@ -184,6 +202,45 @@ class ClientBase:
 
     def serr(self, msg: str):
         print(msg, file=sys.stderr)
+        
+        
+    def _stream(
+        self,
+        endpoint: str,
+        pagination: Pagination = Pagination(),
+    ):
+        """
+        Yields items, making paginated requests to the server as each page 
+        is consumed by the calling code.
+        
+        Note this method assumes that the name of the collection of items in the 
+        response matches the endpoint name. For example 'samples' returns a response
+        with a dictionary entry 'samples'.
+        Parameters
+        ----------
+        endpoint : str
+            An endpoint with a GET request that makes paginated listings
+        pagination : Pagination, optional
+            The pagination control. The default is Pagination().
+         : Pagination
+
+        Yields
+        ------
+        item : A stream of items, depending on the endpoint called
+        """
+
+        urlStr = f"{self._get_api_url()}/{endpoint}"
+        
+        next_link = requests.Request(url=urlStr, params=pagination.data).prepare().url
+        while True:
+            if next_link is not None:
+                items = self.retrieve_api_results(next_link)
+                for item in items[endpoint]:
+                    yield item
+                if self.link_exists(items, "next"):
+                    next_link = self.get_link(items, "next")
+                else:
+                    break
 
     class ConnectionError(Exception):
         pass
@@ -198,3 +255,5 @@ class ClientBase:
         def __init__(self, error_message, response_status_code=None):
             Exception.__init__(self, error_message)
             self.response_status_code = response_status_code
+            
+    

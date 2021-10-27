@@ -3,7 +3,7 @@ import datetime
 import time
 import os.path
 
-from rspace_client.client_base import ClientBase
+from rspace_client.client_base import ClientBase, Pagination
 
 
 class ELNClient(ClientBase):
@@ -42,6 +42,9 @@ class ELNClient(ClientBase):
             params["query"] = query
 
         return self.retrieve_api_results("/documents", params)
+    
+    def stream_documents(self, pagination: Pagination = Pagination()):
+        return self._stream("documents", pagination)
 
     def get_documents_advanced_query(
         self, advanced_query, order_by="lastModified desc", page_number=0, page_size=20
