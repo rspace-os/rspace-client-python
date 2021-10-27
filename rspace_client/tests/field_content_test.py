@@ -46,8 +46,8 @@ class TestBasicFunction(unittest.TestCase):
     def test_include_empty_rows(self):
         tables = self.field.get_datatables(ignore_empty_rows=False)
         self.assertEqual(13, len(tables[0]))
-        
+
     def test_get_text(self):
-        htmlStr="<div>Some text <p>in a para </p>after para</div>"
+        htmlStr = "<div>Some text <p>in a para </p>after para</div>"
         field = cli.field_content.FieldContent(htmlStr)
         self.assertEqual("Some text in a para after para", field.get_text())

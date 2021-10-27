@@ -19,7 +19,7 @@ class FieldContent:
     def __init__(self, html_content):
         self.html = html_content
         self.soup = BeautifulSoup(self.html, "html.parser")
-        
+
     def get_text(self):
         """
         Gets the text of the field, stripped of all HTML tags

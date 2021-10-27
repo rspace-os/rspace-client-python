@@ -26,7 +26,7 @@ class IdUnitTest(unittest.TestCase):
         self.assertEqual(1234, id_a.as_id())
         self.assertEqual("SA", id_a.prefix)
 
-        self.assertRaises(ValueError, Id, {"x_not_an_id": 23})
+        self.assertRaises(TypeError, Id, {"x_not_an_id": 23})
 
     def test_id_from_container(self):
         minimal_container = {"id": 123, "globalId": "IC123", "cType": "LIST"}

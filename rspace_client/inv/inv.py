@@ -32,21 +32,38 @@ class FillingStrategy(Enum):
 
 
 class Sample:
+    """
+     Wraps a dict of Sample data returned from samples/{id} GET API call
+    """
+
     def __init__(self, data: dict):
         self.data = data
 
-    def wherep(self):
+    def wherep(self) -> List[str]:
+        """
+        Returns a list of breadcrumb names of all containers that subsamples 
+        of this sample are located in.
+
+        Returns
+        -------
+        A List of Strings like "Mikes fridge->shelf 2-> Blue box #23"
+
+        """
         bcumbs = set()
         for ss in self.data["subSamples"]:
             b_crumb = " -> ".join([x["name"] for x in ss["parentContainers"]][::-1])
             bcumbs.add(b_crumb)
-        return ",".join(bcumbs)
+        return bcumbs
 
     def __str__(self):
         return f"Sample: id = {self.data['id']}, name = {self.data['name']}, creationDate = {self.data['created']}"
 
 
 class GridPlacement:
+    """
+     Superclass of all grid placement strategies
+    """
+
     def __init__(self, items_to_move: str, filling_strategy: FillingStrategy):
         ids = []
         for item in items_to_move:
@@ -59,6 +76,10 @@ class GridPlacement:
 
 
 class AutoFit(GridPlacement):
+    """
+     Base class of ByRow and ByColumn filling strategies.
+    """
+
     def __init__(
         self,
         column_index: int,
@@ -86,6 +107,10 @@ class AutoFit(GridPlacement):
 
 
 class GridLocation:
+    """
+    Stores column(x) and row(y) indices of a GridContainer
+    """
+
     def __init__(self, x: int, y: int):
         if x < 1 or y < 1:
             raise ValueError("Grid location coordinates must be >= 1")
@@ -94,6 +119,11 @@ class GridLocation:
 
 
 class ByRow(AutoFit):
+    """
+      Defines a strategy for filling a grid container with a list of items, filling rows
+      in turn, from a starting location. 
+    """
+
     def __init__(
         self,
         column_index: int,
@@ -102,6 +132,28 @@ class ByRow(AutoFit):
         total_rows: int,
         *items_to_move,
     ):
+        """
+
+        Parameters
+        ----------
+        column_index : int
+            The column (x) index, 1-based, to start placing items.
+        row_index : int
+           The row (y) index, 1-based, from top->bottom, to start placing items.
+        total_columns : int
+            The total number of columns in the grid
+        total_rows : int
+            The total number of rows in the grid
+        *items_to_move : 
+            One or more global Ids.
+         : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
         super().__init__(
             column_index,
             row_index,
@@ -113,6 +165,11 @@ class ByRow(AutoFit):
 
 
 class ByColumn(AutoFit):
+    """
+      Defines a strategy for filling a grid container with a list of items, filling columns
+      in turn, from a starting location. 
+    """
+
     def __init__(
         self,
         column_index: int,
@@ -121,6 +178,23 @@ class ByColumn(AutoFit):
         total_rows: int,
         *items_to_move,
     ):
+        """
+        Parameters
+        ----------
+        column_index : int
+            The column (x) index, 1-based, to start placing items.
+        row_index : int
+           The row (y) index, 1-based, from top->bottom, to start placing items.
+        total_columns : int
+            The total number of columns in the grid
+        total_rows : int
+            The total number of rows in the grid
+        *items_to_move : 
+            One or more global Ids.
+         : TYPE
+            DESCRIPTION.
+
+       """
         super().__init__(
             column_index,
             row_index,
@@ -157,6 +231,10 @@ class BulkOperationResult:
 
 
 class Container:
+    """
+     Base class of all Container types
+    """
+
     @classmethod
     def of(clz, container: dict):
         """
@@ -224,6 +302,10 @@ class Container:
 
 
 class ListContainer(Container):
+    """
+     A ListContainer is an ordered container of unlimited capacity
+    """
+
     def __init__(self, list_container: dict):
         super().__init__(list_container)
         self._validate_type(list_container, "LIST")
@@ -239,6 +321,10 @@ class ListContainer(Container):
 
 
 class Workbench(Container):
+    """
+      A specialised Container holding currently active samples and containers.
+    """
+
     def __init__(self, workbench: dict):
         super().__init__(workbench)
         self._validate_type(workbench, "WORKBENCH")
@@ -355,7 +441,7 @@ class Id:
         "IT": "templates",
     }
 
-    def __init__(self, value: Union[int, str, dict, Container]):
+    def __init__(self, value: Union[int, str, dict, Container, Sample]):
 
         if isinstance(value, str):
             if re.match(Id.Pattern, value) is None:
@@ -373,7 +459,7 @@ class Id:
             if "id" in value.keys():
                 self.id = value["id"]
             else:
-                raise ValueError(
+                raise TypeError(
                     "Could not interpet dict as an identifiable Inventory item."
                 )
 
@@ -383,7 +469,7 @@ class Id:
         elif isinstance(value, int):
             self.id = value
         else:
-            raise ValueError(
+            raise TypeError(
                 f"Could not interpet {value} as an identifiable Inventory item."
             )
 

@@ -34,7 +34,7 @@ print(
 
 
 # Uploading a file to the gallery
-with open(os.sep.join(["resources","2017-05-10_1670091041_CNVts.csv"]), "rb") as f:
+with open(os.sep.join(["resources", "2017-05-10_1670091041_CNVts.csv"]), "rb") as f:
     new_file = client.upload_file(f, caption="some caption")
     print(
         'File "{}" was uploaded as {} ({})'.format(
@@ -42,7 +42,9 @@ with open(os.sep.join(["resources","2017-05-10_1670091041_CNVts.csv"]), "rb") as
         )
     )
 
-with open(os.sep.join(["resources","2017-05-10_1243111032_GT_DetailedTS_E.csv"]), "rb") as f2:
+with open(
+    os.sep.join(["resources", "2017-05-10_1243111032_GT_DetailedTS_E.csv"]), "rb"
+) as f2:
     print("updating file with a new version")
     updatedFile = client.update_file(f2, new_file["id"])
     print(
