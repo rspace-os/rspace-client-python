@@ -19,6 +19,17 @@ class FieldContent:
     def __init__(self, html_content):
         self.html = html_content
         self.soup = BeautifulSoup(self.html, "html.parser")
+        
+    def get_text(self):
+        """
+        Gets the text of the field, stripped of all HTML tags
+        Returns
+        -------
+        str
+            HTML-stripped content.
+
+        """
+        return self.soup.get_text()
 
     def get_datatables(
         self, search_term=None, ignore_empty_rows=True, ignore_empty_columns=True
