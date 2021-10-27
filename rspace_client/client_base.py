@@ -7,6 +7,7 @@ class Pagination:
     """ 
       For setting page size, number and orderby/ sort fields of listings
     """
+
     def __init__(
         self,
         page_number: int = 0,
@@ -202,12 +203,9 @@ class ClientBase:
 
     def serr(self, msg: str):
         print(msg, file=sys.stderr)
-        
-        
+
     def _stream(
-        self,
-        endpoint: str,
-        pagination: Pagination = Pagination(),
+        self, endpoint: str, pagination: Pagination = Pagination(),
     ):
         """
         Yields items, making paginated requests to the server as each page 
@@ -230,7 +228,7 @@ class ClientBase:
         """
 
         urlStr = f"{self._get_api_url()}/{endpoint}"
-        
+
         next_link = requests.Request(url=urlStr, params=pagination.data).prepare().url
         while True:
             if next_link is not None:
@@ -255,5 +253,3 @@ class ClientBase:
         def __init__(self, error_message, response_status_code=None):
             Exception.__init__(self, error_message)
             self.response_status_code = response_status_code
-            
-    

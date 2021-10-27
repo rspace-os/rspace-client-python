@@ -42,7 +42,7 @@ class ELNClient(ClientBase):
             params["query"] = query
 
         return self.retrieve_api_results("/documents", params)
-    
+
     def stream_documents(self, pagination: Pagination = Pagination()):
         return self._stream("documents", pagination)
 

@@ -26,13 +26,12 @@ class ELNClientAPIIntegrationTest(BaseApiTest):
         resp = self.api.get_documents()
         self.assertTrue(resp["totalHits"] > 0)
         self.assertTrue(len(resp["documents"]) > 0)
-        
+
     def test_stream_documents(self):
         doc_gen = self.api.stream_documents(pagination=Pagination(page_size=1))
         d1 = next(doc_gen)
         d2 = next(doc_gen)
-        self.assertNotEqual(d1['id'], d2['id'])
-       
+        self.assertNotEqual(d1["id"], d2["id"])
 
     def test_get_documents_by_id(self):
         resp = self.api.get_documents()

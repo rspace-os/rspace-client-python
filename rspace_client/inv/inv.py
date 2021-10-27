@@ -326,7 +326,6 @@ class SearchFilter:
             self.data["ownedBy"] = owned_by
 
 
-
 class ResultType(Enum):
     SAMPLE = 1
     SUBSAMPLE = 2
@@ -626,8 +625,6 @@ class InventoryClient(ClientBase):
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
         return self._stream("containers", pagination)
-
-    
 
     def rename(self, sample_id: Union[str, dict], new_name: str) -> dict:
         """
