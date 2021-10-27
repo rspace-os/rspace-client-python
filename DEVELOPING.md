@@ -22,11 +22,11 @@ to install all project dependencies into your virtual environment.
 ### Running tests
 
 Tests are a mixture of plain unit tests and integration tests making calls to an RSpace server.
-To run all tests, set these environment variables:
+To run all tests, set these environment variables,replacing with your own valies
 
 ```
-export RSPACE_URL=https://your.rspace.url
-export RSPACE_API_KEY=your_api_key
+bash> export RSPACE_URL=https:/<your-rspace-domain>
+bash> export RSPACE_API_KEY=abcdefgh...
 ```
 
 If these aren't set, integration tests will be skipped.

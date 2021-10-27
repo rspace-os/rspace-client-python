@@ -34,10 +34,17 @@ You'll need a running RSpace instance to send requests to.
 
 The simplest way to read in the URL and API key is from environment variables, e.g.
 
+On Linux/MacOS shell
 ```
 bash> export RSPACE_URL=https:/myrspace.com
 bash> export RSPACE_API_KEY=abcdefgh...
 ```
+
+On Windows:
+```
+
+``` 
+
 substituting in your own values.
 
 ```
@@ -55,15 +62,7 @@ print (f"There are {samples['totalHits']} samples")
 print(eln_cli.get_status())
 ```
 
-## Running example scripts
-
-To run the example scripts in the examples folder, cd to that folder, then run
-
-```bash
-python3 ExampleScript.py $RSPACE_URL $RSPACE_API_KEY
-```
-
-replacing ExampleScript.py with the name of the script you want to run.
+## Example usage
 
 ### A basic query to list documents
 
@@ -84,6 +83,16 @@ In the above example, the 'documents' variable is a dictionary that can easily b
 ```python
 print(document['name'], document['id'], document['lastModified'])
 ```
+
+To run the example scripts in the examples folder, cd to that folder, then run
+
+```bash
+python3 ExampleScript.py $RSPACE_URL $RSPACE_API_KEY
+```
+
+replacing ExampleScript.py with the name of the script you want to run.
+
+
 
 #### Iterating over pages of results
 
