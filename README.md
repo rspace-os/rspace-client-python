@@ -16,10 +16,11 @@ For full details of our API spec please see https://$RSPACE_API/public/apiDocs
 See [DEVELOPING.md](DEVELOPING.md) for details of running tests.
 
 
+
 To install rspace-client and its dependencies, run
 
 ```bash
-pip3 install rspace-client
+pip install rspace-client==2.0.0a0
 ```
 
 You may need to install `requests` module:
@@ -91,7 +92,6 @@ python3 ExampleScript.py $RSPACE_URL $RSPACE_API_KEY
 ```
 
 replacing ExampleScript.py with the name of the script you want to run.
-
 
 
 #### Iterating over pages of results
