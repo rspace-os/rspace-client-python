@@ -15,8 +15,6 @@ For full details of our API spec please see https://$RSPACE_API/public/apiDocs
 
 See [DEVELOPING.md](DEVELOPING.md) for details of running tests.
 
-
-
 To install rspace-client and its dependencies, run
 
 ```bash
@@ -31,7 +29,8 @@ pip3 install  requests
 
 ### Using the rspace_client library in your own code
 
-You'll need a running RSpace instance to send requests to.
+You'll need a running RSpace instance to send requests to. To use Inventory client you'll
+need RSpace 1.70 or later/ 
 
 The simplest way to read in the URL and API key is from environment variables, e.g.
 
@@ -41,18 +40,12 @@ bash> export RSPACE_URL=https:/myrspace.com
 bash> export RSPACE_API_KEY=abcdefgh...
 ```
 
-On Windows:
-```
-
-``` 
-
 substituting in your own values.
 
 ```
 import os
-import rspace_client.inv.inv as inv
-import rspace_client.eln.eln as eln
-
+from rspace_client.inv import inv
+from rspace_client.eln import eln
 
 inv_cli = inv.InventoryClient(os.getenv("RSPACE_URL"), os.getenv("RSPACE_API_KEY"))
 eln_cli = eln.ELNClient(os.getenv("RSPACE_URL"), os.getenv("RSPACE_API_KEY"))
