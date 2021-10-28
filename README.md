@@ -1,46 +1,65 @@
 # rspace-client-python
 
-This project contains a client which helps calling RSpace APIs. There are some example Python scripts.
+This project contains a client which helps calling RSpace ELN and Inventory APIs. There are some example Python scripts.
 
-To begin with you'll need an account on an RSpace server and an API key which you can get from your profile page.
+To begin with, you'll need an account on an RSpace server and an API key which you can get from your [profile page](https://researchspace.helpdocs.io/article/v0dxtfvj7u-rspace-api-introduction
+).
 You can sign up for a free RSpace account at https://community.researchspace.com
 
 In these examples we'll be using the rspace_client package (code is in rspace_client folder) which provides an abstraction over lower-level libraries. 
-It's compatible with Python 3.4 onwards, based on analysis by [vermin](https://pypi.org/project/vermin/vermin) 
+It's compatible with Python 3.7 onwards, based on analysis by [vermin](https://pypi.org/project/vermin/vermin) 
 
 All the code listed here is in the project.
 
-For full details of our API spec are available from within your RSpace deployment: https://<YOUR_RSPACE>/public/apiDocs
+For full details of our API specification, please see https://<YOUR_RSPACE_DOMAIN>/public/apiDocs
 
 For example, if you are using `https://community.researchspace.com`,
 the API documentation is available at `https://community.researchspace.com/public/apiDocs`
 
-To run unit tests, install pytest:
-
-```
-pytest -v rspace_client/tests
-```
+See [DEVELOPING.md](DEVELOPING.md) for details of running tests.
 
 To install rspace-client and its dependencies, run
 
 ```bash
-pip3 install rspace-client
+pip install rspace-client==2.0.0a0
 ```
 
-You may need to install `six` and `requests` modules:
+You may need to install `requests` module:
+
 ``` bash
-pip3 install six requests
+pip3 install  requests
 ```
 
-To run the example scripts in the examples folder, cd to that folder, then run
+### Using the rspace_client library in your own code
 
-```bash
-python3 ExampleScript.py https://your.rspace.com MyAPIKey
+You'll need a running RSpace instance to send requests to. To use Inventory client you'll
+need RSpace 1.70 or later/ 
+
+The simplest way to read in the URL and API key is from environment variables, e.g.
+
+On Linux/MacOS shell
+```
+bash> export RSPACE_URL=https:/myrspace.com
+bash> export RSPACE_API_KEY=abcdefgh...
 ```
 
-replacing MyAPIKey with your key, and ExampleScript.py with the name of the script you want to run.
+substituting in your own values.
 
+```
+import os
+from rspace_client.inv import inv
+from rspace_client.eln import eln
 
+inv_cli = inv.InventoryClient(os.getenv("RSPACE_URL"), os.getenv("RSPACE_API_KEY"))
+eln_cli = eln.ELNClient(os.getenv("RSPACE_URL"), os.getenv("RSPACE_API_KEY"))
+
+samples = inv_cli.list_samples()
+print (f"There are {samples['totalHits']} samples")
+
+print(eln_cli.get_status())
+```
+
+## Example usage
 
 ### A basic query to list documents
 
@@ -61,6 +80,15 @@ In the above example, the 'documents' variable is a dictionary that can easily b
 ```python
 print(document['name'], document['id'], document['lastModified'])
 ```
+
+To run the example scripts in the examples folder, cd to that folder, then run
+
+```bash
+python3 ExampleScript.py $RSPACE_URL $RSPACE_API_KEY
+```
+
+replacing ExampleScript.py with the name of the script you want to run.
+
 
 #### Iterating over pages of results
 

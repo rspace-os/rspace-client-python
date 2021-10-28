@@ -1,3 +1,5 @@
+poetry.lock
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -92,3 +94,7 @@ ENV/
 .idea/
 #*.log
 examples/deletedUserslog.txt
+.spyproject/
+.spyproject/
+rspace_client/.spyproject/
+rspace_client/.spyproject/config/workspace.ini
