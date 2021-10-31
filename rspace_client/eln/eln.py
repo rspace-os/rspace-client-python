@@ -1,7 +1,8 @@
-import requests
 import datetime
 import time
-import os.path
+import os
+import re
+import requests
 
 from rspace_client.client_base import ClientBase, Pagination
 
@@ -787,3 +788,83 @@ class ELNClient(ClientBase):
 
     def deleteTempUser(self, user_id):
         return self.doDelete("sysadmin/users", user_id)
+    
+    def _assert_is_readable_dir(self, data_dir):
+        if not os.access(data_dir, os.R_OK):
+            raise ValueError(f"{data_dir} is not readable")
+        if not os.path.isdir(data_dir):
+            raise ValueError(f"{data_dir} is not a directory")
+            
+    
+    
+    def import_tree(self, data_dir: str, ignore_hidden_folders: bool = True,
+                    halt_on_error: bool = False) -> dict:
+        """
+        Imports a directory tree into RSpace, recreating the tree in RSpace,
+        uploading files and creatig documents with links to the files.
+
+        Parameters
+        ----------
+        data_dir : str
+            Path to top-level of directory tree.
+        ignore_hidden_folders : bool, optional
+            Whether hidden folders ( startign with '.' - should be ignored.  The default is True.
+        halt_on_error : bool, optional
+            Whether to halt the process in case of IO error reading files. The default is False.
+
+        Returns
+        -------
+        dict
+            An indication of success/failure, and mappings of files and folders to
+            RSpace Ids.
+
+        """
+        self._assert_is_readable_dir(data_dir)
+        
+        def _sanitize(path):
+            return re.sub(r'/','-', path)
+#      # maintain mapping of local directory paths to RSpace folder Ids
+        path2Id = {}
+        result = {}
+        result['status']='FAILED'
+        result['path2Id']= path2Id
+        ## reolace any forward slashes (e.g in windows path names)
+        
+        folder = self.create_folder(_sanitize(os.path.basename(data_dir)))
+        path2Id[data_dir]=folder['globalId']
+    
+        for dirName, subdirList, fileList in os.walk(data_dir):
+            if ignore_hidden_folders:
+                for sf in subdirList:
+                     if os.path.basename(sf)[0] == '.':
+                        subdirList.remove(sf)
+            print(dirName, subdirList, fileList)
+            for sf in subdirList:
+               
+                if sf not in path2Id.keys():
+                   rs_folder = self.create_folder(_sanitize(os.path.basename(sf)), path2Id[dirName])
+                   sf_path = os.path.join(dirName, sf)
+                   path2Id[sf_path] = rs_folder['globalId']
+            for f in fileList:
+                print (f"uploading {f}")
+                try:
+                    with open (os.path.join(dirName,f), "rb") as reader:
+                        rs_file = self.upload_file(reader)
+                        path2Id[f]=rs_file['globalId']
+                except IOError as x:
+                        if halt_on_error:
+                            self.serr(f"{x} raised while opening {f} - halting on error")
+                            result['status']='HALTED_ON_ERROR'
+                            return result
+                        else:
+                            self.serr(f"{x} raised while opening {f} - continuing")
+                            continue ## next file
+                doc_name = os.path.splitext(f)[0]
+                ## just puts link to the document
+                content_string = f"<fileId={rs_file['id']}>"
+                parent_folder_id = path2Id[dirName]
+                self.serr(f"creating {f} as a document")
+                rs_doc = self.create_document(doc_name, 
+                                    parent_folder_id=parent_folder_id,fields=[{'content':content_string}])
+        result['status']='OK'
+        return result
