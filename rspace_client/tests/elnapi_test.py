@@ -9,7 +9,7 @@ import pprint
 import rspace_client.eln.eln as cli
 
 
-from rspace_client.tests.base_test import BaseApiTest, random_string,get_datafile
+from rspace_client.tests.base_test import BaseApiTest, random_string, get_datafile
 from rspace_client.client_base import Pagination
 
 
@@ -45,8 +45,8 @@ class ELNClientAPIIntegrationTest(BaseApiTest):
         resp = self.api.create_document(name=nameStr, tags=tag_str)
         self.assertEqual(nameStr, resp["name"])
         self.assertEqual(tag_str, resp["tags"])
-        
+
     def test_import_tree(self):
-        tree_dir=get_datafile("tree")
-        res= self.api.import_tree(tree_dir)
+        tree_dir = get_datafile("tree")
+        res = self.api.import_tree(tree_dir)
         pprint.pp(res)
