@@ -837,8 +837,9 @@ class ELNClient(ClientBase):
         result["path2Id"] = path2Id
         ## reolace any forward slashes (e.g in windows path names)
 
-        
-        folder = self.create_folder(_sanitize(os.path.basename(data_dir)), parent_folder_id)
+        folder = self.create_folder(
+            _sanitize(os.path.basename(data_dir)), parent_folder_id
+        )
         path2Id[data_dir] = folder["globalId"]
 
         for dirName, subdirList, fileList in os.walk(data_dir):
@@ -859,7 +860,7 @@ class ELNClient(ClientBase):
                 try:
                     with open(os.path.join(dirName, f), "rb") as reader:
                         rs_file = self.upload_file(reader)
-                       
+
                 except IOError as x:
                     if halt_on_error:
                         self.serr(f"{x} raised while opening {f} - halting on error")
