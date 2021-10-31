@@ -798,6 +798,7 @@ class ELNClient(ClientBase):
     def import_tree(
         self,
         data_dir: str,
+        parent_folder_id: int = None,
         ignore_hidden_folders: bool = True,
         halt_on_error: bool = False,
     ) -> dict:
@@ -809,8 +810,11 @@ class ELNClient(ClientBase):
         ----------
         data_dir : str
             Path to top-level of directory tree.
+        parent_folder_id: int, optional
+            The id of the RSpace folder into which the top-level directory is created.
+            If not specified will be created in Workspace top-level folder.
         ignore_hidden_folders : bool, optional
-            Whether hidden folders ( startign with '.' - should be ignored.  The default is True.
+            Whether hidden folders (starting  with '.' - should be ignored.  The default is True.
         halt_on_error : bool, optional
             Whether to halt the process in case of IO error reading files. The default is False.
 
@@ -833,7 +837,8 @@ class ELNClient(ClientBase):
         result["path2Id"] = path2Id
         ## reolace any forward slashes (e.g in windows path names)
 
-        folder = self.create_folder(_sanitize(os.path.basename(data_dir)))
+        
+        folder = self.create_folder(_sanitize(os.path.basename(data_dir)), parent_folder_id)
         path2Id[data_dir] = folder["globalId"]
 
         for dirName, subdirList, fileList in os.walk(data_dir):
@@ -841,7 +846,6 @@ class ELNClient(ClientBase):
                 for sf in subdirList:
                     if os.path.basename(sf)[0] == ".":
                         subdirList.remove(sf)
-            print(dirName, subdirList, fileList)
             for sf in subdirList:
 
                 if sf not in path2Id.keys():
@@ -851,11 +855,11 @@ class ELNClient(ClientBase):
                     sf_path = os.path.join(dirName, sf)
                     path2Id[sf_path] = rs_folder["globalId"]
             for f in fileList:
-                print(f"uploading {f}")
+                self.serr(f"uploading {f}")
                 try:
                     with open(os.path.join(dirName, f), "rb") as reader:
                         rs_file = self.upload_file(reader)
-                        path2Id[f] = rs_file["globalId"]
+                       
                 except IOError as x:
                     if halt_on_error:
                         self.serr(f"{x} raised while opening {f} - halting on error")
@@ -874,5 +878,6 @@ class ELNClient(ClientBase):
                     parent_folder_id=parent_folder_id,
                     fields=[{"content": content_string}],
                 )
+                path2Id[f] = rs_doc["globalId"]
         result["status"] = "OK"
         return result
