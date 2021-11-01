@@ -2,10 +2,16 @@ import datetime
 import time
 import os
 import re
+import enum
 import requests
+from rspace_client.eln import eln
 
 from rspace_client.client_base import ClientBase, Pagination
 
+class DocumentCreationStrategy(enum.Enum):
+        
+        DOC_PER_FILE = 1
+        SUMMARY_DOC = 2
 
 class ELNClient(ClientBase):
     """Client for RSpace API v1.
@@ -727,7 +733,7 @@ class ELNClient(ClientBase):
         return self.retrieve_api_results("/groups")
 
     # Import methods
-    def import_word(self, file, folder_id=None, image_folder_id=None):
+    def import_word(self, file, folder_id=None,  image_folder_id=None):
         """
         Imports a Word file into RSpace and creates an RSpace document from it.
         :param file: The Word file to import
@@ -795,12 +801,15 @@ class ELNClient(ClientBase):
         if not os.path.isdir(data_dir):
             raise ValueError(f"{data_dir} is not a directory")
 
+    
+        
     def import_tree(
         self,
         data_dir: str,
         parent_folder_id: int = None,
         ignore_hidden_folders: bool = True,
         halt_on_error: bool = False,
+        doc_creation = eln.DocumentCreationStrategy.DOC_PER_FILE
     ) -> dict:
         """
         Imports a directory tree into RSpace, recreating the tree in RSpace,
@@ -814,7 +823,7 @@ class ELNClient(ClientBase):
             The id of the RSpace folder into which the top-level directory is created.
             If not specified will be created in Workspace top-level folder.
         ignore_hidden_folders : bool, optional
-            Whether hidden folders (starting  with '.' - should be ignored.  The default is True.
+            Whether hidden folders (names starting  with '.') - should be ignored.  The default is True.
         halt_on_error : bool, optional
             Whether to halt the process in case of IO error reading files. The default is False.
 
@@ -829,6 +838,10 @@ class ELNClient(ClientBase):
 
         def _sanitize(path):
             return re.sub(r"/", "-", path)
+        def _filter_dot_files(subdirList):
+            for sf in subdirList:
+                if os.path.basename(sf)[0] == ".":
+                    subdirList.remove(sf)
 
         #      # maintain mapping of local directory paths to RSpace folder Ids
         path2Id = {}
@@ -841,15 +854,14 @@ class ELNClient(ClientBase):
             _sanitize(os.path.basename(data_dir)), parent_folder_id
         )
         path2Id[data_dir] = folder["globalId"]
+        rs_files = []                
 
         for dirName, subdirList, fileList in os.walk(data_dir):
             if ignore_hidden_folders:
-                for sf in subdirList:
-                    if os.path.basename(sf)[0] == ".":
-                        subdirList.remove(sf)
+                _filter_dot_files(subdirList)
             for sf in subdirList:
 
-                if sf not in path2Id.keys():
+                if (sf not in path2Id.keys()) and (eln.DocumentCreationStrategy.DOC_PER_FILE == doc_creation):
                     rs_folder = self.create_folder(
                         _sanitize(os.path.basename(sf)), path2Id[dirName]
                     )
@@ -860,7 +872,7 @@ class ELNClient(ClientBase):
                 try:
                     with open(os.path.join(dirName, f), "rb") as reader:
                         rs_file = self.upload_file(reader)
-
+                        rs_files.append((f,rs_file))
                 except IOError as x:
                     if halt_on_error:
                         self.serr(f"{x} raised while opening {f} - halting on error")
@@ -871,14 +883,30 @@ class ELNClient(ClientBase):
                         continue  ## next file
                 doc_name = os.path.splitext(f)[0]
                 ## just puts link to the document
-                content_string = f"<fileId={rs_file['id']}>"
-                parent_folder_id = path2Id[dirName]
-                self.serr(f"creating {f} as a document")
-                rs_doc = self.create_document(
-                    doc_name,
-                    parent_folder_id=parent_folder_id,
-                    fields=[{"content": content_string}],
-                )
-                path2Id[f] = rs_doc["globalId"]
+                if eln.DocumentCreationStrategy.DOC_PER_FILE == doc_creation:
+                    parent_folder_id = path2Id[dirName]
+                    content_string = f"<fileId={rs_file['id']}>"
+                    self.serr(f"creating {f} as a document")
+                    rs_doc = self.create_document(
+                        doc_name,
+                        parent_folder_id=parent_folder_id,
+                        fields=[{"content": content_string}],
+                    )   
+                    path2Id[f] = rs_doc["globalId"]
+        if (eln.DocumentCreationStrategy.SUMMARY_DOC == doc_creation) and (len(rs_files) > 0):
+             content = self._generate_summary_content(rs_files)
+             summary_name=f"Summary-doc{rs_files[0][1]['created']}"
+             rs_doc = self.create_document(
+                        summary_name,
+                        parent_folder_id=folder['id'],
+                        fields=[{"content": content}],
+                    )
+             path2Id[summary_name]=rs_doc['id']
         result["status"] = "OK"
         return result
+    def _generate_summary_content(self, rs_files: list) -> str:
+        s= "<table><tr><th>Original file name</th><th>RSpace file</th></tr>"
+        for o, r in rs_files:
+            s =s + f"<tr><td>{o}</td><td><fileId={r['id']}></td></tr>"
+        s= s + "</table>"
+        return s
