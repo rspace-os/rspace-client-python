@@ -61,7 +61,7 @@ class ELNClientAPIIntegrationTest(BaseApiTest):
         self.assertEqual("OK", res["status"])
         ## original folder + summary doc
         self.assertEqual(2, len(res["path2Id"].keys()))
-        
+
     def test_import_tree_summary_doc_per_subfolder(self):
         tree_dir = get_datafile("tree")
         res = self.api.import_tree(

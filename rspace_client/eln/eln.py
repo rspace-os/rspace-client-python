@@ -864,8 +864,8 @@ class ELNClient(ClientBase):
             for sf in subdirList:
 
                 if (sf not in path2Id.keys()) and (
-                    (eln.DocumentCreationStrategy.DOC_PER_FILE == doc_creation) or
-                        (eln.DocumentCreationStrategy.DOC_PER_SUBFOLDER == doc_creation)
+                    (eln.DocumentCreationStrategy.DOC_PER_FILE == doc_creation)
+                    or (eln.DocumentCreationStrategy.DOC_PER_SUBFOLDER == doc_creation)
                 ):
                     rs_folder = self.create_folder(
                         _sanitize(os.path.basename(sf)), path2Id[dirName]
@@ -873,7 +873,7 @@ class ELNClient(ClientBase):
                     sf_path = os.path.join(dirName, sf)
                     path2Id[sf_path] = rs_folder["globalId"]
             rs_files_in_subdir = []
-                                                                        
+
             for f in fileList:
                 self.serr(f"uploading {f}")
                 try:
@@ -895,29 +895,32 @@ class ELNClient(ClientBase):
                     parent_folder_id = path2Id[dirName]
                     content_string = f"<fileId={rs_file['id']}>"
                     self.serr(f"creating {f} as a document")
-                    self._create_file_linking_doc(content_string, parent_folder_id, doc_name, path2Id)
+                    self._create_file_linking_doc(
+                        content_string, parent_folder_id, doc_name, path2Id
+                    )
             if (eln.DocumentCreationStrategy.DOC_PER_SUBFOLDER == doc_creation) and (
-                    len(rs_files_in_subdir) > 0):
+                len(rs_files_in_subdir) > 0
+            ):
                 parent_folder_id = path2Id[dirName]
                 content = self._generate_summary_content(rs_files_in_subdir)
                 summary_name = f"Summary-doc{rs_files_in_subdir[0][1]['created']}"
-                self._create_file_linking_doc(content, parent_folder_id, summary_name, path2Id)
+                self._create_file_linking_doc(
+                    content, parent_folder_id, summary_name, path2Id
+                )
         if (eln.DocumentCreationStrategy.SUMMARY_DOC == doc_creation) and (
             len(all_rs_files) > 0
         ):
             content = self._generate_summary_content(all_rs_files)
             summary_name = f"Summary-doc{all_rs_files[0][1]['created']}"
-            self._create_file_linking_doc(content, folder['id'], summary_name, path2Id)
+            self._create_file_linking_doc(content, folder["id"], summary_name, path2Id)
         result["status"] = "OK"
         return result
-    
-    def _create_file_linking_doc(self, content,  parent_folder_id, name, path2Id):
-            rs_doc = self.create_document(
-                name,
-                parent_folder_id=parent_folder_id,
-                fields=[{"content": content}],
-            )
-            path2Id[name] = rs_doc["id"]
+
+    def _create_file_linking_doc(self, content, parent_folder_id, name, path2Id):
+        rs_doc = self.create_document(
+            name, parent_folder_id=parent_folder_id, fields=[{"content": content}],
+        )
+        path2Id[name] = rs_doc["id"]
 
     def _generate_summary_content(self, rs_files: list) -> str:
         s = "<table><tr><th>Original file name</th><th>RSpace file</th></tr>"
