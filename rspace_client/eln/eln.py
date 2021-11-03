@@ -844,9 +844,15 @@ class ELNClient(ClientBase):
             for sf in subdirList:
                 if os.path.basename(sf)[0] == ".":
                     subdirList.remove(sf)
-
-        #      # maintain mapping of local directory paths to RSpace folder Ids
+        
         path2Id = {}
+        def _is_subfolder_tree_required(sf,  doc_creation):
+            return (sf not in path2Id.keys()) and (
+                    (eln.DocumentCreationStrategy.DOC_PER_FILE == doc_creation)
+                    or (eln.DocumentCreationStrategy.DOC_PER_SUBFOLDER == doc_creation)
+                )
+            
+        #      # maintain mapping of local directory paths to RSpace folder Ids
         result = {}
         result["status"] = "FAILED"
         result["path2Id"] = path2Id
@@ -863,10 +869,7 @@ class ELNClient(ClientBase):
                 _filter_dot_files(subdirList)
             for sf in subdirList:
 
-                if (sf not in path2Id.keys()) and (
-                    (eln.DocumentCreationStrategy.DOC_PER_FILE == doc_creation)
-                    or (eln.DocumentCreationStrategy.DOC_PER_SUBFOLDER == doc_creation)
-                ):
+                if _is_subfolder_tree_required(sf, doc_creation):
                     rs_folder = self.create_folder(
                         _sanitize(os.path.basename(sf)), path2Id[dirName]
                     )
