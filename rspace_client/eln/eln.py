@@ -798,11 +798,7 @@ class ELNClient(ClientBase):
     def deleteTempUser(self, user_id):
         return self.doDelete("sysadmin/users", user_id)
 
-    def _assert_is_readable_dir(self, data_dir):
-        if not os.access(data_dir, os.R_OK):
-            raise ValueError(f"{data_dir} is not readable")
-        if not os.path.isdir(data_dir):
-            raise ValueError(f"{data_dir} is not a directory")
+   
 
     def import_tree(
         self,
@@ -835,7 +831,11 @@ class ELNClient(ClientBase):
             RSpace Ids.
 
         """
-        self._assert_is_readable_dir(data_dir)
+        def _assert_is_readable_dir(data_dir):
+            if not os.access(data_dir, os.R_OK):
+                raise ValueError(f"{data_dir} is not readable")
+            if not os.path.isdir(data_dir):
+                raise ValueError(f"{data_dir} is not a directory")
 
         def _sanitize(path):
             return re.sub(r"/", "-", path)
@@ -844,14 +844,16 @@ class ELNClient(ClientBase):
             for sf in subdirList:
                 if os.path.basename(sf)[0] == ".":
                     subdirList.remove(sf)
-        
+
+        _assert_is_readable_dir(data_dir)
         path2Id = {}
-        def _is_subfolder_tree_required(sf,  doc_creation):
+
+        def _is_subfolder_tree_required(sf, doc_creation):
             return (sf not in path2Id.keys()) and (
-                    (eln.DocumentCreationStrategy.DOC_PER_FILE == doc_creation)
-                    or (eln.DocumentCreationStrategy.DOC_PER_SUBFOLDER == doc_creation)
-                )
-            
+                (eln.DocumentCreationStrategy.DOC_PER_FILE == doc_creation)
+                or (eln.DocumentCreationStrategy.DOC_PER_SUBFOLDER == doc_creation)
+            )
+
         #      # maintain mapping of local directory paths to RSpace folder Ids
         result = {}
         result["status"] = "FAILED"
