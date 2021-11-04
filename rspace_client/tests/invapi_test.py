@@ -256,7 +256,7 @@ class InventoryApiTest(base.BaseApiTest):
             name, tags="ab,cd,ef", location=ct["id"]
         )
         self.assertEqual(
-            ct["globalId"], ct_sub_container["parentContainers"][-1]["globalId"]
+            ct["globalId"], ct_sub_container["parentContainers"][0]["globalId"]
         )
 
     def test_move_container_to_list_container(self):

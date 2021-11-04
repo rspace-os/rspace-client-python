@@ -7,6 +7,7 @@ Created on Mon Jun  7 08:38:55 2021
 """
 import pprint
 import rspace_client.eln.eln as cli
+from rspace_client.eln.dcs import DocumentCreationStrategy
 
 
 from rspace_client.tests.base_test import BaseApiTest, random_string, get_datafile
@@ -56,7 +57,7 @@ class ELNClientAPIIntegrationTest(BaseApiTest):
     def test_import_tree_summary_doc_only(self):
         tree_dir = get_datafile("tree")
         res = self.api.import_tree(
-            tree_dir, doc_creation=cli.DocumentCreationStrategy.SUMMARY_DOC
+            tree_dir, doc_creation=DocumentCreationStrategy.SUMMARY_DOC
         )
         self.assertEqual("OK", res["status"])
         ## original folder + summary doc
@@ -65,7 +66,7 @@ class ELNClientAPIIntegrationTest(BaseApiTest):
     def test_import_tree_summary_doc_per_subfolder(self):
         tree_dir = get_datafile("tree")
         res = self.api.import_tree(
-            tree_dir, doc_creation=cli.DocumentCreationStrategy.DOC_PER_SUBFOLDER
+            tree_dir, doc_creation=DocumentCreationStrategy.DOC_PER_SUBFOLDER
         )
         self.assertEqual("OK", res["status"])
         ## original folder + 2 sf + 2 summary docs
