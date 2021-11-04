@@ -936,21 +936,19 @@ class InventoryClient(ClientBase):
         result = self.retrieve_api_results("/workbenches")
         return [wb for wb in result["containers"]]
 
-    
     def _configure_parent_container_post(self, location, data):
-        is_wb=False
-        if location == 't':
-            data["removeFromParentContainerRequest"]= True
-        elif location == 'w':
+        is_wb = False
+        if location == "t":
+            data["removeFromParentContainerRequest"] = True
+        elif location == "w":
             is_wb = True
         elif isinstance(location, int) or not is_wb:
             parent_id = Id(location)
             if not parent_id.is_container(True):
                 raise ValueError("Id must be that of a container")
-            data['parentContainers'] = [{'id':parent_id.as_id()}]
+            data["parentContainers"] = [{"id": parent_id.as_id()}]
         else:
             raise TypeError("location must be 'w', 't' or a container id or global Id")
-        
 
     def create_list_container(
         self,
@@ -960,7 +958,7 @@ class InventoryClient(ClientBase):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_subsamples: bool = True,
-        location: Union[str,int]="t"
+        location: Union[str, int] = "t",
     ) -> dict:
 
         data = self._set_core_properties(name, tags, description, extra_fields)
@@ -968,7 +966,7 @@ class InventoryClient(ClientBase):
         data["canStoreContainers"] = can_store_containers
         data["canStoreSubsamples"] = can_store_subsamples
         self._configure_parent_container_post(location, data)
-        
+
         container = self.retrieve_api_results(
             "/containers", request_type="POST", params=data
         )
@@ -988,7 +986,7 @@ class InventoryClient(ClientBase):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_subsamples: bool = True,
-        location: Union[int, str]='t'
+        location: Union[int, str] = "t",
     ) -> dict:
 
         data = self._set_core_properties(name, tags, description, extra_fields)
@@ -996,7 +994,7 @@ class InventoryClient(ClientBase):
         data["canStoreContainers"] = can_store_containers
         data["canStoreSubsamples"] = can_store_subsamples
         data["gridLayout"] = {"columnsNumber": column_count, "rowsNumber": row_count}
-        
+
         self._configure_parent_container_post(location, data)
 
         container = self.retrieve_api_results(

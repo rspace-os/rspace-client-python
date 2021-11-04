@@ -798,8 +798,6 @@ class ELNClient(ClientBase):
     def deleteTempUser(self, user_id):
         return self.doDelete("sysadmin/users", user_id)
 
-   
-
     def import_tree(
         self,
         data_dir: str,
@@ -831,6 +829,7 @@ class ELNClient(ClientBase):
             RSpace Ids.
 
         """
+
         def _assert_is_readable_dir(data_dir):
             if not os.access(data_dir, os.R_OK):
                 raise ValueError(f"{data_dir} is not readable")
