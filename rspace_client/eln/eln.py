@@ -3,12 +3,9 @@ import time
 import os
 import requests
 import rspace_client.eln.filetree_importer as importer
-from rspace_client.eln.dcs import DocumentCreationStrategy 
+from rspace_client.eln.dcs import DocumentCreationStrategy
 
 from rspace_client.client_base import ClientBase, Pagination
-
-
-
 
 
 class ELNClient(ClientBase):
@@ -825,8 +822,10 @@ class ELNClient(ClientBase):
 
         """
         tree_import = importer.TreeImporter(self)
-        return tree_import.import_tree(data_dir, parent_folder_id, ignore_hidden_folders, halt_on_error, doc_creation)
-
-       
-
-   
+        return tree_import.import_tree(
+            data_dir,
+            parent_folder_id,
+            ignore_hidden_folders,
+            halt_on_error,
+            doc_creation,
+        )

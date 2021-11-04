@@ -12,10 +12,9 @@ from rspace_client.eln.dcs import DocumentCreationStrategy as DCS
 
 
 class TreeImporter:
-    
     def __init__(self, eln_client):
         self.cli = eln_client
-    
+
     def _create_file_linking_doc(self, content, parent_folder_id, name, path2Id):
         rs_doc = self.cli.create_document(
             name, parent_folder_id=parent_folder_id, fields=[{"content": content}],
@@ -28,8 +27,7 @@ class TreeImporter:
             s = s + f"<tr><td>{o}</td><td><fileId={r['id']}></td></tr>"
         s = s + "</table>"
         return s
-    
-    
+
     def import_tree(
         self,
         data_dir: str,
@@ -38,7 +36,6 @@ class TreeImporter:
         halt_on_error: bool = False,
         doc_creation=DCS.DOC_PER_FILE,
     ) -> dict:
-        
         def _assert_is_readable_dir(data_dir):
             if not os.access(data_dir, os.R_OK):
                 raise ValueError(f"{data_dir} is not readable")
@@ -96,7 +93,9 @@ class TreeImporter:
                         rs_files_in_subdir.append((f, rs_file))
                 except IOError as x:
                     if halt_on_error:
-                        self.cli.serr(f"{x} raised while opening {f} - halting on error")
+                        self.cli.serr(
+                            f"{x} raised while opening {f} - halting on error"
+                        )
                         result["status"] = "HALTED_ON_ERROR"
                         return result
                     else:
@@ -120,9 +119,7 @@ class TreeImporter:
                 self._create_file_linking_doc(
                     content, parent_folder_id, summary_name, path2Id
                 )
-        if (DCS.SUMMARY_DOC == doc_creation) and (
-            len(all_rs_files) > 0
-        ):
+        if (DCS.SUMMARY_DOC == doc_creation) and (len(all_rs_files) > 0):
             content = self._generate_summary_content(all_rs_files)
             summary_name = f"Summary-doc{all_rs_files[0][1]['created']}"
             self._create_file_linking_doc(content, folder["id"], summary_name, path2Id)
