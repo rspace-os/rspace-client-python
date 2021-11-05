@@ -337,8 +337,9 @@ class ELNClient(ClientBase):
         :param filename: file path to save the file to
         """
         numeric_file_id = self._get_numeric_record_id(file_id)
+        url_base = self._get_api_url()
         return self.download_link_to_file(
-            "/files/{}/file".format(numeric_file_id), filename
+            f"{url_base}/files/{numeric_file_id}/file", filename
         )
 
     def upload_file(self, file, folder_id=None, caption=None):
