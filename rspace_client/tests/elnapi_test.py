@@ -5,11 +5,11 @@ Created on Mon Jun  7 08:38:55 2021
 
 @author: richard
 """
-
+import os
 import rspace_client.eln.eln as cli
 
 
-from rspace_client.tests.base_test import BaseApiTest, random_string
+from rspace_client.tests.base_test import BaseApiTest, random_string, get_datafile
 from rspace_client.client_base import Pagination
 
 
@@ -21,6 +21,15 @@ class ELNClientAPIIntegrationTest(BaseApiTest):
     def test_get_status(self):
         resp = self.api.get_status()
         self.assertEqual("OK", resp["message"])
+
+    def test_upload_downloadfile(self):
+        file = get_datafile("fish_method.doc")
+        try:
+            with open(file, "rb") as to_upload:
+                rs_file = self.api.upload_file(to_upload)
+                rs_get = self.api.download_file(rs_file["id"], "out.doc")
+        finally:
+            os.remove(os.path.join(os.getcwd(), "out.doc"))
 
     def test_get_documents(self):
         resp = self.api.get_documents()
