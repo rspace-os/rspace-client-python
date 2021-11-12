@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rspace-client"
-version = "2.0.0-alpha"
+version = "2.0.0-alpha2"
 description = "A client for calling RSpace ELN and Inventory APIs"
 license = "Apache-2.0"
 authors = ["Research Innovations Ltd <richard@researchspace.com>"]
