@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rspace-client"
-version = "2.0.0-alpha2"
+version = "2.0.1"
 description = "A client for calling RSpace ELN and Inventory APIs"
 license = "Apache-2.0"
 authors = ["Research Innovations Ltd <richard@researchspace.com>"]
@@ -13,7 +13,7 @@ repository = "https://github.com/rspace-os/rspace-client-python"
 documentation = "https://github.com/rspace-os/rspace-client-python"
 keywords = ["RSpace", "ResearchSpace", "ELN", "Inventory"]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
   "Topic :: Software Development :: Libraries",
