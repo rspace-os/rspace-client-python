@@ -22,7 +22,7 @@ to install all project dependencies into your virtual environment.
 ### Running tests
 
 Tests are a mixture of plain unit tests and integration tests making calls to an RSpace server.
-To run all tests, set these environment variables,replacing with your own valies
+To run all tests, set these environment variables,replacing with your own values
 
 ```
 bash> export RSPACE_URL=https:/<your-rspace-domain>
@@ -36,6 +36,8 @@ Tests can be invoked:
 ```
 poetry run pytest rspace_client/tests
 ```
+
+They should be run with a new account that does not belong to any groups.
  
 ### Writing Tests
  
