@@ -179,7 +179,7 @@ class InventoryApiTest(base.BaseApiTest):
         splits = self.invapi.split_subsample(ss, num_new_subsamples=3)
         self.assertEqual(3, len(splits))
         self.assertAlmostEqual(
-            7.5, sum([x["quantity"]["numericValue"] for x in splits])
+            750, sum([x["quantity"]["numericValue"] for x in splits])
         )
 
     def test_partial_split(self):
