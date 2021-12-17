@@ -21,7 +21,7 @@ See [DEVELOPING.md](DEVELOPING.md) for details of running tests.
 To install rspace-client and its dependencies, run
 
 ```bash
-pip install rspace-client==2.0.0a0
+pip install rspace-client==2.0.1
 ```
 
 You may need to install `requests` module:
