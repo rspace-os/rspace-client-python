@@ -2,7 +2,7 @@
 
 This project contains a client which helps calling RSpace ELN and Inventory APIs. There are some example Python scripts. 
 
-This client is easy to use in Jupyter notebooks - see this [YouTube](https://researchspace.helpdocs.io/article/5xqzm36v9t-video-round-trip-data-analysis-using-jupyter-notebook-and-the-rspace-api) video for an example.
+This client is easy to use in Jupyter notebooks - watch this [video](https://researchspace.helpdocs.io/article/5xqzm36v9t-video-round-trip-data-analysis-using-jupyter-notebook-and-the-rspace-api) for an example.
 
 To begin with, you'll need an account on an RSpace server and an API key which you can get from your [profile page](https://researchspace.helpdocs.io/article/v0dxtfvj7u-rspace-api-introduction
 ).

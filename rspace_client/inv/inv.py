@@ -441,7 +441,7 @@ class Id:
         "IT": "templates",
     }
 
-    def __init__(self, value: Union[int, str, dict, Container, Sample]):
+    def __init__(self, value: Union[int, str, dict, Container, Workbench, Sample]):
 
         if isinstance(value, str):
             if re.match(Id.Pattern, value) is None:
@@ -452,6 +452,9 @@ class Id:
                 self.id = int(value[2:])
             else:
                 self.id = int(value)
+        elif isinstance(value, Workbench):
+            self.prefix = "BE"
+            self.id = value.data["id"]
         elif isinstance(value, Container):
             self.prefix = "IC"
             self.id = value.data["id"]
@@ -760,7 +763,7 @@ class InventoryClient(ClientBase):
 
     def uploadAttachment(self, inventory_item: Union[str, dict], file) -> dict:
         """
-        Uploads an attachment file to an sample, subsample or container.
+        Uploads an attachment file to a sample, subsample or container.
         Parameters
         ----------
         - inventory_item : str
@@ -789,6 +792,25 @@ class InventoryClient(ClientBase):
         num_new_subsamples: int,
         quantity_per_subsample: float = None,
     ):
+        """
+        Supports splitting of all or part of a subsample into 1 or more new
+        subsamples.
+
+        Parameters
+        ----------
+        subsample : Union[int, str, dict]
+            The ID, global Id or dict of the subsample to split.
+        num_new_subsamples : int
+            The number of new subsamples to create
+        quantity_per_subsample : float, optional
+            The quantity per subsample If not set, the whole subsample will
+            be split equally. Use this parameter to set a smaller quantity per subsample.
+   
+        Returns
+        -------
+        A list of split subsamples
+
+        """
         def _do_call(ss_id, params):
             return self.retrieve_api_results(
                 f"/subSamples/{ss_id.as_id()}/actions/split",
@@ -1025,7 +1047,7 @@ class InventoryClient(ClientBase):
         for item_id in item_ids:
             id_ob = Id(item_id)
             if not id_ob.is_movable():
-                raise ValueError(f"Item to move '{item_id}' must be a container")
+                raise ValueError(f"Item to move '{item_id}' must be a container or subsample")
             valid_item_ids.append(id_ob)
 
         return self._do_add_to_list_container(valid_item_ids, id_target)

@@ -6,7 +6,7 @@ Created on Mon Oct  4 19:10:42 2021
 @author: richard
 """
 import unittest
-from rspace_client.inv.inv import Id, GridContainer, ListContainer
+from rspace_client.inv.inv import Id, GridContainer, ListContainer, Workbench
 
 
 class IdUnitTest(unittest.TestCase):
@@ -32,3 +32,9 @@ class IdUnitTest(unittest.TestCase):
         minimal_container = {"id": 123, "globalId": "IC123", "cType": "LIST"}
         c = Id(ListContainer(minimal_container))
         self.assertEqual(123, c.as_id())
+
+    def test_id_from_workbench(self):
+        workbench = {"id": 123, "globalId": "BE123", "cType": "WORKBENCH"}
+        c = Id(Workbench(workbench))
+        self.assertEqual(123, c.as_id())
+        self.assertEqual("BE", c.prefix)
