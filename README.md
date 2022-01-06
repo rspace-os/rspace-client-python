@@ -1,10 +1,12 @@
 # rspace-client-python
 
-This project contains a client which helps calling RSpace ELN and Inventory APIs. There are some example Python scripts.
+This project contains a client which helps calling RSpace ELN and Inventory APIs. There are some example Python scripts. 
+
+This client is easy to use in Jupyter notebooks - see this [YouTube](https://researchspace.helpdocs.io/article/5xqzm36v9t-video-round-trip-data-analysis-using-jupyter-notebook-and-the-rspace-api) video for an example.
 
 To begin with, you'll need an account on an RSpace server and an API key which you can get from your [profile page](https://researchspace.helpdocs.io/article/v0dxtfvj7u-rspace-api-introduction
 ).
-You can sign up for a free RSpace account at https://community.researchspace.com
+You can sign up for a free RSpace account at https://community.researchspace.com. Alternatively, you can run [RSpace locally in Docker](https://researchspace.helpdocs.io/article/aj63kmb3uh-running-rspace-on-docker).
 
 In these examples we'll be using the rspace_client package (code is in rspace_client folder) which provides an abstraction over lower-level libraries. 
 It's compatible with Python 3.7 onwards, based on analysis by [vermin](https://pypi.org/project/vermin/vermin) 
@@ -21,7 +23,7 @@ See [DEVELOPING.md](DEVELOPING.md) for details of running tests.
 To install rspace-client and its dependencies, run
 
 ```bash
-pip install rspace-client==2.0.1
+pip install rspace-client==2.0.2
 ```
 
 You may need to install `requests` module:
