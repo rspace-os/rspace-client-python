@@ -69,5 +69,12 @@ class TemplateBuilderTest(unittest.TestCase):
         builder.number("pH").number("index")
         self.assertEqual(2, builder.field_count())
         
+    def test_name_required(self):
+        builder = TemplateBuilder("myTemplate")      
+        self.assertRaises(
+            ValueError,
+            builder.number,
+            "",
+        )
         
         
