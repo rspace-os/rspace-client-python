@@ -12,6 +12,18 @@ class TemplateBuilder:
         self.fields = []
         
     def radio(self, name: str, options: List, selected: str = None):
+        """
+        Parameters
+        ----------
+        name : str
+            The field name.
+        options : List
+            A list of radio options.
+        selected : str, optional
+            An optional string indicating a radio option that should be selected
+            by default. If this string is not in the 'options' List, it will be ignored
+
+        """
         f = { "name": name,
               "type": "Radio",
               "definition": {
@@ -26,6 +38,18 @@ class TemplateBuilder:
         return self
     
     def choice(self, name: str, options: List, selected: List = None):
+        """
+        Parameters
+        ----------
+        name : str
+            The field name.
+        options : List
+            A list of choice options.
+        selected : List, optional
+            An optional list of options that should be selected. If items in 
+            this list are not in the 'options' List, they will be ignored
+
+        """
         f = { "name": name,
               "type": "Choice",
               "definition": {
@@ -56,6 +80,24 @@ class TemplateBuilder:
         return self
         
     def number(self,  name: str, default: numeric = None):
+        """
+        Parameters
+        ----------
+        name : str
+            The field's name.
+        default : numeric, optional
+            A default numeric value for the field.
+
+        Raises
+        ------
+        ValueError
+            if default value is not a number (integer or float).
+
+        Returns
+        -------
+        This object for chaining
+
+        """
         f = {'name' : name, 'type' : 'Number'}
         if default is not None:
             if  isinstance(default, numbers.Number):
