@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from  typing import Optional, Sequence, Union, List
 import numbers
+import datetime as dt
+import sys
 
 class TemplateBuilder:
     
@@ -112,8 +114,69 @@ class TemplateBuilder:
         return self
     ## TODO date, time, URI, attachment?
     
-    def date(self, name: str, date):
-        f = self._set_name(name,"Date")
+    def date(self, name: str, isodate: Union[dt.date, dt.datetime, str]):
+        """
+
+        Parameters
+        ----------
+        name : str
+            The field name.
+        isodate : Union[dt.date, dt.datetime, str]
+            Either a datetime.dateime, a datetime.date, or an ISO-8601 string.
+        Raises
+        ------
+        ValueError
+            if string  value is not an ISO8601 date (e.g. 2022-01-27)
+
+        Returns
+        -------
+        This object for chaining
+
+        """
+        f = self._set_name(name, "Date")
+        defaultDate = None
+        ## these conditions must be in order
+        if isinstance(isodate, dt.datetime):
+            defaultDate = isodate.date().isoformat()
+        elif isinstance(isodate, dt.date):
+            defaultDate = isodate.isoformat()
+        elif isinstance(isodate, str):
+            defaultDate = dt.datetime.strptime(isodate,  '%Y-%m-%d').date().isoformat()
+        if defaultDate is not None:
+            f['content'] = defaultDate
+        self.fields.append(f)
+        return self
+    
+    def time(self, name: str, isotime: Union[dt.date, dt.time, str]):
+        """
+
+        Parameters
+        ----------
+        name : str
+            The field name.
+        isodate : Union[dt.time, dt.datetime, str]
+            Either a datetime.datetime, a datetime.time, or an ISO-8601 string.
+        Raises
+        ------
+        ValueError
+            if string  value is not an ISO8601 time (e.g. 12:05:36)
+
+        Returns
+        -------
+        This object for chaining
+
+        """
+        f = self._set_name(name, "Time")
+        defaultTime = None
+        ## these conditions must be in order
+        if isinstance(isotime, dt.datetime):
+            defaultTime = isotime.time().isoformat()
+        elif isinstance(isotime, dt.time):
+            defaultTime = isotime.isoformat()
+        elif isinstance(isotime, str):
+            defaultTime = dt.time.fromisoformat(isotime).isoformat()
+        if defaultTime is not None:
+            f['content'] = defaultTime
         self.fields.append(f)
         return self
     

@@ -9,15 +9,13 @@ Created on Mon Jun  7 08:38:55 2021
 
 from rspace_client.inv.template_builder import TemplateBuilder
 import unittest
+import sys
+import datetime as dt
 
 builder = None
 class TemplateBuilderTest(unittest.TestCase):
 
     
-    
-          
-
-
     def test_add_radio(self):
         builder = TemplateBuilder("myTemplate")      
         builder.radio("r1", ['a', 'b', 'c'], 'a')
@@ -76,5 +74,31 @@ class TemplateBuilderTest(unittest.TestCase):
             builder.number,
             "",
         )
+    def test_add_date(self):
+        builder = TemplateBuilder("myTemplate")      
+        builder.date("d", dt.date(2021, 10, 26))
+        self.assertEqual(1, builder.field_count())
+        
+        builder.date("fromstr", '2021-10-26')
+        self.assertEqual(2, builder.field_count())
+        
+        builder.date("fromdate-time", dt.datetime.strptime('2021-10-26',  '%Y-%m-%d'))
+        self.assertEqual(3, builder.field_count())
+        contents = [a['content'] for a in builder._fields()]
+        self.assertTrue(all(d=='2021-10-26' for d in contents ))
+        
+    def test_add_time(self):
+        builder = TemplateBuilder("myTemplate")      
+        builder.time("d", dt.time(2, 30, 59))
+        self.assertEqual(1, builder.field_count())
+        
+        builder.time("fromstr", '02:30:59')
+        self.assertEqual(2, builder.field_count())
+        
+        builder.time("fromdate-time", dt.datetime(2021,10,26,2,30,59))
+        self.assertEqual(3, builder.field_count())
+        contents = [a['content'] for a in builder._fields()]
+        self.assertTrue(all(d=='02:30:59' for d in contents ))
+        
         
         
