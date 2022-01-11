@@ -180,6 +180,26 @@ class TemplateBuilder:
         self.fields.append(f)
         return self
     
+    def attachment(self, name: str, desc:str = None):
+        """
+        Parameters
+        ----------
+        name : str
+            The field name.
+        desc : str, optional
+           An optional description of the file to upload.
+
+        Returns
+        -------
+        This object for chaining 
+
+        """
+        f = self._set_name(name, "Attachment")
+        if len(desc) > 0 and len(str.strip(desc)) > 0:
+            f['content'] = desc
+        self.fields.append(f)
+        return self
+    
     def field_count(self):
         return len(self.fields)
     

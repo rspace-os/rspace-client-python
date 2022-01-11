@@ -101,4 +101,15 @@ class TemplateBuilderTest(unittest.TestCase):
         self.assertTrue(all(d=='02:30:59' for d in contents ))
         
         
+    def test_add_attachment(self):
+        builder = TemplateBuilder("myTemplate") 
+        desc =  "A PDF of a CoSH form"
+        builder.attachment("Safety data", desc)
+        self.assertEqual(desc, builder._fields()[0]['content'])
+        
+        builder.attachment("Safety data", "")
+        self.assertFalse('content' in builder._fields()[1])
+        
+        builder.attachment("Safety data", "   ")
+        self.assertFalse('content' in builder._fields()[2])
         
