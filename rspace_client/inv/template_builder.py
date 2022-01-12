@@ -3,7 +3,7 @@ from  typing import Optional, Sequence, Union, List
 from urllib.parse import urlparse
 import numbers
 import datetime as dt
-import sys
+
 from rspace_client.inv.quantity_unit import QuantityUnit
 
 class TemplateBuilder:
@@ -235,6 +235,13 @@ class TemplateBuilder:
     
     def field_count(self):
         return len(self.fields)
+    
+    def build(self) -> dict:
+        d= {'name': self.name, 'defaultUnitId': self.qu['id'], 'fields':self.fields }
+        if hasattr(self, 'description'):
+            d['description'] = self.description
+        return d
+
     
     
     def _fields(self):

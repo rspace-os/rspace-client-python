@@ -1250,6 +1250,9 @@ class InventoryClient(ClientBase):
 
         """
         return self.retrieve_api_results(f"/listOfMaterials/{lom_id}")
+    def create_sample_template(self, sample_template_post):
+        return self.retrieve_api_results(
+            "/sampleTemplates", request_type="POST", params=sample_template_post)
 
     def barcode(
         self,
@@ -1284,6 +1287,8 @@ class InventoryClient(ClientBase):
                 fd.write(content)
         return content
 
+    
+        
 
 def _calculate_start_index(
     col_start, row_start, total_columns, total_rows, filling_strategy

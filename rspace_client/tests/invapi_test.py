@@ -9,7 +9,7 @@ import sys
 import json
 import datetime as dt
 import rspace_client.tests.base_test as base
-from rspace_client.inv import inv
+from rspace_client.inv import inv, template_builder
 import rspace_client.inv.quantity_unit as qu
 
 
@@ -455,3 +455,14 @@ class InventoryApiTest(base.BaseApiTest):
             )
         )["totalHits"]
         self.assertEqual(total_deleted2, total_deleted + 1)
+
+    def test_create_sample_template(self):
+        tb = template_builder.TemplateBuilder("toTest", "ml")
+        json = tb.text("Notes").number("pH", 7).build()
+        st = self.invapi.create_sample_template(json)
+        self.assertTrue('id' in st)
+        self.assertEqual('toTest', st['name'])
+        self.assertEqual(2, len(st["fields"]))
+        #sys.stderr.write(str(st))
+        
+        
