@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from  typing import Optional, Sequence, Union, List
+from urllib.parse import urlparse
 import numbers
 import datetime as dt
 import sys
@@ -195,10 +196,36 @@ class TemplateBuilder:
 
         """
         f = self._set_name(name, "Attachment")
-        if len(desc) > 0 and len(str.strip(desc)) > 0:
+        if desc is not None and  len(desc) > 0 and len(str.strip(desc)) > 0:
             f['content'] = desc
         self.fields.append(f)
         return self
+    
+    def uri(self, name: str, uri: str = None):
+        """
+        Parameters
+        ----------
+        name : str
+            The field name.
+        uri : str, optional
+           An optional default URI
+
+        Returns
+        -------
+        This object for chaining 
+        Raises
+        ------
+        ValueError if URI is not parsable into a URI
+
+        """
+        f = self._set_name(name, "Uri")
+        if uri is not None and len(uri) > 0 and len(str.strip(uri)) > 0:
+            parsed_uri = urlparse(uri)
+            f['content'] = uri
+        self.fields.append(f)
+        return self
+    
+    
     
     def field_count(self):
         return len(self.fields)

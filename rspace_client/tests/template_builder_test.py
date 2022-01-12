@@ -107,9 +107,27 @@ class TemplateBuilderTest(unittest.TestCase):
         builder.attachment("Safety data", desc)
         self.assertEqual(desc, builder._fields()[0]['content'])
         
+        builder.attachment("Safety data")
+        self.assertFalse('content' in builder._fields()[1])
+        
         builder.attachment("Safety data", "")
         self.assertFalse('content' in builder._fields()[1])
         
         builder.attachment("Safety data", "   ")
         self.assertFalse('content' in builder._fields()[2])
+        
+    def test_add_uri(self):
+        builder = TemplateBuilder("myTemplate") 
+        builder.uri("A URI", "https://www.google.com")
+        builder.uri("no default")
+        self.assertEqual(2, builder.field_count())
+        self.assertEqual("https://www.google.com", builder._fields()[0]['content'])
+        self.assertRaises(
+            ValueError,
+            builder.uri,
+            'name',
+            'aa://www.goog[le.com:XXXX',
+        )
+        
+        
         
