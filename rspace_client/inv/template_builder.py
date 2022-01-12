@@ -4,15 +4,21 @@ from urllib.parse import urlparse
 import numbers
 import datetime as dt
 import sys
+from rspace_client.inv.quantity_unit import QuantityUnit
 
 class TemplateBuilder:
     
     numeric = Union[int, float]
     
-    def __init__(self, name):
-        
+    def __init__(self, name, defaultUnit, description=None):
+        if not QuantityUnit.is_supported_unit(defaultUnit):
+            raise ValueError(f"{defaultUnit} must be a label of a supported unit in QuantityUnit")
         self.name = name
         self.fields = []
+        self.qu = QuantityUnit.of(defaultUnit)
+        if description is not None:
+            self.description = description
+        
         
     def _set_name(self, name: str, f_type: str):
         if len(name) ==0:
