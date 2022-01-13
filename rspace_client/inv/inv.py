@@ -432,13 +432,13 @@ class Id:
         "IC": "CONTAINER",
         "SS": "SUBSAMPLE",
         "SA": "SAMPLE",
-        "IT": "TEMPLATE",
+        "IT": "SAMPLE_TEMPLATE",
     }
     PREFIX_TO_API = {
         "IC": "containers",
         "SS": "subSamples",
         "SA": "samples",
-        "IT": "templates",
+        "IT": "sampleTemplates",
     }
 
     def __init__(self, value: Union[int, str, dict, Container, Workbench, Sample]):
@@ -1250,9 +1250,63 @@ class InventoryClient(ClientBase):
 
         """
         return self.retrieve_api_results(f"/listOfMaterials/{lom_id}")
-    def create_sample_template(self, sample_template_post):
+   
+    def create_sample_template(self, sample_template_post: dict):
+        """
+        Creates a new SampleTemplate. Use  TemplateBuilder to create the 
+        template data structure required as sample_template_post parameter.
+
+        Parameters
+        ----------
+        sample_template_post : A Dict
+            A Dictionary of the SampleTemplate definition to post.
+
+        Returns
+        -------
+        Dict
+            The newly created template.
+
+        """
         return self.retrieve_api_results(
             "/sampleTemplates", request_type="POST", params=sample_template_post)
+    
+    def get_sample_template_by_id(self, sample_template_id: Union[str, int]) -> dict:
+        """
+        Gets a full sampleTemplate information by id or global id
+        Parameters
+        ----------
+        id : Union[int, str]
+            An integer ID e.g 1234 or a global ID e.g. IT1234
+        Returns
+        -------
+        dict
+            A full description of one sample template
+        """
+        s_id = Id(sample_template_id)
+        return self.retrieve_api_results(f"/sampleTemplates/{s_id.as_id()}")
+    
+    def delete_sample_template(self, sample_template_id: Union[int, str]) -> None:
+        """
+        Parameters
+        ----------
+        sample_template_id : Union[int, str]
+            A integer id, or a string id or global ID of the template to delete
+
+        Returns
+        -------
+        None.
+
+        """
+        id_to_delete = Id(sample_template_id)
+        self.doDelete("sampleTemplates", id_to_delete.as_id())
+        
+        
+    def restore_sample_template(self, sample_template_id: Union[int, str]) -> dict:
+        id_to_delete = Id(sample_template_id)
+        return self.retrieve_api_results(
+           f"/sampleTemplates/{id_to_delete.as_id()}/restore",
+           request_type="PUT",
+        )    
 
     def barcode(
         self,

@@ -463,6 +463,14 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertTrue('id' in st)
         self.assertEqual('toTest', st['name'])
         self.assertEqual(2, len(st["fields"]))
-        #sys.stderr.write(str(st))
+        
+    def test_delete_restore_sample_template(self):
+        json = template_builder.TemplateBuilder("toTest", "ml").text("Notes").number("pH", 7).build()
+        st = self.invapi.create_sample_template(json)
+        
+        self.invapi.delete_sample_template(st['id'])
+        restored = self.invapi.restore_sample_template(st['id'])
+        self.assertTrue('id' in restored)
+        self.assertEqual(2, len(restored["fields"]))
         
         

@@ -7,6 +7,11 @@ import datetime as dt
 from rspace_client.inv.quantity_unit import QuantityUnit
 
 class TemplateBuilder:
+    """
+      Define a SampleTemplate prior to POSTing to RSpace.
+      A SampleTemplate only  requires a name and a default unit to be defined.
+      The default unit is supplied as a String from a permitted list in class QuantityUnit. E.g. 'ml', 'g'.
+    """
     
     numeric = Union[int, float]
     
