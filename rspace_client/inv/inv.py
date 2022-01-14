@@ -1300,6 +1300,17 @@ class InventoryClient(ClientBase):
         id_to_delete = Id(sample_template_id)
         self.doDelete("sampleTemplates", id_to_delete.as_id())
         
+    def set_sample_template_icon(self, sample_template_id: Union[int, str], file):
+        st_id = Id(sample_template_id)
+    
+        headers = self._get_headers()
+        response = requests.post(
+            f"{self._get_api_url()}/sampleTemplates/{st_id.as_id()}/icon",
+            files={"file": file},
+            headers=headers
+        )
+        return self._handle_response(response)
+        
         
     def restore_sample_template(self, sample_template_id: Union[int, str]) -> dict:
         id_to_delete = Id(sample_template_id)

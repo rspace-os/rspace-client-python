@@ -458,19 +458,29 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_create_sample_template(self):
         tb = template_builder.TemplateBuilder("toTest", "ml")
-        json = tb.text("Notes").number("pH", 7).build()
-        st = self.invapi.create_sample_template(json)
+        t_json = tb.text("Notes").number("pH", 7).build()
+        st = self.invapi.create_sample_template(t_json)
         self.assertTrue('id' in st)
         self.assertEqual('toTest', st['name'])
         self.assertEqual(2, len(st["fields"]))
         
     def test_delete_restore_sample_template(self):
-        json = template_builder.TemplateBuilder("toTest", "ml").text("Notes").number("pH", 7).build()
-        st = self.invapi.create_sample_template(json)
+        t_json = template_builder.TemplateBuilder("toTest", "ml").text("Notes").number("pH", 7).build()
+        st = self.invapi.create_sample_template(t_json)
         
         self.invapi.delete_sample_template(st['id'])
         restored = self.invapi.restore_sample_template(st['id'])
         self.assertTrue('id' in restored)
         self.assertEqual(2, len(restored["fields"]))
+        
+    def test_post_sample_template_icon(self):
+        t_json = template_builder.TemplateBuilder("WithIcon", "ml").text("Notes").number("pH", 7).build()
+        st = self.invapi.create_sample_template(t_json)
+        with open(base.get_datafile('antibodySample150.png'), "rb") as icon:
+            updated_template = self.invapi.set_sample_template_icon(st['id'], icon)
+            self.assertTrue(updated_template['iconId'] > 0)
+        
+            
+        
         
         
