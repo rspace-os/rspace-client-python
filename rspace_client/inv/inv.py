@@ -811,6 +811,7 @@ class InventoryClient(ClientBase):
         A list of split subsamples
 
         """
+
         def _do_call(ss_id, params):
             return self.retrieve_api_results(
                 f"/subSamples/{ss_id.as_id()}/actions/split",
@@ -1047,7 +1048,9 @@ class InventoryClient(ClientBase):
         for item_id in item_ids:
             id_ob = Id(item_id)
             if not id_ob.is_movable():
-                raise ValueError(f"Item to move '{item_id}' must be a container or subsample")
+                raise ValueError(
+                    f"Item to move '{item_id}' must be a container or subsample"
+                )
             valid_item_ids.append(id_ob)
 
         return self._do_add_to_list_container(valid_item_ids, id_target)
@@ -1250,7 +1253,7 @@ class InventoryClient(ClientBase):
 
         """
         return self.retrieve_api_results(f"/listOfMaterials/{lom_id}")
-   
+
     def create_sample_template(self, sample_template_post: dict):
         """
         Creates a new SampleTemplate. Use  TemplateBuilder to create the 
@@ -1268,8 +1271,9 @@ class InventoryClient(ClientBase):
 
         """
         return self.retrieve_api_results(
-            "/sampleTemplates", request_type="POST", params=sample_template_post)
-    
+            "/sampleTemplates", request_type="POST", params=sample_template_post
+        )
+
     def get_sample_template_by_id(self, sample_template_id: Union[str, int]) -> dict:
         """
         Gets a full sampleTemplate information by id or global id
@@ -1284,7 +1288,7 @@ class InventoryClient(ClientBase):
         """
         s_id = Id(sample_template_id)
         return self.retrieve_api_results(f"/sampleTemplates/{s_id.as_id()}")
-    
+
     def delete_sample_template(self, sample_template_id: Union[int, str]) -> None:
         """
         Parameters
@@ -1299,25 +1303,23 @@ class InventoryClient(ClientBase):
         """
         id_to_delete = Id(sample_template_id)
         self.doDelete("sampleTemplates", id_to_delete.as_id())
-        
+
     def set_sample_template_icon(self, sample_template_id: Union[int, str], file):
         st_id = Id(sample_template_id)
-    
+
         headers = self._get_headers()
         response = requests.post(
             f"{self._get_api_url()}/sampleTemplates/{st_id.as_id()}/icon",
             files={"file": file},
-            headers=headers
+            headers=headers,
         )
         return self._handle_response(response)
-        
-        
+
     def restore_sample_template(self, sample_template_id: Union[int, str]) -> dict:
         id_to_delete = Id(sample_template_id)
         return self.retrieve_api_results(
-           f"/sampleTemplates/{id_to_delete.as_id()}/restore",
-           request_type="PUT",
-        )    
+            f"/sampleTemplates/{id_to_delete.as_id()}/restore", request_type="PUT",
+        )
 
     def barcode(
         self,
@@ -1352,8 +1354,6 @@ class InventoryClient(ClientBase):
                 fd.write(content)
         return content
 
-    
-        
 
 def _calculate_start_index(
     col_start, row_start, total_columns, total_rows, filling_strategy
