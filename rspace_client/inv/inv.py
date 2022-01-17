@@ -1,5 +1,6 @@
 from enum import Enum
 import datetime
+
 import json
 import re
 import sys
@@ -676,7 +677,6 @@ class InventoryClient(ClientBase):
     def _do_simple_list(self, endpoint, pagination, sample_filter):
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
-        self.serr(f"pg is {pagination.data}")
         return self.retrieve_api_results(
             f"/{endpoint}", request_type="GET", params=pagination.data,
         )
@@ -1329,7 +1329,7 @@ class InventoryClient(ClientBase):
     
     def get_sample_template_icon(self, sample_template_id: Union[int, str], icon_id: int, outfile):
         """
-        Downloads the sample Template's icon
+        Downloads the Sample Template's icon
 
         Parameters
         ----------
@@ -1337,19 +1337,37 @@ class InventoryClient(ClientBase):
             The id of the SampleTemplate.
         icon_id : int
             A numeric ID of the icon.
-        outfile : TYPE
-            DESCRIPTION.
+        outfile : string
+            A  path to a writable file to store the downloaded icon.
 
         Returns
         -------
-        TYPE
-            DESCRIPTION.
+        void, no return value
 
         """
         st_id = Id(sample_template_id)
         url_base = self._get_api_url()
         return self.download_link_to_file(
             f"{url_base}/sampleTemplates/{st_id.as_id()}/icon/{icon_id}", outfile)
+    
+    def list_sample_templates(self, pagination: Pagination = Pagination(), search_filter : SearchFilter = None):
+        """
+        Paginated listing of SampleTemplates, optionally filtering by username (owner) or deletion status
+
+        Parameters
+        ----------
+        pagination : Pagination, optional
+            The default is Pagination().
+        search_filter : SearchFilter, optional
+            The default is None.
+
+        Returns
+        -------
+        A standard SearchResult with 'totalHits' attribute and a list of 'templates' with basic information
+        about each template.
+
+        """
+        return self._do_simple_list('sampleTemplates', pagination, search_filter)
         
 
     def restore_sample_template(self, sample_template_id: Union[int, str]) -> dict:

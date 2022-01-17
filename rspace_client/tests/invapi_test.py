@@ -8,6 +8,7 @@ Created on Sat Oct  2 22:09:40 2021
 import sys,os
 import json
 import datetime as dt
+import pprint as pp
 import rspace_client.tests.base_test as base
 from rspace_client.inv import inv, template_builder
 import rspace_client.inv.quantity_unit as qu
@@ -490,9 +491,19 @@ class InventoryApiTest(base.BaseApiTest):
         with open(icon_file, "rb") as icon:
             updated_template = self.invapi.set_sample_template_icon(st['id'], icon)
             self.assertTrue(updated_template['iconId'] > 0)
-        
+        outfile="downloaded.png"
         try:
-            self.invapi.get_sample_template_icon(st['id'], updated_template["iconId"], "downloaded.png")
-            self.assertEqual(1600, os.path.getsize("downloaded.png"))
+            self.invapi.get_sample_template_icon(st['id'], updated_template["iconId"], outfile )
+            self.assertEqual(1600, os.path.getsize(outfile))
         finally:
-           pass
+            os.remove(os.path.join(os.getcwd(), outfile))
+            
+    def test_list_sample_templates(self):
+        results = self.invapi.list_sample_templates()
+        self.assertTrue( results['totalHits'] > 0)
+        self.assertTrue(all ([ a['template'] for a in results['templates']]))
+        
+        ## search for non-existent user
+        sf = inv.SearchFilter(owned_by='XXXX1123')
+        results = self.invapi.list_sample_templates(search_filter=sf)
+        self.assertEqual(0, results['totalHits'])
