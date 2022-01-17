@@ -479,6 +479,9 @@ class InventoryApiTest(base.BaseApiTest):
         with open(base.get_datafile('antibodySample150.png'), "rb") as icon:
             updated_template = self.invapi.set_sample_template_icon(st['id'], icon)
             self.assertTrue(updated_template['iconId'] > 0)
+            
+   
+        
         
             
         
