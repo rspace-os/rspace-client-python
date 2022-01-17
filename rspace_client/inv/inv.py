@@ -1305,8 +1305,20 @@ class InventoryClient(ClientBase):
         self.doDelete("sampleTemplates", id_to_delete.as_id())
 
     def set_sample_template_icon(self, sample_template_id: Union[int, str], file):
-        st_id = Id(sample_template_id)
+        """
+        Parameters
+        ----------
+        sample_template_id : Union[int, str]
+            The ID of the template to add the icon too.
+        file : an open File
+            An icon or image to help identify the template in listings.
 
+        Returns
+        -------
+        The updated SampleTemplate, with an iconId set.
+
+        """
+        st_id = Id(sample_template_id)
         headers = self._get_headers()
         response = requests.post(
             f"{self._get_api_url()}/sampleTemplates/{st_id.as_id()}/icon",
@@ -1314,6 +1326,31 @@ class InventoryClient(ClientBase):
             headers=headers,
         )
         return self._handle_response(response)
+    
+    def get_sample_template_icon(self, sample_template_id: Union[int, str], icon_id: int, outfile):
+        """
+        Downloads the sample Template's icon
+
+        Parameters
+        ----------
+        sample_template_id : Union[int, str]
+            The id of the SampleTemplate.
+        icon_id : int
+            A numeric ID of the icon.
+        outfile : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
+
+        """
+        st_id = Id(sample_template_id)
+        url_base = self._get_api_url()
+        return self.download_link_to_file(
+            f"{url_base}/sampleTemplates/{st_id.as_id()}/icon/{icon_id}", outfile)
+        
 
     def restore_sample_template(self, sample_template_id: Union[int, str]) -> dict:
         id_to_delete = Id(sample_template_id)

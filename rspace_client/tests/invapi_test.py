@@ -5,7 +5,7 @@ Created on Sat Oct  2 22:09:40 2021
 
 @author: richard
 """
-import sys
+import sys,os
 import json
 import datetime as dt
 import rspace_client.tests.base_test as base
@@ -478,7 +478,7 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertTrue("id" in restored)
         self.assertEqual(2, len(restored["fields"]))
 
-    def test_post_sample_template_icon(self):
+    def test_post_retrieve_sample_template_icon(self):
         t_json = (
             template_builder.TemplateBuilder("WithIcon", "ml")
             .text("Notes")
@@ -486,6 +486,13 @@ class InventoryApiTest(base.BaseApiTest):
             .build()
         )
         st = self.invapi.create_sample_template(t_json)
-        with open(base.get_datafile('antibodySample150.png'), "rb") as icon:
+        icon_file = base.get_datafile('antibodySample150.png')
+        with open(icon_file, "rb") as icon:
             updated_template = self.invapi.set_sample_template_icon(st['id'], icon)
             self.assertTrue(updated_template['iconId'] > 0)
+        
+        try:
+            self.invapi.get_sample_template_icon(st['id'], updated_template["iconId"], "downloaded.png")
+            self.assertEqual(1600, os.path.getsize("downloaded.png"))
+        finally:
+           pass
