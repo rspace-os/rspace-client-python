@@ -1,3 +1,4 @@
+import datetime as dt
 class AbsValidator:
     def validate(self, item):
         pass
@@ -13,6 +14,17 @@ class String(AbsValidator):
     def validate(self, value):
         if not isinstance(value, str):
             raise TypeError(f"Expected {value!r} to be a string")
+
+class Date(AbsValidator):
+    def validate(self, value):
+        if not isinstance(value, dt.date) and not isinstance(value, dt.datetime) :
+            raise TypeError(f"Expected {type(value)} {value!r} to be a datetime or date")
+            
+class Time(AbsValidator):
+    def validate(self, value):
+        if not isinstance(value, dt.datetime) and not  isinstance(value, dt.time):
+            raise TypeError(f"Expected {type(value)} {value!r} to be a datetime or time")
+        
 
 
 class OneOf(AbsValidator):

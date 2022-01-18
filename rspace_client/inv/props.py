@@ -53,7 +53,7 @@ class FieldBuilder:
 
     def get_validator_for_type(self, f_def):
         t = f_def["type"]
-        if t == "String":
+        if t == "String" or t == "Text":
             return v.String()
         elif t == "Number":
             return v.Number()
@@ -61,6 +61,8 @@ class FieldBuilder:
             return v.OneOf(f_def["options"])
         elif t == "Choice":
             return v.AllOf(f_def["options"])
+        elif t == "Date":
+            return v.Date()
         else:
             return v.AbsValidator()  ## allows anything
 
