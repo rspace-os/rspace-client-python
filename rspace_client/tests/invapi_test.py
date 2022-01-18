@@ -5,7 +5,7 @@ Created on Sat Oct  2 22:09:40 2021
 
 @author: richard
 """
-import sys,os
+import sys, os
 import json
 import datetime as dt
 import pprint as pp
@@ -487,23 +487,25 @@ class InventoryApiTest(base.BaseApiTest):
             .build()
         )
         st = self.invapi.create_sample_template(t_json)
-        icon_file = base.get_datafile('antibodySample150.png')
+        icon_file = base.get_datafile("antibodySample150.png")
         with open(icon_file, "rb") as icon:
-            updated_template = self.invapi.set_sample_template_icon(st['id'], icon)
-            self.assertTrue(updated_template['iconId'] > 0)
-        outfile="downloaded.png"
+            updated_template = self.invapi.set_sample_template_icon(st["id"], icon)
+            self.assertTrue(updated_template["iconId"] > 0)
+        outfile = "downloaded.png"
         try:
-            self.invapi.get_sample_template_icon(st['id'], updated_template["iconId"], outfile )
+            self.invapi.get_sample_template_icon(
+                st["id"], updated_template["iconId"], outfile
+            )
             self.assertEqual(1600, os.path.getsize(outfile))
         finally:
             os.remove(os.path.join(os.getcwd(), outfile))
-            
+
     def test_list_sample_templates(self):
         results = self.invapi.list_sample_templates()
-        self.assertTrue( results['totalHits'] > 0)
-        self.assertTrue(all ([ a['template'] for a in results['templates']]))
-        
+        self.assertTrue(results["totalHits"] > 0)
+        self.assertTrue(all([a["template"] for a in results["templates"]]))
+
         ## search for non-existent user
-        sf = inv.SearchFilter(owned_by='XXXX1123')
+        sf = inv.SearchFilter(owned_by="XXXX1123")
         results = self.invapi.list_sample_templates(search_filter=sf)
-        self.assertEqual(0, results['totalHits'])
+        self.assertEqual(0, results["totalHits"])

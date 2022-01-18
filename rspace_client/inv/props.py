@@ -13,11 +13,11 @@ import datetime as dt
 import validators as v
 
 
-
 class AbsFieldBuilder:
     """
     Base class of dynamically generated SampleTemplate classes
     """
+
     def toFieldPost(self):
         """
          Generates a list of Fields to include in a create_sample POST.
@@ -40,19 +40,20 @@ class AbsFieldBuilder:
                     toPost.append({"content": str(self._data[f])})
             else:
                 toPost.append({})
-                
+
         return toPost
+
 
 class FieldBuilderGenerator:
     """
      Helper class for creating Python classes from SampleTemplates, to help with
      setting field information into Samples. 
     """
+
     def _sanitize_name(name):
-        
-        s1 =  re.sub(r"[^\w]+", "_", name).lower()
+
+        s1 = re.sub(r"[^\w]+", "_", name).lower()
         return re.sub(r"(^\d+)", r"n\1", s1)
-            
 
     def generate_class(self, sample_template):
         """
@@ -75,7 +76,7 @@ class FieldBuilderGenerator:
         
           Validators and documentation for each property are generated from the fied definition , e.g:
         """
-    
+
         st_name = sample_template["name"]
         class_atts = {}
         _san2field = {}
@@ -85,7 +86,7 @@ class FieldBuilderGenerator:
         defs = sample_template["fields"]
         for f_def in defs:
             field_name = f_def["name"]
-        
+
             sanitized_name = FieldBuilderGenerator._sanitize_name(field_name)
             handlers = self._build_handlers(f_def, sanitized_name)
 
@@ -154,7 +155,7 @@ st = {
         {"name": "source", "type": "Radio", "options": ["Commercial", "Academic"]},
         {"name": "supplier", "type": "Choice", "options": ["NEB", "BM", "Sigma"]},
         {"name": "5' manufacture Date", "type": "Date"},
-        {"name": "manufacture Time", "type": "Time"}
+        {"name": "manufacture Time", "type": "Time"},
     ],
 }
 
@@ -166,7 +167,7 @@ inst.source = "Academic"
 inst.ph = 4.3
 inst.comment = "some comment about the enzyme"
 inst.supplier = ["Sigma", "BM"]
-inst.n5_manufacture_date = dt.date(2001, 2,3)
+inst.n5_manufacture_date = dt.date(2001, 2, 3)
 inst.manufacture_time = dt.time(12, 34)
 
 

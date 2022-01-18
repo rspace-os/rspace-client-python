@@ -1,4 +1,6 @@
 import datetime as dt
+
+
 class AbsValidator:
     def validate(self, item):
         pass
@@ -15,22 +17,28 @@ class String(AbsValidator):
         if not isinstance(value, str):
             raise TypeError(f"Expected {value!r} to be a string")
 
+
 class Date(AbsValidator):
     def validate(self, value):
-        if not isinstance(value, dt.date) and not isinstance(value, dt.datetime) :
-            raise TypeError(f"Expected {type(value)} {value!r} to be a datetime or date")
-            
+        if not isinstance(value, dt.date) and not isinstance(value, dt.datetime):
+            raise TypeError(
+                f"Expected {type(value)} {value!r} to be a datetime or date"
+            )
+
+
 class Time(AbsValidator):
     def validate(self, value):
-        if not isinstance(value, dt.datetime) and not  isinstance(value, dt.time):
-            raise TypeError(f"Expected {type(value)} {value!r} to be a datetime or time")
-        
+        if not isinstance(value, dt.datetime) and not isinstance(value, dt.time):
+            raise TypeError(
+                f"Expected {type(value)} {value!r} to be a datetime or time"
+            )
 
 
 class OneOf(AbsValidator):
     """
       Validates that argument is one of a list of items passed into constructor
     """
+
     def __init__(self, options):
         self.options = options
 
@@ -45,12 +53,12 @@ class AllOf(AbsValidator):
     """
       Validates that all items in the argument  are in the list of items passed into constructor
     """
+
     def __init__(self, options):
         self.options = options
 
     def validate(self, chosen):
-        if not isinstance(chosen, list) or  not all([c in self.options for c in chosen]):
+        if not isinstance(chosen, list) or not all([c in self.options for c in chosen]):
             raise TypeError(
                 f"Expected all chosen items {chosen!r} to be in [{', '.join(self.options)}]"
-            )# -*- coding: utf-8 -*-
-
+            )  # -*- coding: utf-8 -*-

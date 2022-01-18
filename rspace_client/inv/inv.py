@@ -1326,8 +1326,10 @@ class InventoryClient(ClientBase):
             headers=headers,
         )
         return self._handle_response(response)
-    
-    def get_sample_template_icon(self, sample_template_id: Union[int, str], icon_id: int, outfile):
+
+    def get_sample_template_icon(
+        self, sample_template_id: Union[int, str], icon_id: int, outfile
+    ):
         """
         Downloads the Sample Template's icon
 
@@ -1348,9 +1350,12 @@ class InventoryClient(ClientBase):
         st_id = Id(sample_template_id)
         url_base = self._get_api_url()
         return self.download_link_to_file(
-            f"{url_base}/sampleTemplates/{st_id.as_id()}/icon/{icon_id}", outfile)
-    
-    def list_sample_templates(self, pagination: Pagination = Pagination(), search_filter : SearchFilter = None):
+            f"{url_base}/sampleTemplates/{st_id.as_id()}/icon/{icon_id}", outfile
+        )
+
+    def list_sample_templates(
+        self, pagination: Pagination = Pagination(), search_filter: SearchFilter = None
+    ):
         """
         Paginated listing of SampleTemplates, optionally filtering by username (owner) or deletion status
 
@@ -1367,8 +1372,7 @@ class InventoryClient(ClientBase):
         about each template.
 
         """
-        return self._do_simple_list('sampleTemplates', pagination, search_filter)
-        
+        return self._do_simple_list("sampleTemplates", pagination, search_filter)
 
     def restore_sample_template(self, sample_template_id: Union[int, str]) -> dict:
         id_to_delete = Id(sample_template_id)
