@@ -5,9 +5,10 @@ Created on Sat Oct  2 22:09:40 2021
 
 @author: richard
 """
-import sys
+import sys,os
 import json
 import datetime as dt
+import pprint as pp
 import rspace_client.tests.base_test as base
 from rspace_client.inv import inv, template_builder
 import rspace_client.inv.quantity_unit as qu
@@ -478,7 +479,7 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertTrue("id" in restored)
         self.assertEqual(2, len(restored["fields"]))
 
-    def test_post_sample_template_icon(self):
+    def test_post_retrieve_sample_template_icon(self):
         t_json = (
             template_builder.TemplateBuilder("WithIcon", "ml")
             .text("Notes")
@@ -486,6 +487,23 @@ class InventoryApiTest(base.BaseApiTest):
             .build()
         )
         st = self.invapi.create_sample_template(t_json)
-        with open(base.get_datafile("antibodySample150.png"), "rb") as icon:
-            updated_template = self.invapi.set_sample_template_icon(st["id"], icon)
-            self.assertTrue(updated_template["iconId"] > 0)
+        icon_file = base.get_datafile('antibodySample150.png')
+        with open(icon_file, "rb") as icon:
+            updated_template = self.invapi.set_sample_template_icon(st['id'], icon)
+            self.assertTrue(updated_template['iconId'] > 0)
+        outfile="downloaded.png"
+        try:
+            self.invapi.get_sample_template_icon(st['id'], updated_template["iconId"], outfile )
+            self.assertEqual(1600, os.path.getsize(outfile))
+        finally:
+            os.remove(os.path.join(os.getcwd(), outfile))
+            
+    def test_list_sample_templates(self):
+        results = self.invapi.list_sample_templates()
+        self.assertTrue( results['totalHits'] > 0)
+        self.assertTrue(all ([ a['template'] for a in results['templates']]))
+        
+        ## search for non-existent user
+        sf = inv.SearchFilter(owned_by='XXXX1123')
+        results = self.invapi.list_sample_templates(search_filter=sf)
+        self.assertEqual(0, results['totalHits'])

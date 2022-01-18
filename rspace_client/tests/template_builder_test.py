@@ -130,3 +130,4 @@ class TemplateBuilderTest(unittest.TestCase):
     def test_build(self):
         builder = TemplateBuilder("water sample", "ml").text("notes").number("pH", 7)
         to_post = builder.build()
+

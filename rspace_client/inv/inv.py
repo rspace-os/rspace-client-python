@@ -1,5 +1,6 @@
 from enum import Enum
 import datetime
+
 import json
 import re
 import sys
@@ -676,7 +677,6 @@ class InventoryClient(ClientBase):
     def _do_simple_list(self, endpoint, pagination, sample_filter):
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
-        self.serr(f"pg is {pagination.data}")
         return self.retrieve_api_results(
             f"/{endpoint}", request_type="GET", params=pagination.data,
         )
@@ -1305,8 +1305,20 @@ class InventoryClient(ClientBase):
         self.doDelete("sampleTemplates", id_to_delete.as_id())
 
     def set_sample_template_icon(self, sample_template_id: Union[int, str], file):
-        st_id = Id(sample_template_id)
+        """
+        Parameters
+        ----------
+        sample_template_id : Union[int, str]
+            The ID of the template to add the icon too.
+        file : an open File
+            An icon or image to help identify the template in listings.
 
+        Returns
+        -------
+        The updated SampleTemplate, with an iconId set.
+
+        """
+        st_id = Id(sample_template_id)
         headers = self._get_headers()
         response = requests.post(
             f"{self._get_api_url()}/sampleTemplates/{st_id.as_id()}/icon",
@@ -1314,6 +1326,49 @@ class InventoryClient(ClientBase):
             headers=headers,
         )
         return self._handle_response(response)
+    
+    def get_sample_template_icon(self, sample_template_id: Union[int, str], icon_id: int, outfile):
+        """
+        Downloads the Sample Template's icon
+
+        Parameters
+        ----------
+        sample_template_id : Union[int, str]
+            The id of the SampleTemplate.
+        icon_id : int
+            A numeric ID of the icon.
+        outfile : string
+            A  path to a writable file to store the downloaded icon.
+
+        Returns
+        -------
+        void, no return value
+
+        """
+        st_id = Id(sample_template_id)
+        url_base = self._get_api_url()
+        return self.download_link_to_file(
+            f"{url_base}/sampleTemplates/{st_id.as_id()}/icon/{icon_id}", outfile)
+    
+    def list_sample_templates(self, pagination: Pagination = Pagination(), search_filter : SearchFilter = None):
+        """
+        Paginated listing of SampleTemplates, optionally filtering by username (owner) or deletion status
+
+        Parameters
+        ----------
+        pagination : Pagination, optional
+            The default is Pagination().
+        search_filter : SearchFilter, optional
+            The default is None.
+
+        Returns
+        -------
+        A standard SearchResult with 'totalHits' attribute and a list of 'templates' with basic information
+        about each template.
+
+        """
+        return self._do_simple_list('sampleTemplates', pagination, search_filter)
+        
 
     def restore_sample_template(self, sample_template_id: Union[int, str]) -> dict:
         id_to_delete = Id(sample_template_id)
