@@ -7,9 +7,10 @@ Created on Fri Jan 14 21:43:11 2022
 """
 import re
 import pprint as p
+import datetime as dt
 
 
-import rspace_client.validators as v
+import validators as v
 
 
 class SampleBuilder:
@@ -38,6 +39,7 @@ class FieldBuilder:
         defs = sample_template["fields"]
         for f_def in defs:
             field_name = f_def["name"]
+            print (field_name)
             sanitized_name = FieldBuilder.sanitize_name(field_name)
             handlers = self.build_handlers(f_def, sanitized_name)
 
@@ -63,6 +65,8 @@ class FieldBuilder:
             return v.AllOf(f_def["options"])
         elif t == "Date":
             return v.Date()
+        elif t == "Time":
+            return v.Time()
         else:
             return v.AbsValidator()  ## allows anything
 
@@ -87,6 +91,7 @@ class FieldBuilder:
 
         def setter(self, value):
             validator.validate(value)
+            print (f"setting {value}")
             self._data[sanitized_name] = value
 
         def getter(self):
@@ -105,6 +110,8 @@ st = {
         {"name": "p H", "type": "Number"},
         {"name": "source", "type": "Radio", "options": ["Commercial", "Academic"]},
         {"name": "supplier", "type": "Choice", "options": ["NEB", "BM", "Sigma"]},
+        {"name": "manufacture Date", "type": "Date"},
+        {"name": "manufacture Time", "type": "Time"}
     ],
 }
 
@@ -116,6 +123,8 @@ inst.source = "Academic"
 inst.p_h = 4.3
 inst.comment = "some comment about the enzyme"
 inst.supplier = ["Sigma", "BM"]
+inst.manufacture_date = dt.date(2001, 2,3)
+inst.manufacture_time = dt.time(12, 34)
 
 toPost = []
 for f in inst._fields:
@@ -126,7 +135,8 @@ for f in inst._fields:
         elif f_def["type"] == "Radio":
             toPost.append({"selectedOptions": [inst._data[f]]})
         else:
-            toPost.append({"content": inst._data[f]})
+            print ("adding " + f)
+            toPost.append({"content": str(inst._data[f])})
     else:
         toPost.append({})
 p.pprint(toPost)
