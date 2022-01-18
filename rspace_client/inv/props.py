@@ -9,43 +9,7 @@ import re
 import pprint as p
 
 
-class AbsValidator:
-    def validate(self, item):
-        pass
-
-
-class Number(AbsValidator):
-    def validate(self, value):
-        if not isinstance(value, (int, float)):
-            raise TypeError(f"Expected {value!r} to be an int or float")
-
-
-class String(AbsValidator):
-    def validate(self, value):
-        if not isinstance(value, str):
-            raise TypeError(f"Expected {value!r} to be a string")
-
-
-class OneOf(AbsValidator):
-    def __init__(self, options):
-        self.options = options
-
-    def validate(self, value):
-        if not value in self.options:
-            raise TypeError(
-                f"Expected {value!r} to be one of [{', '.join(self.options)}]"
-            )
-
-
-class AllOf(AbsValidator):
-    def __init__(self, options):
-        self.options = options
-
-    def validate(self, chosen):
-        if not all([c in self.options for c in chosen]):
-            raise TypeError(
-                f"Expected all chosen items {chosen!r} to be in [{', '.join(self.options)}]"
-            )
+import rspace_client.validators as v
 
 
 class SampleBuilder:
@@ -90,15 +54,15 @@ class FieldBuilder:
     def get_validator_for_type(self, f_def):
         t = f_def["type"]
         if t == "String":
-            return String()
+            return v.String()
         elif t == "Number":
-            return Number()
+            return v.Number()
         elif t == "Radio":
-            return OneOf(f_def["options"])
+            return v.OneOf(f_def["options"])
         elif t == "Choice":
-            return AllOf(f_def["options"])
+            return v.AllOf(f_def["options"])
         else:
-            return AbsValidator()  ## allows anything
+            return v.AbsValidator()  ## allows anything
 
     def get_doc_for_type(self, f_def, sanitized_name):
         def basic_doc(n, t):
@@ -146,7 +110,7 @@ st = {
 b = FieldBuilder()
 clazz = b.build(st)
 inst = b.clazz()
-inst.source = "Academicb"
+inst.source = "Academic"
 inst.p_h = 4.3
 inst.comment = "some comment about the enzyme"
 inst.supplier = ["Sigma", "BM"]
