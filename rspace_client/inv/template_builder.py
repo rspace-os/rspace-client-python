@@ -71,7 +71,7 @@ class TemplateBuilder:
 
         f["definition"] = {"options": options}
 
-        if len(selected) > 0:
+        if selected is not None and len(selected) > 0:
             selected = [x for x in selected if x in options]
             if len(selected) > 0:
                 f["selectedOptions"] = selected
@@ -124,7 +124,7 @@ class TemplateBuilder:
 
     ## TODO date, time, URI, attachment?
 
-    def date(self, name: str, isodate: Union[dt.date, dt.datetime, str]):
+    def date(self, name: str, isodate: Union[dt.date, dt.datetime, str] = None):
         """
 
         Parameters
@@ -146,18 +146,19 @@ class TemplateBuilder:
         f = self._set_name(name, "Date")
         defaultDate = None
         ## these conditions must be in order
-        if isinstance(isodate, dt.datetime):
-            defaultDate = isodate.date().isoformat()
-        elif isinstance(isodate, dt.date):
-            defaultDate = isodate.isoformat()
-        elif isinstance(isodate, str):
-            defaultDate = dt.datetime.strptime(isodate, "%Y-%m-%d").date().isoformat()
+        if isodate is not None:
+            if isinstance(isodate, dt.datetime):
+                defaultDate = isodate.date().isoformat()
+            elif isinstance(isodate, dt.date):
+                defaultDate = isodate.isoformat()
+            elif isinstance(isodate, str):
+                defaultDate = dt.datetime.strptime(isodate, "%Y-%m-%d").date().isoformat()
         if defaultDate is not None:
             f["content"] = defaultDate
         self.fields.append(f)
         return self
 
-    def time(self, name: str, isotime: Union[dt.date, dt.time, str]):
+    def time(self, name: str, isotime: Union[dt.date, dt.time, str] = None):
         """
 
         Parameters
@@ -178,13 +179,14 @@ class TemplateBuilder:
         """
         f = self._set_name(name, "Time")
         defaultTime = None
-        ## these conditions must be in order
-        if isinstance(isotime, dt.datetime):
-            defaultTime = isotime.time().isoformat()
-        elif isinstance(isotime, dt.time):
-            defaultTime = isotime.isoformat()
-        elif isinstance(isotime, str):
-            defaultTime = dt.time.fromisoformat(isotime).isoformat()
+        if isotime is not None:
+            ## these conditions must be in order
+            if isinstance(isotime, dt.datetime):
+                defaultTime = isotime.time().isoformat()
+            elif isinstance(isotime, dt.time):
+                defaultTime = isotime.isoformat()
+            elif isinstance(isotime, str):
+                defaultTime = dt.time.fromisoformat(isotime).isoformat()
         if defaultTime is not None:
             f["content"] = defaultTime
         self.fields.append(f)

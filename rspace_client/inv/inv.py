@@ -5,6 +5,7 @@ import json
 import re
 import sys
 import requests
+import pprint
 from typing import Optional, Sequence, Union, List
 
 from rspace_client.client_base import ClientBase, Pagination
@@ -573,6 +574,8 @@ class InventoryClient(ClientBase):
         name: str,
         tags: Optional[str] = None,
         description: Optional[str] = None,
+        sample_template_id=None,
+        fields=None,
         extra_fields: Optional[Sequence] = [],
         storage_temperature_min: StorageTemperature = None,
         storage_temperature_max: StorageTemperature = None,
@@ -597,10 +600,15 @@ class InventoryClient(ClientBase):
             data["newSampleSubSamplesCount"] = subsample_count
         if total_quantity is not None:
             data["quantity"] = total_quantity._toDict()
+        if sample_template_id is not None:
+            data["templateId"] = sample_template_id
+        if fields is not None:
+            data["fields"] = fields
         ## fail early
         if attachments is not None:
             if not isinstance(attachments, list):
                 raise ValueError("attachments must be a list of open files")
+        pprint.pp(data)
 
         sample = self.retrieve_api_results("/samples", request_type="POST", params=data)
         if attachments is not None:
