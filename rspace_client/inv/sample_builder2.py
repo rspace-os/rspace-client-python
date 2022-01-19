@@ -53,11 +53,6 @@ class FieldBuilderGenerator:
      setting field information into Samples. 
     """
 
-    def _sanitize_name(name):
-
-        s1 = re.sub(r"[^\w]+", "_", name).lower()
-        return re.sub(r"(^\d+)", r"n\1", s1)
-
     def generate_class(self, sample_template):
         """
         Generates a Python class where attributes and validation is generated
@@ -100,6 +95,11 @@ class FieldBuilderGenerator:
         self.clazz._fields = _fields
         self.clazz._san2field = _san2field
         return self.clazz
+    
+    def _sanitize_name(name):
+
+        s1 = re.sub(r"[^\w]+", "_", name).lower()
+        return re.sub(r"(^\d+)", r"n\1", s1)
 
     def _get_validator_for_type(self, f_def):
         t = f_def["type"]
