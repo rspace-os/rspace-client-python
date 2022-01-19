@@ -522,6 +522,7 @@ class InventoryApiTest(base.BaseApiTest):
             .choice("supplier",["NEB", "BM", "Sigma"] )\
             .date("manufacture date")\
             .time("manufacture time")\
+            .uri('website')\
             .build()
         st = self.invapi.create_sample_template(st_json)
         
@@ -529,14 +530,15 @@ class InventoryApiTest(base.BaseApiTest):
         ForSampleCreation = sample_builder2.FieldBuilderGenerator().generate_class(st)
         sample = ForSampleCreation()
         
+        website = 'https://mysample.supplier.com'
         ## can set in any order
         sample.supplier=['NEB']
         sample.comment = 'Some comment'
         sample.ph=4.7
         sample.manufacture_time = dt.time(11, 20)
         sample.type='Commercial'
+        sample.website = website
         sample.manufacture_date = dt.date(2022, 1, 21)
-            
         
         fields_to_post = sample.to_field_post()
    
@@ -553,6 +555,8 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual('NEB', created_sample['fields'][3]['selectedOptions'][0])
         self.assertEqual('2022-01-21', created_sample['fields'][4]['content'])
         self.assertEqual('11:20', created_sample['fields'][5]['content'])
+        self.assertEqual(website, created_sample['fields'][6]['content'])
+
         
                         
             

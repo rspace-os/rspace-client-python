@@ -1383,10 +1383,72 @@ class InventoryClient(ClientBase):
         return self._do_simple_list("sampleTemplates", pagination, search_filter)
 
     def restore_sample_template(self, sample_template_id: Union[int, str]) -> dict:
-        id_to_delete = Id(sample_template_id)
+        """
+        Restores a deleted sample template so it will appear in the template listings and
+        be usable to create new samples.
+        If the template is not in a deleted state, this action has no effect.
+        Parameters
+        ----------
+        sample_template_id : Union[int, str]
+            The id of the deleted sample to restore.
+        Returns
+        -------
+        dict
+            The updated template.
+
+        """
+        id_to_restore = Id(sample_template_id)
         return self.retrieve_api_results(
-            f"/sampleTemplates/{id_to_delete.as_id()}/restore", request_type="PUT",
+            f"/sampleTemplates/{id_to_restore.as_id()}/restore", request_type="PUT",
         )
+    
+    def transfer_sample_template_owner(self, sample_template_id: Union[int, str], new_owner: str):
+        """
+        Transfers the sample template to the new owner
+        Parameters
+        ----------
+        sample_template_id : Union[int, str]
+            The  id of the sample template to transfer
+        new_owner : str
+            The username of the new owner
+
+        Returns
+        -------
+        dict
+            The updated sample template.
+
+        """
+        st_id = Id(sample_template_id)
+        return self._do_transfer_owner("sampleTemplates", st_id, new_owner)
+        
+    
+    def transfer_sample_owner(self, sample_id: Union[int, str], new_owner: str):
+        """
+        Transfers the sample  to the new owner
+        Parameters
+        ----------
+        sample_id : Union[int, str]
+            The  id of the sample  to transfer
+        new_owner : str
+            The username of the new owner
+
+        Returns
+        -------
+        dict
+            The updated sample.
+
+        """
+        sample_id = Id(sample_id)
+        return self._do_transfer_owner('samples', sample_id, new_owner)
+        
+    
+    def _do_transfer_owner(self, endpoint, item_id, new_owner):
+        return self.retrieve_api_results(
+            f"/{endpoint}/{item_id.asid()}/actions/changeOwner",
+            request_type="PUT",
+            params={"owner": {"username" : new_owner}}
+        )
+        
 
     def barcode(
         self,

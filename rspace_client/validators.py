@@ -1,4 +1,5 @@
 import datetime as dt
+from urllib.parse import urlparse
 
 
 class AbsValidator:
@@ -32,6 +33,21 @@ class Time(AbsValidator):
             raise TypeError(
                 f"Expected {type(value)} {value!r} to be a datetime or time"
             )
+            
+class URL(AbsValidator):
+    def validate(self, item):
+        if  isinstance(item, str):
+            try:
+                urlparse(item)
+            except :
+                raise TypeError("{type(item)} {item!r} could not be parsed")
+            
+        else:
+             raise TypeError(
+                f"Expected {type(item)} {item!r} to be a URI string"
+            )
+        
+        
 
 
 class OneOf(AbsValidator):
