@@ -51,9 +51,6 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(expiry_date.isoformat(), sample["expiryDate"])
         self.assertEqual(1, len(sample["attachments"]))
         s_ob = inv.Sample(sample)
-        
-   
-        
 
     def test_create_sample_name_only(self):
         sample = self.invapi.create_sample(base.random_string(5))
@@ -512,52 +509,50 @@ class InventoryApiTest(base.BaseApiTest):
         sf = inv.SearchFilter(owned_by="XXXX1123")
         results = self.invapi.list_sample_templates(search_filter=sf)
         self.assertEqual(0, results["totalHits"])
-        
+
     def test_create_sample_from_template(self):
 
         ## create a new template with different fields
         builder = template_builder.TemplateBuilder("MyEnzyme", "ml")
-        st_json = builder.string("comment").number("pH")\
-            .radio("type", ["Commercial", "Academic"], "Commercial")\
-            .choice("supplier",["NEB", "BM", "Sigma"] )\
-            .date("manufacture date")\
-            .time("manufacture time")\
-            .uri('website')\
+        st_json = (
+            builder.string("comment")
+            .number("pH")
+            .radio("type", ["Commercial", "Academic"], "Commercial")
+            .choice("supplier", ["NEB", "BM", "Sigma"])
+            .date("manufacture date")
+            .time("manufacture time")
+            .uri("website")
             .build()
+        )
         st = self.invapi.create_sample_template(st_json)
-        
+
         ## create a template specific object to validate and store field information
         ForSampleCreation = sample_builder2.FieldBuilderGenerator().generate_class(st)
         sample = ForSampleCreation()
-        
-        website = 'https://mysample.supplier.com'
+
+        website = "https://mysample.supplier.com"
         ## can set in any order
-        sample.supplier=['NEB']
-        sample.comment = 'Some comment'
-        sample.ph=4.7
+        sample.supplier = ["NEB"]
+        sample.comment = "Some comment"
+        sample.ph = 4.7
         sample.manufacture_time = dt.time(11, 20)
-        sample.type='Commercial'
+        sample.type = "Commercial"
         sample.website = website
         sample.manufacture_date = dt.date(2022, 1, 21)
-        
-        fields_to_post = sample.to_field_post()
-   
-        created_sample = self.invapi.create_sample(
-            name='From MyEnzyme',
-            sample_template_id=st['id'],
-            fields = fields_to_post
-        )
-    
-        self.assertIsNotNone(created_sample['id'])
-        self.assertEqual('Some comment', created_sample['fields'][0]['content'])
-        self.assertEqual(4.7, float(created_sample['fields'][1]['content']))
-        self.assertEqual('Commercial', created_sample['fields'][2]['selectedOptions'][0])
-        self.assertEqual('NEB', created_sample['fields'][3]['selectedOptions'][0])
-        self.assertEqual('2022-01-21', created_sample['fields'][4]['content'])
-        self.assertEqual('11:20', created_sample['fields'][5]['content'])
-        self.assertEqual(website, created_sample['fields'][6]['content'])
 
-        
-                        
-            
-        
+        fields_to_post = sample.to_field_post()
+
+        created_sample = self.invapi.create_sample(
+            name="From MyEnzyme", sample_template_id=st["id"], fields=fields_to_post
+        )
+
+        self.assertIsNotNone(created_sample["id"])
+        self.assertEqual("Some comment", created_sample["fields"][0]["content"])
+        self.assertEqual(4.7, float(created_sample["fields"][1]["content"]))
+        self.assertEqual(
+            "Commercial", created_sample["fields"][2]["selectedOptions"][0]
+        )
+        self.assertEqual("NEB", created_sample["fields"][3]["selectedOptions"][0])
+        self.assertEqual("2022-01-21", created_sample["fields"][4]["content"])
+        self.assertEqual("11:20", created_sample["fields"][5]["content"])
+        self.assertEqual(website, created_sample["fields"][6]["content"])

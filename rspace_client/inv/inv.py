@@ -1401,8 +1401,10 @@ class InventoryClient(ClientBase):
         return self.retrieve_api_results(
             f"/sampleTemplates/{id_to_restore.as_id()}/restore", request_type="PUT",
         )
-    
-    def transfer_sample_template_owner(self, sample_template_id: Union[int, str], new_owner: str):
+
+    def transfer_sample_template_owner(
+        self, sample_template_id: Union[int, str], new_owner: str
+    ):
         """
         Transfers the sample template to the new owner
         Parameters
@@ -1420,8 +1422,7 @@ class InventoryClient(ClientBase):
         """
         st_id = Id(sample_template_id)
         return self._do_transfer_owner("sampleTemplates", st_id, new_owner)
-        
-    
+
     def transfer_sample_owner(self, sample_id: Union[int, str], new_owner: str):
         """
         Transfers the sample  to the new owner
@@ -1439,16 +1440,14 @@ class InventoryClient(ClientBase):
 
         """
         sample_id = Id(sample_id)
-        return self._do_transfer_owner('samples', sample_id, new_owner)
-        
-    
+        return self._do_transfer_owner("samples", sample_id, new_owner)
+
     def _do_transfer_owner(self, endpoint, item_id, new_owner):
         return self.retrieve_api_results(
             f"/{endpoint}/{item_id.asid()}/actions/changeOwner",
             request_type="PUT",
-            params={"owner": {"username" : new_owner}}
+            params={"owner": {"username": new_owner}},
         )
-        
 
     def barcode(
         self,

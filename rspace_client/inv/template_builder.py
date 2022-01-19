@@ -152,7 +152,9 @@ class TemplateBuilder:
             elif isinstance(isodate, dt.date):
                 defaultDate = isodate.isoformat()
             elif isinstance(isodate, str):
-                defaultDate = dt.datetime.strptime(isodate, "%Y-%m-%d").date().isoformat()
+                defaultDate = (
+                    dt.datetime.strptime(isodate, "%Y-%m-%d").date().isoformat()
+                )
         if defaultDate is not None:
             f["content"] = defaultDate
         self.fields.append(f)

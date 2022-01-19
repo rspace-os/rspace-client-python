@@ -56,11 +56,9 @@ class ValidatorTest(unittest.TestCase):
         dtime = dt.datetime(2011, 1, 22, 2, 30)
         validator.validate(dtime)
         validator.validate(dt.time(11, 30))
-    
+
     def test_validate_uri(self):
-         validator = v.URL()
-         validator.validate('https://www.google.com')
-         
-         self.assertRaises(
-            TypeError, validator.validate, "aa://www.goog[le.com:XXXX"
-        )
+        validator = v.URL()
+        validator.validate("https://www.google.com")
+
+        self.assertRaises(TypeError, validator.validate, "aa://www.goog[le.com:XXXX")

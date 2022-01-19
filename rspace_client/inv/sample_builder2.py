@@ -95,7 +95,7 @@ class FieldBuilderGenerator:
         self.clazz._fields = _fields
         self.clazz._san2field = _san2field
         return self.clazz
-    
+
     def _sanitize_name(name):
 
         s1 = re.sub(r"[^\w]+", "_", name).lower()
@@ -172,6 +172,5 @@ if __name__ == "__main__":
     inst.supplier = ["Sigma", "BM"]
     inst.n5_manufacture_date = dt.date(2001, 2, 3)
     inst.manufacture_time = dt.time(12, 34)
-
 
     p.pprint(inst.to_field_post())
