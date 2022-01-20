@@ -153,20 +153,21 @@ class FieldBuilderGenerator:
         return (getter, setter, deleter, self._get_doc_for_type(f_def, sanitized_name))
 
 
-st = {
-    "name": "Enzyme",
-    "fields": [
-        {"name": "comment", "type": "String"},
-        {"name": "pH", "type": "Number"},
-        {"name": "source", "type": "Radio", "options": ["Commercial", "Academic"]},
-        {"name": "supplier", "type": "Choice", "options": ["NEB", "BM", "Sigma"]},
-        {"name": "5' manufacture Date", "type": "Date"},
-        {"name": "manufacture Time", "type": "Time"},
-        {"name": "SafetyData", "type": "Attachment"},
-    ],
-}
+
 
 if __name__ == "__main__":
+    st = {
+        "name": "Enzyme",
+        "fields": [
+            {"name": "comment", "type": "String"},
+            {"name": "pH", "type": "Number"},
+            {"name": "source", "type": "Radio", "options": ["Commercial", "Academic"]},
+            {"name": "supplier", "type": "Choice", "options": ["NEB", "BM", "Sigma"]},
+            {"name": "5' manufacture Date", "type": "Date"},
+            {"name": "manufacture Time", "type": "Time"},
+            {"name": "SafetyData", "type": "Attachment"},
+        ],
+    }
     b = FieldBuilderGenerator()
     Enzyme = b.generate_class(st)
     inst = Enzyme()

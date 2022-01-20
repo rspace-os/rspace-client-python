@@ -588,6 +588,9 @@ class InventoryClient(ClientBase):
         Creates a new sample with a mandatory name, optional attributes
         If no template id is specified, the default template will be used,
         whose quantity is measured as a volume.
+        
+        Note that including files to attach to Attachment fields is not supported
+        by this method. 
         """
         data = self._set_core_properties(name, tags, description, extra_fields)
         if storage_temperature_min is not None:
