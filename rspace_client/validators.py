@@ -5,34 +5,32 @@ from urllib.parse import urlparse
 class AbsValidator:
     def validate(self, item):
         pass
-
+    
+    def raise_type_error(self, value, expected_type: str):
+        raise TypeError(f"Expected {value!r} to be {expected_type}")
 
 class Number(AbsValidator):
     def validate(self, value):
         if not isinstance(value, (int, float)):
-            raise TypeError(f"Expected {value!r} to be an int or float")
+            self.raise_type_error(value, "an int or float")
 
 
 class String(AbsValidator):
     def validate(self, value):
         if not isinstance(value, str):
-            raise TypeError(f"Expected {value!r} to be a string")
+            self.raise_type_error(value, "a string")
 
 
 class Date(AbsValidator):
     def validate(self, value):
         if not isinstance(value, dt.date) and not isinstance(value, dt.datetime):
-            raise TypeError(
-                f"Expected {type(value)} {value!r} to be a datetime or date"
-            )
+            self.raise_type_error(value, "a datetime or date")
 
 
 class Time(AbsValidator):
     def validate(self, value):
         if not isinstance(value, dt.datetime) and not isinstance(value, dt.time):
-            raise TypeError(
-                f"Expected {type(value)} {value!r} to be a datetime or time"
-            )
+            self.raise_type_error(value, "a datetime or date")
 
 
 class URL(AbsValidator):
@@ -44,7 +42,7 @@ class URL(AbsValidator):
                 raise TypeError("{type(item)} {item!r} could not be parsed")
 
         else:
-            raise TypeError(f"Expected {type(item)} {item!r} to be a URI string")
+            self.raise_type_error(item, "a URI string")
 
 
 class OneOf(AbsValidator):
@@ -57,9 +55,7 @@ class OneOf(AbsValidator):
 
     def validate(self, value: str):
         if not isinstance(value, str) or not value in self.options:
-            raise TypeError(
-                f"Expected {value!r} to be one of [{', '.join(self.options)}]"
-            )
+            self.raise_type_error(value, f"to be one of [{', '.join(self.options)}]")
 
 
 class AllOf(AbsValidator):
