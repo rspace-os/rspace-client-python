@@ -39,6 +39,7 @@ class AbsFieldBuilder:
                 elif f_def["type"].lower() == "time":
                     t = self._data[f]
                     toPost.append({"content": f"{t.hour}:{t.minute}"})
+                
                 else:
                     toPost.append({"content": str(self._data[f])})
             else:
@@ -103,7 +104,7 @@ class FieldBuilderGenerator:
 
     def _get_validator_for_type(self, f_def):
         t = f_def["type"]
-        if t == "String" or t == "Text":
+        if t == "String" or t == "Text" or t =="Attachment":
             return v.String()
         elif t == "Number":
             return v.Number()
@@ -114,6 +115,8 @@ class FieldBuilderGenerator:
         elif t == "Date":
             return v.Date()
         elif t == "Time":
+            return v.Time()
+        elif t == "Atta":
             return v.Time()
         else:
             return v.AbsValidator()  ## allows anything
@@ -159,6 +162,7 @@ st = {
         {"name": "supplier", "type": "Choice", "options": ["NEB", "BM", "Sigma"]},
         {"name": "5' manufacture Date", "type": "Date"},
         {"name": "manufacture Time", "type": "Time"},
+        {"name": "SafetyData", "type": "Attachment"},
     ],
 }
 
@@ -172,5 +176,6 @@ if __name__ == "__main__":
     inst.supplier = ["Sigma", "BM"]
     inst.n5_manufacture_date = dt.date(2001, 2, 3)
     inst.manufacture_time = dt.time(12, 34)
+    inst.safetydata='MyPdf'#a description of the file. Upload the file separately
 
     p.pprint(inst.to_field_post())

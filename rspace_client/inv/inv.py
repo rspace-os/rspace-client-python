@@ -608,7 +608,6 @@ class InventoryClient(ClientBase):
         if attachments is not None:
             if not isinstance(attachments, list):
                 raise ValueError("attachments must be a list of open files")
-        pprint.pp(data)
 
         sample = self.retrieve_api_results("/samples", request_type="POST", params=data)
         if attachments is not None:
@@ -723,22 +722,23 @@ class InventoryClient(ClientBase):
             pagination.data.update(sample_filter.data)
         return self._stream("containers", pagination)
 
-    def rename(self, sample_id: Union[str, dict], new_name: str) -> dict:
+    def rename(self, item_id: Union[str, dict], new_name: str) -> dict:
         """
+        Renames an inventory item
         Parameters
         ----------
-            id : Id  of item to rename
+            id : Global Id of item, or a dict representation of the item to rename
             new_name : str The new name.
         Returns
         -------
             dict : The updated item
         """
-        s_id = Id(sample_id)
+        s_id = Id(item_id)
         endpoint = s_id.get_api_endpoint()
         return self.retrieve_api_results(
             f"/{endpoint}/{s_id.as_id()}",
             request_type="PUT",
-            params={"name": new_name},
+            params={"name": new_name}
         )
 
     def delete_sample(self, sample_id: Union[int, str]):
@@ -1444,7 +1444,7 @@ class InventoryClient(ClientBase):
 
     def _do_transfer_owner(self, endpoint, item_id, new_owner):
         return self.retrieve_api_results(
-            f"/{endpoint}/{item_id.asid()}/actions/changeOwner",
+            f"/{endpoint}/{item_id.as_id()}/actions/changeOwner",
             request_type="PUT",
             params={"owner": {"username": new_owner}},
         )

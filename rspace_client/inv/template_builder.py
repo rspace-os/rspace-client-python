@@ -201,7 +201,7 @@ class TemplateBuilder:
         name : str
             The field name.
         desc : str, optional
-           An optional description of the file to upload.
+           An optional default description of the file to upload.
 
         Returns
         -------
