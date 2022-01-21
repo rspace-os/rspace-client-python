@@ -5,9 +5,10 @@ from urllib.parse import urlparse
 class AbsValidator:
     def validate(self, item):
         pass
-    
+
     def raise_type_error(self, value, expected_type: str):
         raise TypeError(f"Expected {value!r} to be {expected_type}")
+
 
 class Number(AbsValidator):
     def validate(self, value):

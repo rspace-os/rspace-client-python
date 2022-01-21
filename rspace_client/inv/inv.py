@@ -739,9 +739,7 @@ class InventoryClient(ClientBase):
         s_id = Id(item_id)
         endpoint = s_id.get_api_endpoint()
         return self.retrieve_api_results(
-            f"/{endpoint}/{s_id.as_id()}",
-            request_type="PUT",
-            params={"name": new_name}
+            f"/{endpoint}/{s_id.as_id()}", request_type="PUT", params={"name": new_name}
         )
 
     def delete_sample(self, sample_id: Union[int, str]):

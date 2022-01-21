@@ -541,7 +541,7 @@ class InventoryApiTest(base.BaseApiTest):
         sample.type = "Commercial"
         sample.website = website
         sample.manufacture_date = dt.date(2022, 1, 21)
-        sample.safety_data = 'A description of this specific PDF'
+        sample.safety_data = "A description of this specific PDF"
 
         fields_to_post = sample.to_field_post()
 
@@ -563,33 +563,34 @@ class InventoryApiTest(base.BaseApiTest):
     @pytest.mark.skip(reason="requires test user to be in a group with another user")
     def test_transfer_sample_owner(self):
         sample = self.invapi.create_sample(base.random_string(5))
-        updated = self.invapi.transfer_sample_owner(sample['id'], 'user2b')
-        self.assertEqual('user2b', updated['owner']['username'])
-        
+        updated = self.invapi.transfer_sample_owner(sample["id"], "user2b")
+        self.assertEqual("user2b", updated["owner"]["username"])
+
     @pytest.mark.skip(reason="requires test user to be in a group with another user")
     def test_transfer_sample_template_owner(self):
         st_json = template_builder.TemplateBuilder("MyEnzyme", "ml").build()
-        st = self.invapi.create_sample_template(st_json) 
-        updated = self.invapi.transfer_sample_owner(st['id'], 'user2b')
-        self.assertEqual('user2b', updated['owner']['username'])
-        
-        
+        st = self.invapi.create_sample_template(st_json)
+        updated = self.invapi.transfer_sample_owner(st["id"], "user2b")
+        self.assertEqual("user2b", updated["owner"]["username"])
+
     def test_rename_template(self):
         st_json = template_builder.TemplateBuilder("MyEnzyme", "ml").build()
-        st = self.invapi.create_sample_template(st_json) 
-        new_name = 'MyEnzyme2'
-        updated = self.invapi.rename(st['globalId'], new_name)
-        self.assertEqual(new_name, updated['name'])
-    
+        st = self.invapi.create_sample_template(st_json)
+        new_name = "MyEnzyme2"
+        updated = self.invapi.rename(st["globalId"], new_name)
+        self.assertEqual(new_name, updated["name"])
+
     def test_attach_file_to_attachment_field(self):
-        st_json = template_builder.TemplateBuilder("MyEnzyme", "ml").\
-            attachment("Safety Data", "Coshh").build()
+        st_json = (
+            template_builder.TemplateBuilder("MyEnzyme", "ml")
+            .attachment("Safety Data", "Coshh")
+            .build()
+        )
         st = self.invapi.create_sample_template(st_json)
         created_sample = self.invapi.create_sample(
-            name="FromAttachment", sample_template_id=st['id'])
+            name="FromAttachment", sample_template_id=st["id"]
+        )
         ## upload a file separately, using the field ID.
         data_file = base.get_any_datafile()
         with open(data_file, "rb") as f:
-            self.invapi.uploadAttachment(created_sample['fields'][0]['globalId'], f)
-        
-        
+            self.invapi.uploadAttachment(created_sample["fields"][0]["globalId"], f)
