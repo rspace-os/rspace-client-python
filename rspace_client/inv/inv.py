@@ -776,7 +776,8 @@ class InventoryClient(ClientBase):
         Parameters
         ----------
         - inventory_item : str
-            Global id or dictionary of a sample (SA...), Subsample (SS...) or Container (IC...)
+            Global id or dictionary of a sample (SA...), Subsample (SS...) Container (IC...), or SampleField (SF...)
+            If the item is a SampleField id, then the field must be of type 'Attachment'
         - file : an open file
             An open file stream.
 
