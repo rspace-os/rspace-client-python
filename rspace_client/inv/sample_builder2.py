@@ -73,7 +73,7 @@ class FieldBuilderGenerator:
         Notes and Queries -> notes_and_queries
         5' sequence -> n5_sequence
         
-          Validators and documentation for each property are generated from the fied definition , e.g:
+        Validators and documentation for each property are generated from the fied definition , e.g:
         """
 
         st_name = sample_template["name"]
@@ -153,8 +153,6 @@ class FieldBuilderGenerator:
         return (getter, setter, deleter, self._get_doc_for_type(f_def, sanitized_name))
 
 
-
-
 if __name__ == "__main__":
     st = {
         "name": "Enzyme",
@@ -165,7 +163,7 @@ if __name__ == "__main__":
             {"name": "supplier", "type": "Choice", "options": ["NEB", "BM", "Sigma"]},
             {"name": "5' manufacture Date", "type": "Date"},
             {"name": "manufacture Time", "type": "Time"},
-            {"name": "SafetyData", "type": "Attachment"},
+            {"name": "Safety Data", "type": "Attachment"},
         ],
     }
     b = FieldBuilderGenerator()
@@ -177,6 +175,6 @@ if __name__ == "__main__":
     inst.supplier = ["Sigma", "BM"]
     inst.n5_manufacture_date = dt.date(2001, 2, 3)
     inst.manufacture_time = dt.time(12, 34)
-    inst.safetydata='MyPdf'#a description of the file. Upload the file separately
+    inst.safety_data='MyPdf'#a description of the file. Upload the file separately
 
     p.pprint(inst.to_field_post())
