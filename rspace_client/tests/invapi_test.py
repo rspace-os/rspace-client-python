@@ -5,11 +5,13 @@ Created on Sat Oct  2 22:09:40 2021
 
 @author: richard
 """
-import sys
+import sys, os
 import json
 import datetime as dt
+import pprint as pp
+import pytest
 import rspace_client.tests.base_test as base
-from rspace_client.inv import inv
+from rspace_client.inv import inv, template_builder, sample_builder2
 import rspace_client.inv.quantity_unit as qu
 
 
@@ -455,3 +457,140 @@ class InventoryApiTest(base.BaseApiTest):
             )
         )["totalHits"]
         self.assertEqual(total_deleted2, total_deleted + 1)
+
+    def test_create_sample_template(self):
+        tb = template_builder.TemplateBuilder("toTest", "ml")
+        t_json = tb.text("Notes").number("pH", 7).build()
+        st = self.invapi.create_sample_template(t_json)
+        self.assertTrue("id" in st)
+        self.assertEqual("toTest", st["name"])
+        self.assertEqual(2, len(st["fields"]))
+
+    def test_delete_restore_sample_template(self):
+        t_json = (
+            template_builder.TemplateBuilder("toTest", "ml")
+            .text("Notes")
+            .number("pH", 7)
+            .build()
+        )
+        st = self.invapi.create_sample_template(t_json)
+
+        self.invapi.delete_sample_template(st["id"])
+        restored = self.invapi.restore_sample_template(st["id"])
+        self.assertTrue("id" in restored)
+        self.assertEqual(2, len(restored["fields"]))
+
+    def test_post_retrieve_sample_template_icon(self):
+        t_json = (
+            template_builder.TemplateBuilder("WithIcon", "ml")
+            .text("Notes")
+            .number("pH", 7)
+            .build()
+        )
+        st = self.invapi.create_sample_template(t_json)
+        icon_file = base.get_datafile("antibodySample150.png")
+        with open(icon_file, "rb") as icon:
+            updated_template = self.invapi.set_sample_template_icon(st["id"], icon)
+            self.assertTrue(updated_template["iconId"] > 0)
+        outfile = "downloaded.png"
+        try:
+            self.invapi.get_sample_template_icon(
+                st["id"], updated_template["iconId"], outfile
+            )
+            self.assertEqual(1600, os.path.getsize(outfile))
+        finally:
+            os.remove(os.path.join(os.getcwd(), outfile))
+
+    def test_list_sample_templates(self):
+        results = self.invapi.list_sample_templates()
+        self.assertTrue(results["totalHits"] > 0)
+        self.assertTrue(all([a["template"] for a in results["templates"]]))
+
+        ## search for non-existent user
+        sf = inv.SearchFilter(owned_by="XXXX1123")
+        results = self.invapi.list_sample_templates(search_filter=sf)
+        self.assertEqual(0, results["totalHits"])
+
+    def test_create_sample_from_template(self):
+
+        ## create a new template with different fields
+        builder = template_builder.TemplateBuilder("MyEnzyme", "ml")
+        st_json = (
+            builder.string("comment")
+            .number("pH")
+            .radio("type", ["Commercial", "Academic"], "Commercial")
+            .choice("supplier", ["NEB", "BM", "Sigma"])
+            .date("manufacture date")
+            .time("manufacture time")
+            .uri("website")
+            .attachment("Safety Data", "Cosh form pdf")
+            .build()
+        )
+        st = self.invapi.create_sample_template(st_json)
+
+        ## create a template specific object to validate and store field information
+        ForSampleCreation = sample_builder2.FieldBuilderGenerator().generate_class(st)
+        sample = ForSampleCreation()
+
+        website = "https://mysample.supplier.com"
+        ## can set in any order
+        sample.supplier = ["NEB"]
+        sample.comment = "Some comment"
+        sample.ph = 4.7
+        sample.manufacture_time = dt.time(11, 20)
+        sample.type = "Commercial"
+        sample.website = website
+        sample.manufacture_date = dt.date(2022, 1, 21)
+        sample.safety_data = "A description of this specific PDF"
+
+        fields_to_post = sample.to_field_post()
+
+        created_sample = self.invapi.create_sample(
+            name="From MyEnzyme", sample_template_id=st["id"], fields=fields_to_post
+        )
+
+        self.assertIsNotNone(created_sample["id"])
+        self.assertEqual("Some comment", created_sample["fields"][0]["content"])
+        self.assertEqual(4.7, float(created_sample["fields"][1]["content"]))
+        self.assertEqual(
+            "Commercial", created_sample["fields"][2]["selectedOptions"][0]
+        )
+        self.assertEqual("NEB", created_sample["fields"][3]["selectedOptions"][0])
+        self.assertEqual("2022-01-21", created_sample["fields"][4]["content"])
+        self.assertEqual("11:20", created_sample["fields"][5]["content"])
+        self.assertEqual(website, created_sample["fields"][6]["content"])
+
+    @pytest.mark.skip(reason="requires test user to be in a group with another user")
+    def test_transfer_sample_owner(self):
+        sample = self.invapi.create_sample(base.random_string(5))
+        updated = self.invapi.transfer_sample_owner(sample["id"], "user2b")
+        self.assertEqual("user2b", updated["owner"]["username"])
+
+    @pytest.mark.skip(reason="requires test user to be in a group with another user")
+    def test_transfer_sample_template_owner(self):
+        st_json = template_builder.TemplateBuilder("MyEnzyme", "ml").build()
+        st = self.invapi.create_sample_template(st_json)
+        updated = self.invapi.transfer_sample_owner(st["id"], "user2b")
+        self.assertEqual("user2b", updated["owner"]["username"])
+
+    def test_rename_template(self):
+        st_json = template_builder.TemplateBuilder("MyEnzyme", "ml").build()
+        st = self.invapi.create_sample_template(st_json)
+        new_name = "MyEnzyme2"
+        updated = self.invapi.rename(st["globalId"], new_name)
+        self.assertEqual(new_name, updated["name"])
+
+    def test_attach_file_to_attachment_field(self):
+        st_json = (
+            template_builder.TemplateBuilder("MyEnzyme", "ml")
+            .attachment("Safety Data", "Coshh")
+            .build()
+        )
+        st = self.invapi.create_sample_template(st_json)
+        created_sample = self.invapi.create_sample(
+            name="FromAttachment", sample_template_id=st["id"]
+        )
+        ## upload a file separately, using the field ID.
+        data_file = base.get_any_datafile()
+        with open(data_file, "rb") as f:
+            self.invapi.uploadAttachment(created_sample["fields"][0]["globalId"], f)

@@ -1,9 +1,11 @@
 from enum import Enum
 import datetime
+
 import json
 import re
 import sys
 import requests
+import pprint
 from typing import Optional, Sequence, Union, List
 
 from rspace_client.client_base import ClientBase, Pagination
@@ -432,13 +434,13 @@ class Id:
         "IC": "CONTAINER",
         "SS": "SUBSAMPLE",
         "SA": "SAMPLE",
-        "IT": "TEMPLATE",
+        "IT": "SAMPLE_TEMPLATE",
     }
     PREFIX_TO_API = {
         "IC": "containers",
         "SS": "subSamples",
         "SA": "samples",
-        "IT": "templates",
+        "IT": "sampleTemplates",
     }
 
     def __init__(self, value: Union[int, str, dict, Container, Workbench, Sample]):
@@ -572,6 +574,8 @@ class InventoryClient(ClientBase):
         name: str,
         tags: Optional[str] = None,
         description: Optional[str] = None,
+        sample_template_id=None,
+        fields=None,
         extra_fields: Optional[Sequence] = [],
         storage_temperature_min: StorageTemperature = None,
         storage_temperature_max: StorageTemperature = None,
@@ -584,6 +588,9 @@ class InventoryClient(ClientBase):
         Creates a new sample with a mandatory name, optional attributes
         If no template id is specified, the default template will be used,
         whose quantity is measured as a volume.
+        
+        Note that including files to attach to Attachment fields is not supported
+        by this method. 
         """
         data = self._set_core_properties(name, tags, description, extra_fields)
         if storage_temperature_min is not None:
@@ -596,6 +603,10 @@ class InventoryClient(ClientBase):
             data["newSampleSubSamplesCount"] = subsample_count
         if total_quantity is not None:
             data["quantity"] = total_quantity._toDict()
+        if sample_template_id is not None:
+            data["templateId"] = sample_template_id
+        if fields is not None:
+            data["fields"] = fields
         ## fail early
         if attachments is not None:
             if not isinstance(attachments, list):
@@ -676,7 +687,6 @@ class InventoryClient(ClientBase):
     def _do_simple_list(self, endpoint, pagination, sample_filter):
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
-        self.serr(f"pg is {pagination.data}")
         return self.retrieve_api_results(
             f"/{endpoint}", request_type="GET", params=pagination.data,
         )
@@ -715,22 +725,21 @@ class InventoryClient(ClientBase):
             pagination.data.update(sample_filter.data)
         return self._stream("containers", pagination)
 
-    def rename(self, sample_id: Union[str, dict], new_name: str) -> dict:
+    def rename(self, item_id: Union[str, dict], new_name: str) -> dict:
         """
+        Renames an inventory item
         Parameters
         ----------
-            id : Id  of item to rename
+            id : Global Id of item, or a dict representation of the item to rename
             new_name : str The new name.
         Returns
         -------
             dict : The updated item
         """
-        s_id = Id(sample_id)
+        s_id = Id(item_id)
         endpoint = s_id.get_api_endpoint()
         return self.retrieve_api_results(
-            f"/{endpoint}/{s_id.as_id()}",
-            request_type="PUT",
-            params={"name": new_name},
+            f"/{endpoint}/{s_id.as_id()}", request_type="PUT", params={"name": new_name}
         )
 
     def delete_sample(self, sample_id: Union[int, str]):
@@ -767,7 +776,8 @@ class InventoryClient(ClientBase):
         Parameters
         ----------
         - inventory_item : str
-            Global id or dictionary of a sample (SA...), Subsample (SS...) or Container (IC...)
+            Global id or dictionary of a sample (SA...), Subsample (SS...) Container (IC...), or SampleField (SF...)
+            If the item is a SampleField id, then the field must be of type 'Attachment'
         - file : an open file
             An open file stream.
 
@@ -811,6 +821,7 @@ class InventoryClient(ClientBase):
         A list of split subsamples
 
         """
+
         def _do_call(ss_id, params):
             return self.retrieve_api_results(
                 f"/subSamples/{ss_id.as_id()}/actions/split",
@@ -1047,7 +1058,9 @@ class InventoryClient(ClientBase):
         for item_id in item_ids:
             id_ob = Id(item_id)
             if not id_ob.is_movable():
-                raise ValueError(f"Item to move '{item_id}' must be a container or subsample")
+                raise ValueError(
+                    f"Item to move '{item_id}' must be a container or subsample"
+                )
             valid_item_ids.append(id_ob)
 
         return self._do_add_to_list_container(valid_item_ids, id_target)
@@ -1250,6 +1263,193 @@ class InventoryClient(ClientBase):
 
         """
         return self.retrieve_api_results(f"/listOfMaterials/{lom_id}")
+
+    def create_sample_template(self, sample_template_post: dict):
+        """
+        Creates a new SampleTemplate. Use  TemplateBuilder to create the 
+        template data structure required as sample_template_post parameter.
+
+        Parameters
+        ----------
+        sample_template_post : A Dict
+            A Dictionary of the SampleTemplate definition to post.
+
+        Returns
+        -------
+        Dict
+            The newly created template.
+
+        """
+        return self.retrieve_api_results(
+            "/sampleTemplates", request_type="POST", params=sample_template_post
+        )
+
+    def get_sample_template_by_id(self, sample_template_id: Union[str, int]) -> dict:
+        """
+        Gets a full sampleTemplate information by id or global id
+        Parameters
+        ----------
+        id : Union[int, str]
+            An integer ID e.g 1234 or a global ID e.g. IT1234
+        Returns
+        -------
+        dict
+            A full description of one sample template
+        """
+        s_id = Id(sample_template_id)
+        return self.retrieve_api_results(f"/sampleTemplates/{s_id.as_id()}")
+
+    def delete_sample_template(self, sample_template_id: Union[int, str]) -> None:
+        """
+        Parameters
+        ----------
+        sample_template_id : Union[int, str]
+            A integer id, or a string id or global ID of the template to delete
+
+        Returns
+        -------
+        None.
+
+        """
+        id_to_delete = Id(sample_template_id)
+        self.doDelete("sampleTemplates", id_to_delete.as_id())
+
+    def set_sample_template_icon(self, sample_template_id: Union[int, str], file):
+        """
+        Parameters
+        ----------
+        sample_template_id : Union[int, str]
+            The ID of the template to add the icon too.
+        file : an open File
+            An icon or image to help identify the template in listings.
+
+        Returns
+        -------
+        The updated SampleTemplate, with an iconId set.
+
+        """
+        st_id = Id(sample_template_id)
+        headers = self._get_headers()
+        response = requests.post(
+            f"{self._get_api_url()}/sampleTemplates/{st_id.as_id()}/icon",
+            files={"file": file},
+            headers=headers,
+        )
+        return self._handle_response(response)
+
+    def get_sample_template_icon(
+        self, sample_template_id: Union[int, str], icon_id: int, outfile
+    ):
+        """
+        Downloads the Sample Template's icon
+
+        Parameters
+        ----------
+        sample_template_id : Union[int, str]
+            The id of the SampleTemplate.
+        icon_id : int
+            A numeric ID of the icon.
+        outfile : string
+            A  path to a writable file to store the downloaded icon.
+
+        Returns
+        -------
+        void, no return value
+
+        """
+        st_id = Id(sample_template_id)
+        url_base = self._get_api_url()
+        return self.download_link_to_file(
+            f"{url_base}/sampleTemplates/{st_id.as_id()}/icon/{icon_id}", outfile
+        )
+
+    def list_sample_templates(
+        self, pagination: Pagination = Pagination(), search_filter: SearchFilter = None
+    ):
+        """
+        Paginated listing of SampleTemplates, optionally filtering by username (owner) or deletion status
+
+        Parameters
+        ----------
+        pagination : Pagination, optional
+            The default is Pagination().
+        search_filter : SearchFilter, optional
+            The default is None.
+
+        Returns
+        -------
+        A standard SearchResult with 'totalHits' attribute and a list of 'templates' with basic information
+        about each template.
+
+        """
+        return self._do_simple_list("sampleTemplates", pagination, search_filter)
+
+    def restore_sample_template(self, sample_template_id: Union[int, str]) -> dict:
+        """
+        Restores a deleted sample template so it will appear in the template listings and
+        be usable to create new samples.
+        If the template is not in a deleted state, this action has no effect.
+        Parameters
+        ----------
+        sample_template_id : Union[int, str]
+            The id of the deleted sample to restore.
+        Returns
+        -------
+        dict
+            The updated template.
+
+        """
+        id_to_restore = Id(sample_template_id)
+        return self.retrieve_api_results(
+            f"/sampleTemplates/{id_to_restore.as_id()}/restore", request_type="PUT",
+        )
+
+    def transfer_sample_template_owner(
+        self, sample_template_id: Union[int, str], new_owner: str
+    ):
+        """
+        Transfers the sample template to the new owner
+        Parameters
+        ----------
+        sample_template_id : Union[int, str]
+            The  id of the sample template to transfer
+        new_owner : str
+            The username of the new owner
+
+        Returns
+        -------
+        dict
+            The updated sample template.
+
+        """
+        st_id = Id(sample_template_id)
+        return self._do_transfer_owner("sampleTemplates", st_id, new_owner)
+
+    def transfer_sample_owner(self, sample_id: Union[int, str], new_owner: str):
+        """
+        Transfers the sample  to the new owner
+        Parameters
+        ----------
+        sample_id : Union[int, str]
+            The  id of the sample  to transfer
+        new_owner : str
+            The username of the new owner
+
+        Returns
+        -------
+        dict
+            The updated sample.
+
+        """
+        sample_id = Id(sample_id)
+        return self._do_transfer_owner("samples", sample_id, new_owner)
+
+    def _do_transfer_owner(self, endpoint, item_id, new_owner):
+        return self.retrieve_api_results(
+            f"/{endpoint}/{item_id.as_id()}/actions/changeOwner",
+            request_type="PUT",
+            params={"owner": {"username": new_owner}},
+        )
 
     def barcode(
         self,
