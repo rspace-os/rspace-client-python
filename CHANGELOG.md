@@ -9,6 +9,8 @@ All notable changes to this project will be documented in this file
 - Support for sample templates: create, get/set icon, delete/restore
 - Transfer ownership of samples and templates
 - Create samples from a template, and set field content
+- export_selection to export specific items
+- optionally include revision history in exports
 
 ### Changed
 
