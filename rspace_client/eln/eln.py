@@ -437,7 +437,7 @@ class ELNClient(ClientBase):
             if isinstance(domains, list):
                 params["domains"] = ",".join(domains)
             else:
-                raise TypeError("Unexpected domains type {}".format(type(domains)))
+                raise TypeError(f"Unexpected domains type {type(domains)}")
 
         if global_id is not None:
             params["oid"] = str(global_id)
@@ -446,7 +446,7 @@ class ELNClient(ClientBase):
             if isinstance(users, list):
                 params["users"] = ",".join(users)
             else:
-                raise TypeError("Unexpected users type {}".format(type(users)))
+                raise TypeError(f"Unexpected users type {type(users)}")
 
         return self.retrieve_api_results("/activity", params=params)
 
@@ -465,8 +465,7 @@ class ELNClient(ClientBase):
         self._check_export_format(export_format)
         itemsToExport = ''.join(item_ids)
         request_url = self._get_api_url() \
-                 + '/export/{}/selection?selections={}&includeRevisionHistory={}'\
-                .format(export_format, itemsToExport, include_revisions)
+                 + f"/export/{export_format}/selection?selections={itemsToExport}&includeRevisionHistory={include_revisions}"
 
         return self.retrieve_api_results(request_url, request_type='POST')
 
@@ -484,22 +483,22 @@ class ELNClient(ClientBase):
         self._check_export_format(export_format)
 
         if scope != 'user' and scope != 'group':
-            raise ValueError('scope must be either "user" or "group", got "{}" instead'.format(scope))
+            raise ValueError(f"scope must be either 'user' or 'group', got '{scope}' instead")
 
         if uid is not None:
             request_url = self._get_api_url() \
-                + '/export/{}/{}/{}?includeRevisionHistory={}' \
-                .format(export_format, scope, uid, include_revisions)
+                + f"/export/{export_format}/{scope}/{uid}?includeRevisionHistory={include_revisions}"
+              
         else:
             request_url = self._get_api_url() \
-                 + '/export/{}/{}?includeRevisionHistory={}'\
-                .format(export_format, scope, include_revisions)
+                 + f"/export/{export_format}/{scope}?includeRevisionHistory={include_revisions}"
+              
 
         return self.retrieve_api_results(request_url, request_type='POST')
 
     def _check_export_format(self, export_format):
         if export_format != 'xml' and export_format != 'html':
-            raise ValueError('format must be either "xml" or "html", got "{}" instead'.format(export_format))
+            raise ValueError(f" format must be either 'xml' or 'html', got '{export_format}' instead")
 
     def download_export_selection(self, export_format, file_path,item_ids=[], include_revision_history=False, wait_between_requests=30):
         """
