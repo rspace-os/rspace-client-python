@@ -46,4 +46,10 @@ All top-level methods for use by client code should be unit-tested.
 RSpace can be run on Docker on a developer machine, providing access to a sandbox environment.
 
  
-    
+### Making a release
+
+- Get a clean test run 
+- Update version in README.md and pyproject.toml
+- update changelog to include the new version and required RSpace version
+- tag with syntax like 'v2.2.0'    
+- Build and submit to Pypi using `poetry publish`
