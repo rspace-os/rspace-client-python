@@ -21,7 +21,7 @@ class AbsFieldBuilder:
     def to_field_post(self):
         """
          Generates a list of Fields to include in a create_sample POST.
-        
+
         Returns
         -------
         toPost : list
@@ -50,8 +50,8 @@ class AbsFieldBuilder:
 
 class FieldBuilderGenerator:
     """
-     Helper class for creating Python classes from SampleTemplates, to help with
-     setting field information into Samples. 
+    Helper class for creating Python classes from SampleTemplates, to help with
+    setting field information into Samples.
     """
 
     def generate_class(self, sample_template):
@@ -59,20 +59,20 @@ class FieldBuilderGenerator:
         Generates a Python class where attributes and validation is generated
         from the supplied SampleTemplate dict. The SampleTemplate should be the response from a
         POST to create a new sampleTemplate or a GET to retrieve SampleTemplate by its Id.
-        
-        Use of this class helps to provide type-saety and argument validation before submitting 
-        a create_sample POST to the RSpace server. 
-            
+
+        Use of this class helps to provide type-saety and argument validation before submitting
+        a create_sample POST to the RSpace server.
+
         Property names are generated from template field names, converting all characters to lower-case and
         replacing groups of non-alphanumeric characters with '_'.
         Leaing numbers are prefixed with 'n', e.g.
-                        
+
         Sample Template Field Name     ->    Python property name
-            
+
         pH  -> ph
         Notes and Queries -> notes_and_queries
         5' sequence -> n5_sequence
-        
+
         Validators and documentation for each property are generated from the fied definition , e.g:
         """
 

@@ -4,8 +4,8 @@ import sys
 
 
 class Pagination:
-    """ 
-      For setting page size, number and orderby/ sort fields of listings
+    """
+    For setting page size, number and orderby/ sort fields of listings
     """
 
     def __init__(
@@ -99,7 +99,9 @@ class ClientBase:
         """
         numeric_id = self._get_numeric_record_id(resource_id)
         return self.retrieve_api_results(
-            "/{}/{}".format(path, numeric_id), content_type=None, request_type="DELETE",
+            "/{}/{}".format(path, numeric_id),
+            content_type=None,
+            request_type="DELETE",
         )
 
     def retrieve_api_results(
@@ -205,13 +207,15 @@ class ClientBase:
         print(msg, file=sys.stderr)
 
     def _stream(
-        self, endpoint: str, pagination: Pagination = Pagination(),
+        self,
+        endpoint: str,
+        pagination: Pagination = Pagination(),
     ):
         """
-        Yields items, making paginated requests to the server as each page 
+        Yields items, making paginated requests to the server as each page
         is consumed by the calling code.
-        
-        Note this method assumes that the name of the collection of items in the 
+
+        Note this method assumes that the name of the collection of items in the
         response matches the endpoint name. For example 'samples' returns a response
         with a dictionary entry 'samples'.
         Parameters

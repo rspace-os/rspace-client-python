@@ -35,7 +35,7 @@ class FillingStrategy(Enum):
 
 class Sample:
     """
-     Wraps a dict of Sample data returned from samples/{id} GET API call
+    Wraps a dict of Sample data returned from samples/{id} GET API call
     """
 
     def __init__(self, data: dict):
@@ -43,7 +43,7 @@ class Sample:
 
     def wherep(self) -> List[str]:
         """
-        Returns a list of breadcrumb names of all containers that subsamples 
+        Returns a list of breadcrumb names of all containers that subsamples
         of this sample are located in.
 
         Returns
@@ -63,7 +63,7 @@ class Sample:
 
 class GridPlacement:
     """
-     Superclass of all grid placement strategies
+    Superclass of all grid placement strategies
     """
 
     def __init__(self, items_to_move: str, filling_strategy: FillingStrategy):
@@ -79,7 +79,7 @@ class GridPlacement:
 
 class AutoFit(GridPlacement):
     """
-     Base class of ByRow and ByColumn filling strategies.
+    Base class of ByRow and ByColumn filling strategies.
     """
 
     def __init__(
@@ -122,8 +122,8 @@ class GridLocation:
 
 class ByRow(AutoFit):
     """
-      Defines a strategy for filling a grid container with a list of items, filling rows
-      in turn, from a starting location. 
+    Defines a strategy for filling a grid container with a list of items, filling rows
+    in turn, from a starting location.
     """
 
     def __init__(
@@ -146,7 +146,7 @@ class ByRow(AutoFit):
             The total number of columns in the grid
         total_rows : int
             The total number of rows in the grid
-        *items_to_move : 
+        *items_to_move :
             One or more global Ids.
          : TYPE
             DESCRIPTION.
@@ -168,8 +168,8 @@ class ByRow(AutoFit):
 
 class ByColumn(AutoFit):
     """
-      Defines a strategy for filling a grid container with a list of items, filling columns
-      in turn, from a starting location. 
+    Defines a strategy for filling a grid container with a list of items, filling columns
+    in turn, from a starting location.
     """
 
     def __init__(
@@ -191,12 +191,12 @@ class ByColumn(AutoFit):
             The total number of columns in the grid
         total_rows : int
             The total number of rows in the grid
-        *items_to_move : 
+        *items_to_move :
             One or more global Ids.
          : TYPE
             DESCRIPTION.
 
-       """
+        """
         super().__init__(
             column_index,
             row_index,
@@ -234,7 +234,7 @@ class BulkOperationResult:
 
 class Container:
     """
-     Base class of all Container types
+    Base class of all Container types
     """
 
     @classmethod
@@ -305,7 +305,7 @@ class Container:
 
 class ListContainer(Container):
     """
-     A ListContainer is an ordered container of unlimited capacity
+    A ListContainer is an ordered container of unlimited capacity
     """
 
     def __init__(self, list_container: dict):
@@ -324,7 +324,7 @@ class ListContainer(Container):
 
 class Workbench(Container):
     """
-      A specialised Container holding currently active samples and containers.
+    A specialised Container holding currently active samples and containers.
     """
 
     def __init__(self, workbench: dict):
@@ -588,9 +588,9 @@ class InventoryClient(ClientBase):
         Creates a new sample with a mandatory name, optional attributes
         If no template id is specified, the default template will be used,
         whose quantity is measured as a volume.
-        
+
         Note that including files to attach to Attachment fields is not supported
-        by this method. 
+        by this method.
         """
         data = self._set_core_properties(name, tags, description, extra_fields)
         if storage_temperature_min is not None:
@@ -688,7 +688,9 @@ class InventoryClient(ClientBase):
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
         return self.retrieve_api_results(
-            f"/{endpoint}", request_type="GET", params=pagination.data,
+            f"/{endpoint}",
+            request_type="GET",
+            params=pagination.data,
         )
 
     def stream_samples(
@@ -815,7 +817,7 @@ class InventoryClient(ClientBase):
         quantity_per_subsample : float, optional
             The quantity per subsample If not set, the whole subsample will
             be split equally. Use this parameter to set a smaller quantity per subsample.
-   
+
         Returns
         -------
         A list of split subsamples
@@ -896,7 +898,8 @@ class InventoryClient(ClientBase):
         id_to_copy = Id(item_to_duplicate)
         endpoint = id_to_copy.get_api_endpoint()
         rc = self.retrieve_api_results(
-            f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate", request_type="POST",
+            f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate",
+            request_type="POST",
         )
         if new_name is not None:
             rc = self.rename(rc, new_name)
@@ -954,7 +957,9 @@ class InventoryClient(ClientBase):
             raise ValueError("Supplied id is not a subsamples")
         data = {"content": note}
         return self.retrieve_api_results(
-            f"/subSamples/{ss_id.as_id()}/notes", request_type="POST", params=data,
+            f"/subSamples/{ss_id.as_id()}/notes",
+            request_type="POST",
+            params=data,
         )
 
     def get_workbenches(self) -> Sequence[dict]:
@@ -1025,7 +1030,9 @@ class InventoryClient(ClientBase):
         )
 
     def add_items_to_list_container(
-        self, target_container_id: Union[str, int], *item_ids: str,
+        self,
+        target_container_id: Union[str, int],
+        *item_ids: str,
     ) -> list:
         """
         Adds 1 or more items to a list container
@@ -1266,7 +1273,7 @@ class InventoryClient(ClientBase):
 
     def create_sample_template(self, sample_template_post: dict):
         """
-        Creates a new SampleTemplate. Use  TemplateBuilder to create the 
+        Creates a new SampleTemplate. Use  TemplateBuilder to create the
         template data structure required as sample_template_post parameter.
 
         Parameters
@@ -1401,7 +1408,8 @@ class InventoryClient(ClientBase):
         """
         id_to_restore = Id(sample_template_id)
         return self.retrieve_api_results(
-            f"/sampleTemplates/{id_to_restore.as_id()}/restore", request_type="PUT",
+            f"/sampleTemplates/{id_to_restore.as_id()}/restore",
+            request_type="PUT",
         )
 
     def transfer_sample_template_owner(
@@ -1462,7 +1470,7 @@ class InventoryClient(ClientBase):
         Parameters
         ----------
         global_id : Union[str, dict]
-        
+
         barcode_type:
              The default is Barcode.BARCODE.
 

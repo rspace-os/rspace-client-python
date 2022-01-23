@@ -48,7 +48,7 @@ class URL(AbsValidator):
 
 class OneOf(AbsValidator):
     """
-      Validates that argument is one of a list of items passed into constructor
+    Validates that argument is one of a list of items passed into constructor
     """
 
     def __init__(self, options):
@@ -61,7 +61,7 @@ class OneOf(AbsValidator):
 
 class AllOf(AbsValidator):
     """
-      Validates that all items in the argument  are in the list of items passed into constructor
+    Validates that all items in the argument  are in the list of items passed into constructor
     """
 
     def __init__(self, options):

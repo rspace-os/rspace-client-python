@@ -95,7 +95,8 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(doc_id)
         return self.retrieve_api_results(
-            "/documents/{}".format(numeric_doc_id), content_type="text/csv",
+            "/documents/{}".format(numeric_doc_id),
+            content_type="text/csv",
         )
 
     def create_document(
@@ -242,7 +243,9 @@ class ELNClient(ClientBase):
             data["fields"] = fields
         numeric_doc_id = self._get_numeric_record_id(document_id)
         return self.retrieve_api_results(
-            "/documents/{}".format(numeric_doc_id), request_type="PUT", params=data,
+            "/documents/{}".format(numeric_doc_id),
+            request_type="PUT",
+            params=data,
         )
 
     # Sharing methods
@@ -450,9 +453,10 @@ class ELNClient(ClientBase):
 
         return self.retrieve_api_results("/activity", params=params)
 
-    
-# Export selection
-    def start_export_selection(self, export_format, item_ids =[], include_revisions=False):
+    # Export selection
+    def start_export_selection(
+        self, export_format, item_ids=[], include_revisions=False
+    ):
         """
         Starts an asynchronous of  selection of items.
         :param export_format: 'xml' or 'html'
@@ -461,13 +465,15 @@ class ELNClient(ClientBase):
         :param include_revisions: A Boolean as to whether items' previous\
             versions should be included in the export. Default is False
         :return: job id
-        """ 
+        """
         self._check_export_format(export_format)
-        itemsToExport = ''.join(item_ids)
-        request_url = self._get_api_url() \
-                 + f"/export/{export_format}/selection?selections={itemsToExport}&includeRevisionHistory={include_revisions}"
+        itemsToExport = "".join(item_ids)
+        request_url = (
+            self._get_api_url()
+            + f"/export/{export_format}/selection?selections={itemsToExport}&includeRevisionHistory={include_revisions}"
+        )
 
-        return self.retrieve_api_results(request_url, request_type='POST')
+        return self.retrieve_api_results(request_url, request_type="POST")
 
     # Export
     def start_export(self, export_format, scope, uid=None, include_revisions=False):
@@ -482,25 +488,39 @@ class ELNClient(ClientBase):
         """
         self._check_export_format(export_format)
 
-        if scope != 'user' and scope != 'group':
-            raise ValueError(f"scope must be either 'user' or 'group', got '{scope}' instead")
+        if scope != "user" and scope != "group":
+            raise ValueError(
+                f"scope must be either 'user' or 'group', got '{scope}' instead"
+            )
 
         if uid is not None:
-            request_url = self._get_api_url() \
+            request_url = (
+                self._get_api_url()
                 + f"/export/{export_format}/{scope}/{uid}?includeRevisionHistory={include_revisions}"
-              
-        else:
-            request_url = self._get_api_url() \
-                 + f"/export/{export_format}/{scope}?includeRevisionHistory={include_revisions}"
-              
+            )
 
-        return self.retrieve_api_results(request_url, request_type='POST')
+        else:
+            request_url = (
+                self._get_api_url()
+                + f"/export/{export_format}/{scope}?includeRevisionHistory={include_revisions}"
+            )
+
+        return self.retrieve_api_results(request_url, request_type="POST")
 
     def _check_export_format(self, export_format):
-        if export_format != 'xml' and export_format != 'html':
-            raise ValueError(f" format must be either 'xml' or 'html', got '{export_format}' instead")
+        if export_format != "xml" and export_format != "html":
+            raise ValueError(
+                f" format must be either 'xml' or 'html', got '{export_format}' instead"
+            )
 
-    def download_export_selection(self, export_format, file_path,item_ids=[], include_revision_history=False, wait_between_requests=30):
+    def download_export_selection(
+        self,
+        export_format,
+        file_path,
+        item_ids=[],
+        include_revision_history=False,
+        wait_between_requests=30,
+    ):
         """
         Exports  record selection and downloads the exported archive to a specified location.
         :param export_format: 'xml' or 'html'
@@ -510,34 +530,57 @@ class ELNClient(ClientBase):
         :param wait_between_requests: seconds to wait between job status requests (30 seconds default)
         :return: file path to the downloaded export archive
         """
-        job_id=self.start_export_selection(export_format, item_ids, include_revision_history)['id']
-        return self._wait_till_complete_then_download(job_id, file_path, wait_between_requests)   
-    
-    def _wait_till_complete_then_download(self, job_id, file_path, wait_between_requests=30):
+        job_id = self.start_export_selection(
+            export_format, item_ids, include_revision_history
+        )["id"]
+        return self._wait_till_complete_then_download(
+            job_id, file_path, wait_between_requests
+        )
+
+    def _wait_till_complete_then_download(
+        self, job_id, file_path, wait_between_requests=30
+    ):
         while True:
             status_response = self.get_job_status(job_id)
 
-            if status_response['status'] == 'COMPLETED':
-                download_url = self.get_link(status_response, 'enclosure')
+            if status_response["status"] == "COMPLETED":
+                download_url = self.get_link(status_response, "enclosure")
 
                 if os.path.isdir(file_path):
-                    file_path = os.path.join(file_path, download_url.split('/')[-1])
+                    file_path = os.path.join(file_path, download_url.split("/")[-1])
                 self.download_link_to_file(download_url, file_path)
                 return file_path
-            elif status_response['status'] == 'FAILED':
-                raise ClientBase.ApiError('Export job failed: ' +
-                                      self._get_formated_error_message(status_response['result']))
-            elif status_response['status'] == 'ABANDONED':
-                raise ClientBase.ApiError('Export job was abandoned: ' +
-                                      self._get_formated_error_message(status_response['result']))
-            elif status_response['status'] == 'RUNNING' or status_response['status'] == 'STARTING' or \
-                    status_response['status'] == 'STARTED':
+            elif status_response["status"] == "FAILED":
+                raise ClientBase.ApiError(
+                    "Export job failed: "
+                    + self._get_formated_error_message(status_response["result"])
+                )
+            elif status_response["status"] == "ABANDONED":
+                raise ClientBase.ApiError(
+                    "Export job was abandoned: "
+                    + self._get_formated_error_message(status_response["result"])
+                )
+            elif (
+                status_response["status"] == "RUNNING"
+                or status_response["status"] == "STARTING"
+                or status_response["status"] == "STARTED"
+            ):
                 time.sleep(wait_between_requests)
                 continue
             else:
-                raise ClientBase.ApiError('Unknown job status: ' + status_response['status'])
+                raise ClientBase.ApiError(
+                    "Unknown job status: " + status_response["status"]
+                )
 
-    def download_export(self, export_format, scope, file_path, uid=None, include_revisions=False, wait_between_requests=30):
+    def download_export(
+        self,
+        export_format,
+        scope,
+        file_path,
+        uid=None,
+        include_revisions=False,
+        wait_between_requests=30,
+    ):
         """
         Exports user's or group's records and downloads the exported archive to a specified location.
         :param export_format: 'xml' or 'html'
@@ -548,9 +591,15 @@ class ELNClient(ClientBase):
         :param wait_between_requests: seconds to wait between job status requests (30 seconds default)
         :return: file path to the downloaded export archive
         """
-        job_id = self.start_export(export_format=export_format, scope=scope,
-            uid=uid, include_revisions=include_revisions)['id']
-        return self._wait_till_complete_then_download(job_id, file_path, wait_between_requests)
+        job_id = self.start_export(
+            export_format=export_format,
+            scope=scope,
+            uid=uid,
+            include_revisions=include_revisions,
+        )["id"]
+        return self._wait_till_complete_then_download(
+            job_id, file_path, wait_between_requests
+        )
 
     def get_job_status(self, job_id):
         """
@@ -636,7 +685,8 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(form_id)
         return self.retrieve_api_results(
-            "/forms/{}/publish".format(numeric_doc_id), request_type="PUT",
+            "/forms/{}/publish".format(numeric_doc_id),
+            request_type="PUT",
         )
 
     def unpublish_form(self, form_id):
@@ -648,7 +698,8 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(form_id)
         return self.retrieve_api_results(
-            "/forms/{}/unpublish".format(numeric_doc_id), request_type="PUT",
+            "/forms/{}/unpublish".format(numeric_doc_id),
+            request_type="PUT",
         )
 
     def share_form(self, form_id):
@@ -660,7 +711,8 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(form_id)
         return self.retrieve_api_results(
-            "/forms/{}/share".format(numeric_doc_id), request_type="PUT",
+            "/forms/{}/share".format(numeric_doc_id),
+            request_type="PUT",
         )
 
     def unshare_form(self, form_id):
@@ -673,7 +725,8 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(form_id)
         return self.retrieve_api_results(
-            "/forms/{}/unshare".format(numeric_doc_id), request_type="PUT",
+            "/forms/{}/unshare".format(numeric_doc_id),
+            request_type="PUT",
         )
 
     # Folder / notebook methods

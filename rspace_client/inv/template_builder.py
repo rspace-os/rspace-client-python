@@ -9,9 +9,9 @@ from rspace_client.inv.quantity_unit import QuantityUnit
 
 class TemplateBuilder:
     """
-      Define a SampleTemplate prior to POSTing to RSpace.
-      A SampleTemplate only  requires a name and a default unit to be defined.
-      The default unit is supplied as a String from a permitted list in class QuantityUnit. E.g. 'ml', 'g'.
+    Define a SampleTemplate prior to POSTing to RSpace.
+    A SampleTemplate only  requires a name and a default unit to be defined.
+    The default unit is supplied as a String from a permitted list in class QuantityUnit. E.g. 'ml', 'g'.
     """
 
     numeric = Union[int, float]
@@ -63,7 +63,7 @@ class TemplateBuilder:
         options : List
             A list of choice options.
         selected : List, optional
-            An optional list of options that should be selected. If items in 
+            An optional list of options that should be selected. If items in
             this list are not in the 'options' List, they will be ignored
 
         """
@@ -205,7 +205,7 @@ class TemplateBuilder:
 
         Returns
         -------
-        This object for chaining 
+        This object for chaining
 
         """
         f = self._set_name(name, "Attachment")
@@ -225,7 +225,7 @@ class TemplateBuilder:
 
         Returns
         -------
-        This object for chaining 
+        This object for chaining
         Raises
         ------
         ValueError if URI is not parsable into a URI
