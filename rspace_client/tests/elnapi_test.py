@@ -57,14 +57,13 @@ class ELNClientAPIIntegrationTest(BaseApiTest):
         self.assertEqual(nameStr, resp["name"])
         self.assertEqual(tag_str, resp["tags"])
 
-    
     def test_import_tree(self):
         tree_dir = get_datafile("tree")
         res = self.api.import_tree(tree_dir)
         self.assertEqual("OK", res["status"])
         ## f, 2sf, and 3files in each sf
         self.assertEqual(9, len(res["path2Id"].keys()))
-        
+
     def test_import_tree_include_dot_files(self):
         tree_dir = get_datafile("tree")
         res = self.api.import_tree(tree_dir, ignore_hidden_folders=False)

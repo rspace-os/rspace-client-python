@@ -17,7 +17,9 @@ class TreeImporter:
 
     def _create_file_linking_doc(self, content, parent_folder_id, name, path2Id):
         rs_doc = self.cli.create_document(
-            name, parent_folder_id=parent_folder_id, fields=[{"content": content}],
+            name,
+            parent_folder_id=parent_folder_id,
+            fields=[{"content": content}],
         )
         path2Id[name] = rs_doc["id"]
 
@@ -102,7 +104,7 @@ class TreeImporter:
                         self.cli.serr(f"{x} raised while opening {f} - continuing")
                         continue  ## next file
                 doc_name = os.path.splitext(f)[0]
-                
+
                 ## just puts link to the document
                 if DCS.DOC_PER_FILE == doc_creation:
                     parent_folder_id = path2Id[dirName]
