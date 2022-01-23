@@ -59,11 +59,11 @@ class TreeImporter:
                 or (DCS.DOC_PER_SUBFOLDER == doc_creation)
             )
 
-        #      # maintain mapping of local directory paths to RSpace folder Ids
+        # maintain mapping of local directory paths to RSpace folder Ids
         result = {}
         result["status"] = "FAILED"
         result["path2Id"] = path2Id
-        ## reolace any forward slashes (e.g in windows path names)
+        ## replace any forward slashes (e.g in windows path names)
 
         folder = self.cli.create_folder(
             _sanitize(os.path.basename(data_dir)), parent_folder_id
@@ -74,6 +74,7 @@ class TreeImporter:
         for dirName, subdirList, fileList in os.walk(data_dir):
             if ignore_hidden_folders:
                 _filter_dot_files(subdirList)
+                _filter_dot_files(fileList)
             for sf in subdirList:
 
                 if _is_subfolder_tree_required(sf, doc_creation):
@@ -85,7 +86,6 @@ class TreeImporter:
             rs_files_in_subdir = []
 
             for f in fileList:
-                self.cli.serr(f"uploading {f}")
                 try:
                     with open(os.path.join(dirName, f), "rb") as reader:
                         rs_file = self.cli.upload_file(reader)
@@ -102,11 +102,11 @@ class TreeImporter:
                         self.cli.serr(f"{x} raised while opening {f} - continuing")
                         continue  ## next file
                 doc_name = os.path.splitext(f)[0]
+                
                 ## just puts link to the document
                 if DCS.DOC_PER_FILE == doc_creation:
                     parent_folder_id = path2Id[dirName]
                     content_string = f"<fileId={rs_file['id']}>"
-                    self.cli.serr(f"creating {f} as a document")
                     self._create_file_linking_doc(
                         content_string, parent_folder_id, doc_name, path2Id
                     )
