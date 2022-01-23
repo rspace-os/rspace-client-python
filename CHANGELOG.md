@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file
 
+## Unreleased
+
+### Added 
+
+- Upload directories of files into ELN via import_tree() - #17
+
 ## 2.1.0 2022-01-22
 
 Requires RSpace 1.73 or later
