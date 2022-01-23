@@ -10,12 +10,14 @@ import re
 
 from rspace_client.eln.dcs import DocumentCreationStrategy as DCS
 
+
 def assert_is_readable_dir(data_dir):
     if not os.access(data_dir, os.R_OK):
         raise ValueError(f"{data_dir} is not readable")
     if not os.path.isdir(data_dir):
         raise ValueError(f"{data_dir} is not a directory")
-        
+
+
 class TreeImporter:
     def __init__(self, eln_client):
         self.cli = eln_client
@@ -34,8 +36,6 @@ class TreeImporter:
             s = s + f"<tr><td>{o}</td><td><fileId={r['id']}></td></tr>"
         s = s + "</table>"
         return s
-    
-  
 
     def import_tree(
         self,
@@ -45,8 +45,6 @@ class TreeImporter:
         halt_on_error: bool = False,
         doc_creation=DCS.DOC_PER_FILE,
     ) -> dict:
-      
-
         def _sanitize(path):
             return re.sub(r"/", "-", path)
 

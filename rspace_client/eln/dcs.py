@@ -19,9 +19,7 @@ class DocumentCreationStrategy(enum.Enum):
     """
 
     DOC_PER_FILE = 1
-    
+
     DOC_PER_SUBFOLDER = 2
 
     SUMMARY_DOC = 3
-
-    
