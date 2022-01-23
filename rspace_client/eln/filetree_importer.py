@@ -28,7 +28,7 @@ class TreeImporter:
             parent_folder_id=parent_folder_id,
             fields=[{"content": content}],
         )
-        path2Id[name] = rs_doc["id"]
+        path2Id[name] = rs_doc["globalId"]
 
     def _generate_summary_content(self, rs_files: list) -> str:
         s = "<table><tr><th>Original file name</th><th>RSpace file</th></tr>"

@@ -3,6 +3,7 @@
 import sys, pprint
 import rspace_client
 from rspace_client.eln import filetree_importer
+from rspace_client.eln.dcs import DocumentCreationStrategy as DCS
 
 # Parse command line parameters
 # Parse command line parameters
@@ -29,7 +30,7 @@ print("One summary document for all files: 3")
 dcs = int(sys.stdin.readline().strip())
 
 print("uploading files....")
-result = client.import_tree(path, doc_creation=dcs)
+result = client.import_tree(path, doc_creation=DCS(dcs))
 print(
     "Results show success/failure and a mapping of the files to an RSpace folders and documents"
 )
