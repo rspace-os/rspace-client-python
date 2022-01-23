@@ -8,8 +8,9 @@ Created on Sat Oct  2 22:09:40 2021
 import sys, os
 import json
 import datetime as dt
-import pprint as pp
+
 import pytest
+
 import rspace_client.tests.base_test as base
 from rspace_client.inv import inv, template_builder, sample_builder2
 import rspace_client.inv.quantity_unit as qu
@@ -244,6 +245,21 @@ class InventoryApiTest(base.BaseApiTest):
         name = base.random_string()
         ct = self.invapi.create_list_container(name, tags="ab,cd,ef")
         self.assertTrue(ct["cType"] == "LIST")
+        self.assertEqual(0, len(ct["parentContainers"]))
+
+        ## create in workbench
+        ct_in_wb = self.invapi.create_list_container(
+            name, tags="ab,cd,ef", location="w"
+        )
+        self.assertEqual("BE", ct_in_wb["parentContainers"][0]["globalId"][0:2])
+
+        ## create in parent list container
+        ct_sub_container = self.invapi.create_list_container(
+            name, tags="ab,cd,ef", location=ct["id"]
+        )
+        self.assertEqual(
+            ct["globalId"], ct_sub_container["parentContainers"][0]["globalId"]
+        )
 
     def test_move_container_to_list_container(self):
         name = base.random_string() + "_to_move"

@@ -16,8 +16,8 @@ RSPACE_URL_ENV = "RSPACE_URL"
 RSPACE_APIKEY_ENV = "RSPACE_API_KEY"
 
 
-def get_datafile(filename: str):
-    return os.path.join(os.path.dirname(__file__), "data", filename)
+def get_datafile(file_or_dir_name: str):
+    return os.path.join(os.path.dirname(__file__), "data", file_or_dir_name)
 
 
 def get_any_datafile():

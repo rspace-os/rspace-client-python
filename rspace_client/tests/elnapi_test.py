@@ -6,7 +6,9 @@ Created on Mon Jun  7 08:38:55 2021
 @author: richard
 """
 import os
+
 import rspace_client.eln.eln as cli
+from rspace_client.eln.dcs import DocumentCreationStrategy
 
 
 from rspace_client.tests.base_test import BaseApiTest, random_string, get_datafile
@@ -54,3 +56,44 @@ class ELNClientAPIIntegrationTest(BaseApiTest):
         resp = self.api.create_document(name=nameStr, tags=tag_str)
         self.assertEqual(nameStr, resp["name"])
         self.assertEqual(tag_str, resp["tags"])
+
+    
+    def test_import_tree(self):
+        tree_dir = get_datafile("tree")
+        res = self.api.import_tree(tree_dir)
+        self.assertEqual("OK", res["status"])
+        ## f, 2sf, and 3files in each sf
+        self.assertEqual(9, len(res["path2Id"].keys()))
+        
+    def test_import_tree_include_dot_files(self):
+        tree_dir = get_datafile("tree")
+        res = self.api.import_tree(tree_dir, ignore_hidden_folders=False)
+        self.assertEqual("OK", res["status"])
+        ## f, 2sf, and 3files in each sf + hidden
+        self.assertTrue(len(res["path2Id"].keys()) > 10)
+
+    def test_import_tree_summary_doc_only(self):
+        tree_dir = get_datafile("tree")
+        res = self.api.import_tree(
+            tree_dir, doc_creation=DocumentCreationStrategy.SUMMARY_DOC
+        )
+        self.assertEqual("OK", res["status"])
+        ## original folder + summary doc
+        self.assertEqual(2, len(res["path2Id"].keys()))
+
+    def test_import_tree_summary_doc_per_subfolder(self):
+        tree_dir = get_datafile("tree")
+        res = self.api.import_tree(
+            tree_dir, doc_creation=DocumentCreationStrategy.DOC_PER_SUBFOLDER
+        )
+        self.assertEqual("OK", res["status"])
+        ## original folder + 2 sf + 2 summary docs
+        self.assertEqual(5, len(res["path2Id"].keys()))
+
+    def test_import_tree_into_subfolder(self):
+        folder = self.api.create_folder("tree-root")
+        tree_dir = get_datafile("tree")
+        res = self.api.import_tree(tree_dir, parent_folder_id=folder["id"])
+        self.assertEqual("OK", res["status"])
+        ## f, 2sf, and 3files in each sf
+        self.assertEqual(9, len(res["path2Id"].keys()))

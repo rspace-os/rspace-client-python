@@ -1,7 +1,9 @@
-import requests
 import datetime
 import time
-import os.path
+import os
+import requests
+import rspace_client.eln.filetree_importer as importer
+from rspace_client.eln.dcs import DocumentCreationStrategy
 
 from rspace_client.client_base import ClientBase, Pagination
 
@@ -865,3 +867,43 @@ class ELNClient(ClientBase):
 
     def deleteTempUser(self, user_id):
         return self.doDelete("sysadmin/users", user_id)
+
+    def import_tree(
+        self,
+        data_dir: str,
+        parent_folder_id: int = None,
+        ignore_hidden_folders: bool = True,
+        halt_on_error: bool = False,
+        doc_creation=DocumentCreationStrategy.DOC_PER_FILE,
+    ) -> dict:
+        """
+        Imports a directory tree into RSpace, recreating the tree in RSpace,
+        uploading files and creatig documents with links to the files.
+
+        Parameters
+        ----------
+        data_dir : str
+            Path to top-level of directory tree.
+        parent_folder_id: int, optional
+            The id of the RSpace folder into which the top-level directory is created.
+            If not specified will be created in Workspace top-level folder.
+        ignore_hidden_folders : bool, optional
+            Whether hidden folders (names starting  with '.') - should be ignored.  The default is True.
+        halt_on_error : bool, optional
+            Whether to halt the process in case of IO error reading files. The default is False.
+
+        Returns
+        -------
+        dict
+            An indication of success/failure, and mappings of files and folders to
+            RSpace Ids.
+
+        """
+        tree_import = importer.TreeImporter(self)
+        return tree_import.import_tree(
+            data_dir,
+            parent_folder_id,
+            ignore_hidden_folders,
+            halt_on_error,
+            doc_creation,
+        )
