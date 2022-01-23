@@ -2,11 +2,14 @@
 
 All notable changes to this project will be documented in this file
 
-## Unreleased
+## 2.1.0 2022-01-22
+
+Requires RSpace 1.73 or later
 
 ### Added 
 
 - Support for sample templates: create, get/set icon, delete/restore
+- Dynamically generated classes from template definitions
 - Transfer ownership of samples and templates
 - Create samples from a template, and set field content
 - export_selection to export specific items
