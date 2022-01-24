@@ -559,6 +559,11 @@ class ExtraField:
 
 
 class InventoryClient(ClientBase):
+    """
+      Wrapper around RSpace Inventory API.
+      Enables creation, searching, altering and deleting containers, samples, 
+      subsamples and templates.
+    """
     API_VERSION = "v1"
 
     def _get_api_url(self):
@@ -887,7 +892,7 @@ class InventoryClient(ClientBase):
         Parameters
         ----------
         global_id : str
-            Global id  of template,sample, subsample or container or aict containing global_id
+            Global id  of template,sample, subsample or container or dict containing global_id
         new_name : optional new name of the copy
 
         Returns
