@@ -230,7 +230,7 @@ class BulkOperationResult:
 
     def is_failed(self):
         return not self.is_ok()
-    
+
     def __str__(self):
         return f"Succeeded: {self.is_ok()}: Result JSON: {self.data}"
 
@@ -418,10 +418,11 @@ class SearchFilter:
 
     def __str__(self):
         return f"{str(self.data)}"
-    
+
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.data['deletedItems']!r}, \'{self.data['ownedBy']!r}\')"
-    
+        return f"{self.__class__.__name__}({self.data['deletedItems']!r}, '{self.data['ownedBy']!r}')"
+
+
 class ResultType(Enum):
     SAMPLE = 1
     SUBSAMPLE = 2
@@ -485,18 +486,17 @@ class Id:
             raise TypeError(
                 f"Could not interpet {value} as an identifiable Inventory item."
             )
-    
-        
+
     def __repr__(self):
         rc = str(self.id)
-        if hasattr(self, 'prefix'):
-            rc = "'" + self.prefix   + rc +"'"
+        if hasattr(self, "prefix"):
+            rc = "'" + self.prefix + rc + "'"
         return f"{self.__class__.__name__}({rc})"
-    
+
     def __str__(self):
         rc = str(self.id)
-        if hasattr(self, 'prefix'):
-            rc=  self.prefix   + rc
+        if hasattr(self, "prefix"):
+            rc = self.prefix + rc
         return rc
 
     def as_id(self) -> int:
@@ -554,14 +554,12 @@ class StorageTemperature:
 
     def _toDict(self) -> dict:
         return {"unitId": self.units.value, "numericValue": self.degrees}
-    
+
     def __repr__(self):
         return f"{self.__class__.__name__} ({self.degrees}, {self.units!r})"
-    
+
     def __str__(self):
         return f"{self.degrees} {self.units}"
-    
-    
 
 
 class Quantity:
@@ -573,10 +571,11 @@ class Quantity:
         return {"numericValue": self.value, "unitId": self.units["id"]}
 
     def __repr__(self):
-        return f"{self.__class__.__name__} ({self.value}, \'{self.units['label']}\')"
-    
+        return f"{self.__class__.__name__} ({self.value}, '{self.units['label']}')"
+
     def __str__(self):
         return f"{self.value} {self.units['label']}"
+
 
 class ExtraField:
     """
