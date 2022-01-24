@@ -560,10 +560,11 @@ class ExtraField:
 
 class InventoryClient(ClientBase):
     """
-      Wrapper around RSpace Inventory API.
-      Enables creation, searching, altering and deleting containers, samples, 
-      subsamples and templates.
+    Wrapper around RSpace Inventory API.
+    Enables creation, searching, altering and deleting containers, samples,
+    subsamples and templates.
     """
+
     API_VERSION = "v1"
 
     def _get_api_url(self):
