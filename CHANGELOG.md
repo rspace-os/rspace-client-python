@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file
 ### Added 
 
 - Upload directories of files into ELN via import_tree() - #17
+- Added str/repr implementations for inventory value objects - #23
 
 ## 2.1.0 2022-01-22
 
