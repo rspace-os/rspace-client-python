@@ -10,7 +10,6 @@ from rspace_client.inv.quantity_unit import QuantityUnit
 from rspace_client.inv.inv import Quantity
 
 
-
 class QuantityUnitTest(unittest.TestCase):
     def test_list_all(self):
         self.assertEqual(17, len(QuantityUnit.unit_labels()))
@@ -22,7 +21,7 @@ class QuantityUnitTest(unittest.TestCase):
     def test_of(self):
         self.assertEqual(17, QuantityUnit.of("g/l")["id"])
         self.assertRaises(ValueError, QuantityUnit.of, "W")
-        
+
     def test_str(self):
         qu = QuantityUnit.of("ml")
         amount = Quantity(23, qu)

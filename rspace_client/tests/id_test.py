@@ -38,3 +38,18 @@ class IdUnitTest(unittest.TestCase):
         c = Id(Workbench(workbench))
         self.assertEqual(123, c.as_id())
         self.assertEqual("BE", c.prefix)
+        
+    def test_repr(self):
+        id_a = Id("SA1234")
+        self.assertEqual("Id('SA1234')", repr(id_a)) 
+        id_a = Id(1234)
+        self.assertEqual("Id(1234)", repr(id_a)) 
+        
+    def test_str(self):
+        id_a = Id("SA1234")
+        self.assertEqual("SA1234", str(id_a))
+        id_a = Id(1234)
+        self.assertEqual("1234", str(id_a)) 
+        
+        
+        
