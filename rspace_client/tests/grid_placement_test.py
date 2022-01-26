@@ -55,4 +55,3 @@ class GridPlacementUnitTest(unittest.TestCase):
     def test_positive_grid_location(self):
         self.assertRaises(ValueError, inv.GridLocation, 0, 1)
         self.assertRaises(ValueError, inv.GridLocation, 1, 0)
-

@@ -60,7 +60,7 @@ class Sample:
     def __repr__(self):
         return f"Sample: id = {self.data['id']}, name = {self.data['name']}, creationDate = {self.data['created']}"
 
-    
+
 class GridPlacement:
     """
     Superclass of all grid placement strategies
@@ -75,7 +75,6 @@ class GridPlacement:
             ids.append(toMove)
         self.items_to_move = ids
         self.filling_strategy = filling_strategy
-
 
 
 class AutoFit(GridPlacement):
@@ -113,7 +112,8 @@ class AutoFit(GridPlacement):
                 row_index = {self.row_index}, total_columns={self.total_columns}, total_rows={self.total_rows},
                 filling_strategy = {self.filling_strategy!r}
                 """
-            
+
+
 class GridLocation:
     """
     Stores column(x) and row(y) indices of a GridContainer
