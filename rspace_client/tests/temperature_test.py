@@ -13,9 +13,9 @@ class TemperatureUnitTest(unittest.TestCase):
     def test_temp_str(self):
         temp = StorageTemperature(23, TemperatureUnit.CELSIUS)
         self.assertEqual("23 TemperatureUnit.CELSIUS", str(temp))
-        
+
     def test_temp_repr(self):
         temp = StorageTemperature(23, TemperatureUnit.CELSIUS)
-        self.assertEqual("StorageTemperature (23, <TemperatureUnit.CELSIUS: 8>)", repr(temp))
-
-    
+        self.assertEqual(
+            "StorageTemperature (23, <TemperatureUnit.CELSIUS: 8>)", repr(temp)
+        )

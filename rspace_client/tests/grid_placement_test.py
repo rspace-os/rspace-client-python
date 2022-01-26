@@ -18,7 +18,7 @@ class GridPlacementUnitTest(unittest.TestCase):
         ss = make_n_items_to_move(10)
         by_row = inv.ByRow(1, 1, 2, 3, *ss)
         self.assertEqual(1, by_row.column_index)
-        print(by_row.items_to_move)
+        print(by_row)
         self.assertEqual(10, len(by_row.items_to_move))
 
     def test_by_column(self):
@@ -55,3 +55,4 @@ class GridPlacementUnitTest(unittest.TestCase):
     def test_positive_grid_location(self):
         self.assertRaises(ValueError, inv.GridLocation, 0, 1)
         self.assertRaises(ValueError, inv.GridLocation, 1, 0)
+
