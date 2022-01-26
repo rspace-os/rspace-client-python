@@ -57,7 +57,7 @@ class Sample:
             bcumbs.add(b_crumb)
         return bcumbs
 
-    def __str__(self):
+    def __repr__(self):
         return f"Sample: id = {self.data['id']}, name = {self.data['name']}, creationDate = {self.data['created']}"
 
 
@@ -107,6 +107,12 @@ class AutoFit(GridPlacement):
         self.total_columns = total_columns
         self.total_rows = total_rows
 
+    def __repr__(self):
+        return f"""<{self.__class__.__name__}: Items {len(self.items_to_move)}, column_index={self.column_index}
+                row_index = {self.row_index}, total_columns={self.total_columns}, total_rows={self.total_rows},
+                filling_strategy = {self.filling_strategy!r}
+                """
+
 
 class GridLocation:
     """
@@ -118,6 +124,9 @@ class GridLocation:
             raise ValueError("Grid location coordinates must be >= 1")
         self.x = x
         self.y = y
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.x}, {self.y})"
 
 
 class ByRow(AutoFit):
@@ -231,6 +240,9 @@ class BulkOperationResult:
     def is_failed(self):
         return not self.is_ok()
 
+    def __str__(self):
+        return f"Succeeded: {self.is_ok()}: Result JSON: {self.data}"
+
 
 class Container:
     """
@@ -317,9 +329,13 @@ class ListContainer(Container):
 
     def capacity(self) -> int:
         """
-        Unlimited capacity
+        Unlimited capacity, returns sys.maxsize
         """
         return sys.maxsize
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}, id={self.data['globalId']!r},storesContainers={self.accept_containers()},\
+storesSubsamples={self.accept_subsamples}"
 
 
 class Workbench(Container):
@@ -402,6 +418,10 @@ class GridContainer(Container):
                     rc.append((col, row))
         return rc
 
+    def __repr__(self):
+        return f"{self.__class__.__name__} id={self.data['globalId']!r}, storesContainers={self.accept_containers()},\
+ storesSubsamples={self.accept_subsamples()}, percent_full={self.percent_full():.2f}"
+
 
 class SearchFilter:
     def __init__(
@@ -412,6 +432,12 @@ class SearchFilter:
             self.data["deletedItems"] = deleted_item_filter.name
         if owned_by is not None and len(owned_by) > 0:
             self.data["ownedBy"] = owned_by
+
+    def __str__(self):
+        return f"{str(self.data)}"
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.data['deletedItems']!r}, '{self.data['ownedBy']!r}')"
 
 
 class ResultType(Enum):
@@ -478,6 +504,18 @@ class Id:
                 f"Could not interpet {value} as an identifiable Inventory item."
             )
 
+    def __repr__(self):
+        rc = str(self.id)
+        if hasattr(self, "prefix"):
+            rc = "'" + self.prefix + rc + "'"
+        return f"{self.__class__.__name__}({rc})"
+
+    def __str__(self):
+        rc = str(self.id)
+        if hasattr(self, "prefix"):
+            rc = self.prefix + rc
+        return rc
+
     def as_id(self) -> int:
         return self.id
 
@@ -534,6 +572,12 @@ class StorageTemperature:
     def _toDict(self) -> dict:
         return {"unitId": self.units.value, "numericValue": self.degrees}
 
+    def __repr__(self):
+        return f"{self.__class__.__name__} ({self.degrees}, {self.units!r})"
+
+    def __str__(self):
+        return f"{self.degrees} {self.units}"
+
 
 class Quantity:
     def __init__(self, value: float, units: qu.QuantityUnit):
@@ -542,6 +586,12 @@ class Quantity:
 
     def _toDict(self) -> dict:
         return {"numericValue": self.value, "unitId": self.units["id"]}
+
+    def __repr__(self):
+        return f"{self.__class__.__name__} ({self.value}, '{self.units['label']}')"
+
+    def __str__(self):
+        return f"{self.value} {self.units['label']}"
 
 
 class ExtraField:
@@ -556,6 +606,10 @@ class ExtraField:
         content: Union[str, int, float] = "",
     ):
         self.data = {"name": name, "type": fieldType.value, "content": content}
+
+    def __repr__(self):
+        return f"{self.__class__.__name__} ({self.data['name']!r}, {self.data['type']!r},\
+{self.data['content']!r})"
 
 
 class InventoryClient(ClientBase):
