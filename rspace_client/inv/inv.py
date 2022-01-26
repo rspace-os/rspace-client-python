@@ -125,7 +125,9 @@ class GridLocation:
         self.x = x
         self.y = y
 
-
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.x}, {self.y})"
+    
 class ByRow(AutoFit):
     """
     Defines a strategy for filling a grid container with a list of items, filling rows
@@ -326,9 +328,13 @@ class ListContainer(Container):
 
     def capacity(self) -> int:
         """
-        Unlimited capacity
+        Unlimited capacity, returns sys.maxsize
         """
         return sys.maxsize
+    
+    def __repr__(self):
+        return f"{self.__class__.__name__}, id={self.data['globalId']!r},storesContainers={self.accept_containers()},\
+storesSubsamples={self.accept_subsamples}"
 
 
 class Workbench(Container):
@@ -410,6 +416,10 @@ class GridContainer(Container):
                 if (col, row) not in used:
                     rc.append((col, row))
         return rc
+    
+    def __repr__(self):
+        return f"{self.__class__.__name__} id={self.data['globalId']!r}, storesContainers={self.accept_containers()},\
+ storesSubsamples={self.accept_subsamples()}, percent_full={self.percent_full():.2f}"
 
 
 class SearchFilter:
@@ -596,6 +606,9 @@ class ExtraField:
     ):
         self.data = {"name": name, "type": fieldType.value, "content": content}
 
+    def __repr__(self):
+        return f"{self.__class__.__name__} ({self.data['name']!r}, {self.data['type']!r},\
+{self.data['content']!r})"
 
 class InventoryClient(ClientBase):
     """

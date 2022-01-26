@@ -18,14 +18,16 @@ class GridPlacementUnitTest(unittest.TestCase):
         ss = make_n_items_to_move(10)
         by_row = inv.ByRow(1, 1, 2, 3, *ss)
         self.assertEqual(1, by_row.column_index)
-        print(by_row)
         self.assertEqual(10, len(by_row.items_to_move))
 
     def test_by_column(self):
         ss = make_n_items_to_move(10)
         by_row = inv.ByColumn(1, 1, 2, 3, *ss)
         self.assertEqual(1, by_row.column_index)
-        print(by_row.items_to_move)
+        by_row_str = str(by_row)
+        self.assertTrue("Items 10" in by_row_str)
+        self.assertTrue("total_rows=3" in by_row_str)
+
         self.assertEqual(10, len(by_row.items_to_move))
 
     def test_all_gt_1_validation(self):

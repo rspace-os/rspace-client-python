@@ -151,6 +151,7 @@ class InventoryApiTest(base.BaseApiTest):
         sample = self.invapi.create_sample(base.random_string())
         ef1 = inv.ExtraField(name="ef1", content="ef1 content")
         ef2 = inv.ExtraField(name="ef2", content="ef2 content")
+        self.assertEqual("ExtraField ('ef2', 'text','ef2 content')", repr(ef2))
         updatedS = self.invapi.add_extra_fields(sample["globalId"], ef1, ef2)
         self.assertEqual(2, len(updatedS["extraFields"]))
 

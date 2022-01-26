@@ -6,7 +6,7 @@ Created on Mon Oct  4 19:10:42 2021
 @author: richard
 """
 import unittest
-from rspace_client.inv.inv import GridContainer, Container
+from rspace_client.inv.inv import GridContainer, Container, GridLocation
 from rspace_client.tests import base_test
 import json
 
@@ -18,6 +18,10 @@ class GridContainerTest(unittest.TestCase):
         with open(path, "r") as container:
             container_json = json.load(container)
             self.container = GridContainer(container_json)
+            
+    def test_repr(self):
+        self.assertEqual("GridContainer id='IC131085', storesContainers=True, storesSubsamples=True, percent_full=47.62",
+                         str(self.container))
 
     def test_grid_container(self):
         self.assertEqual(3, self.container.column_count())
@@ -57,3 +61,8 @@ class GridContainerTest(unittest.TestCase):
         grid = Container.of(raw_json)
         self.assertTrue(grid.accept_subsamples())
         self.assertFalse(grid.accept_containers())
+    
+    def test_grid_location_repr(self):
+        cell = GridLocation(3,4)
+        self.assertEqual("GridLocation(3, 4)", repr(cell))
+        
