@@ -18,10 +18,12 @@ class GridContainerTest(unittest.TestCase):
         with open(path, "r") as container:
             container_json = json.load(container)
             self.container = GridContainer(container_json)
-            
+
     def test_repr(self):
-        self.assertEqual("GridContainer id='IC131085', storesContainers=True, storesSubsamples=True, percent_full=47.62",
-                         str(self.container))
+        self.assertEqual(
+            "GridContainer id='IC131085', storesContainers=True, storesSubsamples=True, percent_full=47.62",
+            str(self.container),
+        )
 
     def test_grid_container(self):
         self.assertEqual(3, self.container.column_count())
@@ -61,8 +63,7 @@ class GridContainerTest(unittest.TestCase):
         grid = Container.of(raw_json)
         self.assertTrue(grid.accept_subsamples())
         self.assertFalse(grid.accept_containers())
-    
+
     def test_grid_location_repr(self):
-        cell = GridLocation(3,4)
+        cell = GridLocation(3, 4)
         self.assertEqual("GridLocation(3, 4)", repr(cell))
-        
