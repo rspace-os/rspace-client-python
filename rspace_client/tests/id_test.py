@@ -50,12 +50,12 @@ class IdUnitTest(unittest.TestCase):
         self.assertEqual("SA1234", str(id_a))
         id_a = Id(1234)
         self.assertEqual("1234", str(id_a))
-        
+
     def test_id_equals(self):
         self.assertEqual(Id(1234), Id(1234))
-        self.assertEqual(Id('SA1234'), Id('SA1234'))
+        self.assertEqual(Id("SA1234"), Id("SA1234"))
 
         self.assertNotEqual(Id(1234), Id(1235))
-        self.assertNotEqual(Id(1234), Id('SA1234'))
-        self.assertNotEqual(Id('IT1234'), Id('SA1234'))
-        self.assertNotEqual(Id('SA1234'), Id(1234))     
+        self.assertNotEqual(Id(1234), Id("SA1234"))
+        self.assertNotEqual(Id("IT1234"), Id("SA1234"))
+        self.assertNotEqual(Id("SA1234"), Id(1234))
