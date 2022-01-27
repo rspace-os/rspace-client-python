@@ -67,3 +67,11 @@ class GridContainerTest(unittest.TestCase):
     def test_grid_location_repr(self):
         cell = GridLocation(3, 4)
         self.assertEqual("GridLocation(3, 4)", repr(cell))
+
+    def test_grid_location_equals(self):
+        cell1 = GridLocation(3, 4)
+        cell2 = GridLocation(3, 4)
+        other = GridLocation(5, 7)
+
+        self.assertEqual(cell1, cell2)
+        self.assertNotEqual(cell1, other)
