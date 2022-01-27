@@ -1,5 +1,5 @@
 from enum import Enum
-import datetime
+import datetime, math
 
 import json
 import re
@@ -595,6 +595,8 @@ class TemperatureUnit(Enum):
 class StorageTemperature:
     """
     Value object that stores  degrees and units.
+    Two temperatures are considered equal if they differ by less
+     than 1 part in 1e4
     """
 
     def __init__(
@@ -615,10 +617,13 @@ class StorageTemperature:
     def __eq__(self, o):
         if not isinstance(o, self.__class__):
             return False
-        return self.degrees == o.degrees and self.units == o.units
+        return math.isclose(self.degrees, o.degrees, rel_tol=1e-4) and self.units == o.units
 
 
 class Quantity:
+    """
+     Two quantities are considered equal if they differ by less than 1 part in 1e4
+    """
     def __init__(self, value: float, units: dict):
         self.value = value
         self.units = units
@@ -635,7 +640,7 @@ class Quantity:
     def __eq__(self, o):
         if not isinstance(o, self.__class__):
             return False
-        return self.value == o.value and self.units["id"] == o.units["id"]
+        return math.isclose(self.value, o.value, rel_tol=1e-4) and self.units["id"] == o.units["id"]
 
 
 class ExtraField:
