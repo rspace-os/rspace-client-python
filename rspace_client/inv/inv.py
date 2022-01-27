@@ -127,6 +127,11 @@ class GridLocation:
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.x}, {self.y})"
+    
+    def __eq__(self, other):
+        if  not isinstance(other, self.__class__):
+            return False
+        return self.x == other.x and self.y == other.y
 
 
 class ByRow(AutoFit):
@@ -439,6 +444,12 @@ class SearchFilter:
     def __repr__(self):
         return f"{self.__class__.__name__}({self.data['deletedItems']!r}, '{self.data['ownedBy']!r}')"
 
+    def __eq__(self, other):
+        if  not isinstance(other, self.__class__):
+            return False
+        return self.deleted_item_filter == other.deleted_item_filter\
+            and self.data['ownedBy'] == other.data['ownedBy']
+        
 
 class ResultType(Enum):
     SAMPLE = 1
@@ -451,7 +462,11 @@ class Id:
     """
     Supports integer or string representation of a globalId or
     numeric ID or a dict / object representation of an Inventory item.
-    If a dict is passed, it must have 'id' and 'globalId' properties
+    If a dict is passed, it must have 'id' and 'globalId' properties.
+    
+    Two Ids are equal in 2 cases:
+        - if their prefix and id are both equal
+        - if only IDs are equal, and neither prefix is defined
     """
 
     Pattern = r"([A-Z]{2})?\d+"
@@ -515,6 +530,19 @@ class Id:
         if hasattr(self, "prefix"):
             rc = self.prefix + rc
         return rc
+    
+    def __eq__(self, o):
+         if  not isinstance(o, self.__class__):
+            return False
+         if self.id != o.id:
+             return False
+         pref_s = hasattr(self, 'prefix')
+         pref_o = hasattr(o, 'prefix')
+         if (pref_s and pref_o and self.prefix == o.prefix) or (not pref_s and not pref_o):
+             return True
+         return False
+         
+         
 
     def as_id(self) -> int:
         return self.id
