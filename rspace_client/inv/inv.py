@@ -596,6 +596,7 @@ class StorageTemperature:
     """
     Value object that stores  degrees and units.
     """
+
     def __init__(
         self, degrees: float, units: TemperatureUnit = TemperatureUnit.CELSIUS
     ):
@@ -610,16 +611,15 @@ class StorageTemperature:
 
     def __str__(self):
         return f"{self.degrees} {self.units}"
-    
+
     def __eq__(self, o):
         if not isinstance(o, self.__class__):
             return False
-        return self.degrees == o.degrees and self.units == o.units 
-        
+        return self.degrees == o.degrees and self.units == o.units
 
 
 class Quantity:
-    def __init__(self, value: float, units: qu.QuantityUnit):
+    def __init__(self, value: float, units: dict):
         self.value = value
         self.units = units
 
@@ -631,7 +631,12 @@ class Quantity:
 
     def __str__(self):
         return f"{self.value} {self.units['label']}"
-
+    
+    def __eq__(self, o):
+        if not isinstance(o, self.__class__):
+            return False
+        return self.value == o.value and self.units['id'] == o.units['id']
+        
 
 class ExtraField:
     """

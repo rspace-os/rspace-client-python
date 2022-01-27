@@ -28,4 +28,3 @@ class TemperatureUnitTest(unittest.TestCase):
         self.assertNotEqual(temp, o)
         o = StorageTemperature(24, TemperatureUnit.CELSIUS)
         self.assertNotEqual(temp, o)
-        
