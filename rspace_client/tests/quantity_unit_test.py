@@ -31,10 +31,9 @@ class QuantityUnitTest(unittest.TestCase):
         qu = QuantityUnit.of("ml")
         amount = Quantity(23, qu)
         self.assertEqual("Quantity (23, 'ml')", repr(amount))
-        
+
     def test_qu_eq(self):
         qu = QuantityUnit.of("ml")
         amount = Quantity(23, qu)
         amount2 = Quantity(23, qu)
         self.assertEqual(amount, amount2)
-        

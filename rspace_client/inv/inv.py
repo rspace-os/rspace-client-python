@@ -631,12 +631,12 @@ class Quantity:
 
     def __str__(self):
         return f"{self.value} {self.units['label']}"
-    
+
     def __eq__(self, o):
         if not isinstance(o, self.__class__):
             return False
-        return self.value == o.value and self.units['id'] == o.units['id']
-        
+        return self.value == o.value and self.units["id"] == o.units["id"]
+
 
 class ExtraField:
     """
