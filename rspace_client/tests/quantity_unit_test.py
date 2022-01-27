@@ -37,7 +37,7 @@ class QuantityUnitTest(unittest.TestCase):
         amount = Quantity(23, qu)
         amount2 = Quantity(23, qu)
         self.assertEqual(amount, amount2)
-        
+
         amount3 = Quantity(23.0001, qu)
         amount4 = Quantity(23.0002, qu)
         self.assertEqual(amount3, amount4)
