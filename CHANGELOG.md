@@ -4,10 +4,12 @@ All notable changes to this project will be documented in this file
 
 ## Unreleased
 
-### Added 
+## 2.2.0 2022-01-27
 
+### Added
 - Upload directories of files into ELN via import_tree() - #17
 - Added str/repr implementations for inventory value objects - #23
+- Added eq methods for inventory  value objects - #26
 
 ## 2.1.0 2022-01-22
 
