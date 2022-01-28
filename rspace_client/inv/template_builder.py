@@ -48,7 +48,7 @@ class TemplateBuilder:
         f = self._set_name(name, "Radio")
         f["definition"] = {"options": options}
 
-        if len(selected) > 0 and selected in options:
+        if selected is not None and len(selected) > 0 and selected in options:
             f["selectedOptions"] = [selected]
 
         self.fields.append(f)

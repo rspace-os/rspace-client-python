@@ -9,7 +9,6 @@ Created on Mon Jun  7 08:38:55 2021
 
 from rspace_client.inv.template_builder import TemplateBuilder
 import unittest
-import sys
 import datetime as dt
 
 builder = None
@@ -33,6 +32,11 @@ class TemplateBuilderTest(unittest.TestCase):
     def test_add_radio_selected_ignored_if_not_option(self):
         builder = TemplateBuilder("myTemplate", "ml")
         builder.radio("r1", ["a", "b", "c"], "XXXX")
+        self.assertFalse("selectedOptions" in builder._fields()[0])
+        
+    def test_add_radio_with_no_selection(self):
+        builder = TemplateBuilder("myTemplate", "ml")
+        builder.radio("r1", options=["a", "b", "c"])
         self.assertFalse("selectedOptions" in builder._fields()[0])
 
     def test_add_choice(self):

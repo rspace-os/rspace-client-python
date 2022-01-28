@@ -103,20 +103,18 @@ class FieldBuilderGenerator:
         return re.sub(r"(^\d+)", r"n\1", s1)
 
     def _get_validator_for_type(self, f_def):
-        t = f_def["type"]
-        if t == "String" or t == "Text" or t == "Attachment":
+        t = f_def["type"].lower()
+        if t == "string" or t == "text" or t == "attachment":
             return v.String()
-        elif t == "Number":
+        elif t == "aumber":
             return v.Number()
-        elif t == "Radio":
+        elif t == "radio":
             return v.OneOf(f_def["options"])
-        elif t == "Choice":
+        elif t == "choice":
             return v.AllOf(f_def["options"])
-        elif t == "Date":
+        elif t == "date":
             return v.Date()
-        elif t == "Time":
-            return v.Time()
-        elif t == "Atta":
+        elif t == "time":
             return v.Time()
         else:
             return v.AbsValidator()  ## allows anything
