@@ -69,7 +69,7 @@ class ELNClientAPIIntegrationTest(BaseApiTest):
         res = self.api.import_tree(tree_dir, ignore_hidden_folders=False)
         self.assertEqual("OK", res["status"])
         ## f, 2sf, and 3files in each sf + hidden
-        self.assertTrue(len(res["path2Id"].keys()) > 10)
+        self.assertTrue(len(res["path2Id"].keys()) >= 9)
 
     def test_import_tree_summary_doc_only(self):
         tree_dir = get_datafile("tree")

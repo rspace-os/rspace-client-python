@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file
 
 ## Unreleased
 
+## 2.2.1 2022-01-28
+
+### Fixed
+
+- case-insensitive parsing of sample field types
+- enable definition of sample radio field with no selected option
+- handle variability in choice/radio field definition
+
 ## 2.2.0 2022-01-27
 
 ### Added
