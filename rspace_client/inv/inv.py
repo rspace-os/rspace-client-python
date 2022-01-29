@@ -667,21 +667,69 @@ class ExtraField:
         return f"{self.__class__.__name__} ({self.data['name']!r}, {self.data['type']!r},\
 {self.data['content']!r})"
     
-class SampleCreate:
-
+class ItemCreate:
+    """
+    Help define core properties of an Inventory item
+    """
+    def __init__(
+        self,
+        name: str,
+        tags: Optional[str] = None,
+        description: Optional[str] = None,
+        extra_fields: Optional[Sequence] = [],
+    ):
+        self.data = {}
+        self.data["name"] = name
+        if tags is not None:
+            self.data["tags"] = tags
+        if description is not None:
+            self.data["description"] = description
+        if extra_fields is not None:
+            self.data["extraFields"] = [ef.data for ef in extra_fields]
+        
+    
+class SamplePost(ItemCreate):
+    """
+    Help define sample data structures to create or modify samples
+    """
     def __init__(self, name: str,
         tags: Optional[str] = None,
         description: Optional[str] = None,
+        extra_fields: Optional[Sequence] = [],
         sample_template_id=None,
         fields=None,
-        extra_fields: Optional[Sequence] = [],
         storage_temperature_min: StorageTemperature = None,
         storage_temperature_max: StorageTemperature = None,
         expiry_date: datetime.datetime = None,
         subsample_count: int = None,
         total_quantity: Quantity = None,
         attachments=None):
-            pass
+            super().__init__(name, tags,description, extra_fields)
+            self._set_sample_properties( sample_template_id, fields, storage_temperature_min, storage_temperature_max, expiry_date, subsample_count, total_quantity, attachments)
+    
+    def _set_sample_properties(self, sample_template_id,fields,storage_temperature_min,storage_temperature_max,
+                  expiry_date,subsample_count,total_quantity,  
+                  attachments):
+        ## converts arguments into JSON POST syntax
+        self.data['type']='SAMPLE'
+        if storage_temperature_min is not None:
+            self.data["storageTempMin"] = storage_temperature_min._toDict()
+        if storage_temperature_max is not None:
+            self.data["storageTempMax"] = storage_temperature_max._toDict()
+        if expiry_date is not None:
+            self.data["expiryDate"] = expiry_date.isoformat()
+        if subsample_count is not None:
+            self.data["newSampleSubSamplesCount"] = subsample_count
+        if total_quantity is not None:
+            self.data["quantity"] = total_quantity._toDict()
+        if sample_template_id is not None:
+            self.data["templateId"] = sample_template_id
+        if fields is not None:
+            self.data["fields"] = fields
+        ## fail early
+        if attachments is not None:
+            if not isinstance(attachments, list):
+                raise ValueError("attachments must be a list of open files")
 
 
 class InventoryClient(ClientBase):
@@ -700,38 +748,43 @@ class InventoryClient(ClientBase):
         """
 
         return f"{self.rspace_url}/api/inventory/{self.API_VERSION}"
+    MAX_BULK=100
+    ## Helper method for generic bulk post
+    def _do_bulk(self, post_json):
+        resp_json = self.retrieve_api_results(
+            "/bulk", request_type="POST", params=post_json
+        )
+        return  BulkOperationResult(resp_json)
     
-    def _set_sample_properties(self, data, storage_temperature_min,storage_temperature_max,
-                  expiry_date,subsample_count,total_quantity,  sample_template_id,fields,
-                  attachments):
-        ## converts arguments into JSON POST syntax
-        if storage_temperature_min is not None:
-            data["storageTempMin"] = storage_temperature_min._toDict()
-        if storage_temperature_max is not None:
-            data["storageTempMax"] = storage_temperature_max._toDict()
-        if expiry_date is not None:
-            data["expiryDate"] = expiry_date.isoformat()
-        if subsample_count is not None:
-            data["newSampleSubSamplesCount"] = subsample_count
-        if total_quantity is not None:
-            data["quantity"] = total_quantity._toDict()
-        if sample_template_id is not None:
-            data["templateId"] = sample_template_id
-        if fields is not None:
-            data["fields"] = fields
-        ## fail early
-        if attachments is not None:
-            if not isinstance(attachments, list):
-                raise ValueError("attachments must be a list of open files")
+    def bulk_create_sample(self, *sample_posts):
+      
+        """
+        Create up to MAX_BULK samples at once.
+        Parameters
+        ----------
+        *sample_posts : S>=1 SamplePost
+            Up to MAX_BULK SamplePost objects.
+
+        Returns
+        -------
+        BulkOperationResult
+        """
+        if len(sample_posts) > InventoryClient.MAX_BULK:
+            raise ValueError(f"Max permitted samples is {InventoryClient.MAX_BULK} but was {len(sample_posts)}")
+        toPost = [s.data for s in sample_posts]
+        bulk_post = {"operationType": "CREATE", "records": toPost}
+        return self._do_bulk(bulk_post)
+        
+        
 
     def create_sample(
         self,
         name: str,
         tags: Optional[str] = None,
         description: Optional[str] = None,
+        extra_fields: Optional[Sequence] = [],
         sample_template_id=None,
         fields=None,
-        extra_fields: Optional[Sequence] = [],
         storage_temperature_min: StorageTemperature = None,
         storage_temperature_max: StorageTemperature = None,
         expiry_date: datetime.datetime = None,
@@ -747,12 +800,12 @@ class InventoryClient(ClientBase):
         Note that including files to attach to Attachment fields is not supported
         by this method.
         """
-        data = self._set_core_properties(name, tags, description, extra_fields)
-        self._set_sample_properties(data, storage_temperature_min,storage_temperature_max,
-                      expiry_date,subsample_count,total_quantity,  sample_template_id,fields,
+        toPost = SamplePost(name, tags, description, extra_fields,sample_template_id,fields,storage_temperature_min,storage_temperature_max,
+                      expiry_date,subsample_count,total_quantity,  
                       attachments)
+    
 
-        sample = self.retrieve_api_results("/samples", request_type="POST", params=data)
+        sample = self.retrieve_api_results("/samples", request_type="POST", params=toPost.data)
         if attachments is not None:
             self.serr(f"adding {len(attachments)} attachments")
             for file in attachments:
@@ -1072,22 +1125,7 @@ class InventoryClient(ClientBase):
             params["resultType"] = result_type.name
         return self.retrieve_api_results("/search", params=params)
 
-    def _set_core_properties(
-        self,
-        name: str,
-        tags: Optional[str] = None,
-        description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
-    ):
-        data = {}
-        data["name"] = name
-        if tags is not None:
-            data["tags"] = tags
-        if description is not None:
-            data["description"] = description
-        if extra_fields is not None:
-            data["extraFields"] = [ef.data for ef in extra_fields]
-        return data
+    
 
     def add_note_to_subsample(
         self, subsample: Union[str, int, dict], note: str
@@ -1138,8 +1176,8 @@ class InventoryClient(ClientBase):
         can_store_subsamples: bool = True,
         location: Union[str, int] = "t",
     ) -> dict:
-
-        data = self._set_core_properties(name, tags, description, extra_fields)
+        
+        data = ItemCreate(name, tags, description, extra_fields).data
         data["cType"] = "LIST"
         data["canStoreContainers"] = can_store_containers
         data["canStoreSubsamples"] = can_store_subsamples
@@ -1198,7 +1236,7 @@ class InventoryClient(ClientBase):
 
         """
 
-        data = self._set_core_properties(name, tags, description, extra_fields)
+        data = ItemCreate(name, tags, description, extra_fields).data
         data["cType"] = "GRID"
         data["canStoreContainers"] = can_store_containers
         data["canStoreSubsamples"] = can_store_subsamples
@@ -1298,7 +1336,7 @@ class InventoryClient(ClientBase):
         ## assert there are no invalid global ids (things that are not subsamples)
 
         bulk_post = self._create_bulk_move(id_target, grid_placement)
-        print(bulk_post)
+       
         ## get target - are there enough spaces?
         ## iterate over grid (0 or 1 based?)
         ## use bulk API?

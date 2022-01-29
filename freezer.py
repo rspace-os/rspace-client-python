@@ -6,7 +6,7 @@ Created on Fri Jan 28 20:04:29 2022
 @author: richardadams
 """
 
-from  rspace_client.inv.inv import GridContainer, InventoryClient, ByRow,ByColumn
+from  rspace_client.inv.inv import GridContainer, InventoryClient, ByRow, ByColumn, SamplePost
 
 
 #%%
@@ -44,6 +44,7 @@ for j in range (shelves_per_freezer):
     cli.add_items_to_grid_container(shelves[j], br)
     
     
+    
 #%%
 ### Trays
 trays = []
@@ -77,3 +78,10 @@ for j in range (trays_total):
     br = ByRow(1, 1, 1, k, *boxslice)
    ## print (f" moving {boxslice} into {trays[j]}")
     cli.add_items_to_grid_container(trays[j], br)
+    
+#%%
+posts = [SamplePost(f"s{i}", subsample_count=8) for i in range(12)]
+resp = cli.bulk_create_sample(*posts)
+print(resp)
+         
+    
