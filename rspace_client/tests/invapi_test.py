@@ -544,7 +544,6 @@ class InventoryApiTest(base.BaseApiTest):
             .build()
         )
         st = self.invapi.create_sample_template(st_json)
-        print(st['fields'])
 
         ## create a template specific object to validate and store field information
         ForSampleCreation = sample_builder2.FieldBuilderGenerator().generate_class(st)
