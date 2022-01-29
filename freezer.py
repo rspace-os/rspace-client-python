@@ -12,10 +12,10 @@ from  rspace_client.inv.inv import GridContainer, InventoryClient, ByRow,ByColum
 #%%
 cli = InventoryClient("https://pangolin8086.researchspace.com", "abcdefghijklmnop9")
 shelves_per_freezer = 2
-racks_per_shelf = 4
-trays_per_rack=1
-boxes_per_tray=3
-root = cli.create_grid_container("-80f", shelves_per_freezer, 1)
+racks_per_shelf = 2
+trays_per_rack=2
+boxes_per_tray=2
+root = cli.create_grid_container("-80g", shelves_per_freezer, 1)
  
 #%%
 ## shelves
@@ -40,7 +40,6 @@ for i in range(racks_total):
 for j in range (shelves_per_freezer):
     k = racks_per_shelf
     rack_slice = racks[j*k:(j*k)+k]
-    print(rack_slice)
     br = ByColumn(1, 1, racks_per_shelf, 1, *rack_slice)
     cli.add_items_to_grid_container(shelves[j], br)
     
@@ -57,9 +56,9 @@ for i in range (trays_total):
 for j in range (racks_total):
     k =trays_per_rack
     tray_slice = trays[j*k: (j*k)+k]
-    print(tray_slice)
+   # print(tray_slice)
     br = ByRow(1, 1, k, 1, *tray_slice)
-    print (f" moving {tray_slice} into {racks[j]}")
+   # print (f" moving {tray_slice} into {racks[j]}")
     cli.add_items_to_grid_container(racks[j], br)
     
 #%%
@@ -74,7 +73,7 @@ for i in range (boxes_total):
 for j in range (trays_total):
     k=boxes_per_tray
     boxslice = boxes[j*k: (j*k)+k]
-    print(boxslice)
+   # print(boxslice)
     br = ByRow(1, 1, 1, k, *boxslice)
-    print (f" moving {boxslice} into {trays[j]}")
+   ## print (f" moving {boxslice} into {trays[j]}")
     cli.add_items_to_grid_container(trays[j], br)
