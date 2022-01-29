@@ -756,14 +756,13 @@ class InventoryClient(ClientBase):
         )
         return  BulkOperationResult(resp_json)
     
-    def bulk_create_sample(self, *sample_posts):
-      
+    def bulk_create_sample(self, *sample_posts):    
         """
         Create up to MAX_BULK samples at once.
         Parameters
         ----------
-        *sample_posts : S>=1 SamplePost
-            Up to MAX_BULK SamplePost objects.
+        *sample_posts : An unpacked iterable of >=1 SamplePost objects
+            Up to MAX_BULK SamplePost objects can be sent at once.
 
         Returns
         -------
