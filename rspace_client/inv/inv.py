@@ -1172,14 +1172,14 @@ class InventoryClient(ClientBase):
         description: Optional[str] = None,
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
-        can_store_subsamples: bool = True,
+        can_store_samples: bool = True,
         location: Union[str, int] = "t",
     ) -> dict:
         
         data = ItemCreate(name, tags, description, extra_fields).data
         data["cType"] = "LIST"
         data["canStoreContainers"] = can_store_containers
-        data["canStoreSubsamples"] = can_store_subsamples
+        data["canStoreSamples"] = can_store_samples
         self._configure_parent_container_post(location, data)
 
         container = self.retrieve_api_results(
@@ -1200,7 +1200,7 @@ class InventoryClient(ClientBase):
         description: Optional[str] = None,
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
-        can_store_subsamples: bool = True,
+        can_store_samples: bool = True,
         location: Union[int, str] = "t",
     ) -> dict:
         """
@@ -1238,9 +1238,8 @@ class InventoryClient(ClientBase):
         data = ItemCreate(name, tags, description, extra_fields).data
         data["cType"] = "GRID"
         data["canStoreContainers"] = can_store_containers
-        data["canStoreSubsamples"] = can_store_subsamples
+        data["canStoreSamples"] = can_store_samples
         data["gridLayout"] = {"columnsNumber": column_count, "rowsNumber": row_count}
-
         self._configure_parent_container_post(location, data)
 
         container = self.retrieve_api_results(
