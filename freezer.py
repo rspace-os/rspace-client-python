@@ -100,19 +100,18 @@ print(freezer)
 
 #%%
 
-for box in freezer['boxes']:
-    print(f"Filling box {box} with samples", file =sys.stderr)
+for box in freezer["boxes"]:
+    print(f"Filling box {box} with samples", file=sys.stderr)
     posts = [SamplePost(f"s{i}", subsample_count=4) for i in range(12)]
     resp = cli.bulk_create_sample(*posts)
     col = 1
     st = time.perf_counter()
-    for result in resp.data['results']:
-        sample = result['record']
-        print (f"moving sample {sample['globalId']} to {box}", file = sys.stderr)
-        ss_ids = s_ids = [ss['globalId'] for ss in sample['subSamples']]
+    for result in resp.data["results"]:
+        sample = result["record"]
+        print(f"moving sample {sample['globalId']} to {box}", file=sys.stderr)
+        ss_ids = s_ids = [ss["globalId"] for ss in sample["subSamples"]]
         gp = ByColumn(col, 1, 12, 8, *ss_ids)
-        cli.add_items_to_grid_container('IC426568', gp)
-        col = col +1
+        cli.add_items_to_grid_container("IC426568", gp)
+        col = col + 1
     stop = time.perf_counter()
-    print(f"Filling {box} took {(stop - st):.4f} ms", file = sys.stderr)
-
+    print(f"Filling {box} took {(stop - st):.4f} ms", file=sys.stderr)
