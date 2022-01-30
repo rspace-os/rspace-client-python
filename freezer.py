@@ -7,7 +7,7 @@ Created on Fri Jan 28 20:04:29 2022
 """
 
 #%%
-import sys, time, os
+import sys, time
 from rspace_client.inv.inv import (
     GridContainer,
     InventoryClient,
@@ -79,9 +79,7 @@ class FreezerCreator:
         for j in range(len(parents)):
             k = items_per_parent
             rack_slice = items[j * k : (j * k) + k]
-            print(f"slice is {rack_slice}")
             br = ByRow(1, 1, 1, k, *rack_slice)
-            print(f"adding {rack_slice} to parent {parents[j]}")
             self.cli.add_items_to_grid_container(parents[j], br)
 
 
@@ -95,7 +93,6 @@ freezerFactory = FreezerCreator(
     cli, shelves_per_freezer, racks_per_shelf, trays_per_rack, boxes_per_tray
 )
 freezer = freezerFactory.create_freezer("-80bb")
-print(freezer)
 
 
 #%%
