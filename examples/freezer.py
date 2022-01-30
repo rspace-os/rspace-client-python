@@ -8,6 +8,8 @@ Created on Fri Jan 28 20:04:29 2022
 
 #%%
 import sys, time
+import rspace_client
+cli = rspace_client.utils.createInventoryClient()
 from rspace_client.inv.inv import (
     GridContainer,
     InventoryClient,
@@ -15,7 +17,7 @@ from rspace_client.inv.inv import (
     ByColumn,
     SamplePost,
 )
-
+#%%
 
 class FreezerCreator:
     def __init__(
@@ -33,9 +35,11 @@ class FreezerCreator:
         self.cli = cli
 
     def create_freezer(self, name: str):
+        print("Creating freezer", file=sys.stderr)
         root = self.create_tier(1, name, self.shelves_per_freezer, 1)[0]
 
         ## shelves
+        print("Creating shelves", file=sys.stderr)
         shelves = self.create_tier(
             self.shelves_per_freezer, "shelf", self.racks_per_shelf, 1
         )
@@ -43,6 +47,7 @@ class FreezerCreator:
 
         ###  racks
         racks_total = racks_per_shelf * shelves_per_freezer
+        print(f"Creating  {racks_total} racks", file=sys.stderr)
         racks = self.create_tier(racks_total, "rack", self.trays_per_rack, 1)
         self.add_to_parent_tier(
             shelves, self.shelves_per_freezer, self.racks_per_shelf, racks
@@ -50,11 +55,13 @@ class FreezerCreator:
 
         ### Trays
         trays_total = racks_total * trays_per_rack
+        print(f"Creating  {trays_total} trays", file=sys.stderr)
         trays = self.create_tier(trays_total, "tray", self.boxes_per_tray, 1)
         self.add_to_parent_tier(racks, self.racks_per_shelf, self.trays_per_rack, trays)
 
         ### Boxes
         boxes_total = trays_total * boxes_per_tray
+        print(f"Creating  {boxes_total} boxes", file=sys.stderr)
         boxes = self.create_tier(boxes_total, "box", 8, 12, store_samples=True)
         self.add_to_parent_tier(trays, self.trays_per_rack, self.boxes_per_tray, boxes)
 
@@ -84,31 +91,37 @@ class FreezerCreator:
 
 
 #%%
-cli = InventoryClient("http://localhost:8080", "abcdefghijklmnop4")
-shelves_per_freezer = 1
-racks_per_shelf = 1
-trays_per_rack = 1
-boxes_per_tray = 1
+#cli = InventoryClient("http://pangolin8086.researchspace.com", "abcdefghijklmnop4")
+shelves_per_freezer = 3
+racks_per_shelf = 3
+trays_per_rack = 3
+boxes_per_tray = 3
+print("Creating freezer", file=sys.stderr)
 freezerFactory = FreezerCreator(
     cli, shelves_per_freezer, racks_per_shelf, trays_per_rack, boxes_per_tray
 )
-freezer = freezerFactory.create_freezer("-80bb")
+freezer = freezerFactory.create_freezer("-80- 3x3x3x3")
 
 
 #%%
 
 for box in freezer["boxes"]:
-    print(f"Filling box {box} with samples", file=sys.stderr)
-    posts = [SamplePost(f"s{i}", subsample_count=4) for i in range(12)]
+    st = time.perf_counter()
+    print(f"Creating samples for  {box}", file=sys.stderr)
+    posts = [SamplePost(f"s{i}", subsample_count=8) for i in range(12)]
     resp = cli.bulk_create_sample(*posts)
     col = 1
-    st = time.perf_counter()
+    
+    ## we can move 8 samples at a time
+    ss_ids = []
     for result in resp.data["results"]:
         sample = result["record"]
-        print(f"moving sample {sample['globalId']} to {box}", file=sys.stderr)
-        ss_ids = s_ids = [ss["globalId"] for ss in sample["subSamples"]]
-        gp = ByColumn(col, 1, 12, 8, *ss_ids)
-        cli.add_items_to_grid_container("IC426568", gp)
-        col = col + 1
+        s_ids = [ss["globalId"] for ss in sample["subSamples"]]
+        ss_ids.extend(s_ids)
+    print(f"moving 8 samples to {box}", file=sys.stderr)
+    
+    
+    gp = ByColumn(col, 1, 12, 8, *ss_ids)
+    cli.add_items_to_grid_container(box, gp)
     stop = time.perf_counter()
     print(f"Filling {box} took {(stop - st):.4f} ms", file=sys.stderr)
