@@ -7,6 +7,7 @@ Created on Fri Jan 28 20:04:29 2022
 """
 
 #%%
+import sys, time, os
 from rspace_client.inv.inv import (
     GridContainer,
     InventoryClient,
@@ -54,7 +55,7 @@ class FreezerCreator:
 
         ### Boxes
         boxes_total = trays_total * boxes_per_tray
-        boxes = self.create_tier(boxes_total, "box", 8, 12)
+        boxes = self.create_tier(boxes_total, "box", 8, 12, store_samples=True)
         self.add_to_parent_tier(trays, self.trays_per_rack, self.boxes_per_tray, boxes)
 
         return {
@@ -65,19 +66,16 @@ class FreezerCreator:
             "boxes": boxes,
         }
 
-    def create_tier(self, n, name_prefix, rows, columns):
+    def create_tier(self, n, name_prefix, rows, columns, store_samples=False):
         items = []
         for i in range(n):
             item = self.cli.create_grid_container(
-                f"{name_prefix}-{i}", rows, columns, can_store_samples=False
+                f"{name_prefix}-{i}", rows, columns, can_store_samples=store_samples
             )
             items.append(item["globalId"])
         return items
 
     def add_to_parent_tier(self, parents, parents_per_gp, items_per_parent, items):
-        print(
-            f"adding {items} to {parents} where ppg = {parents_per_gp} and ipp={items_per_parent}"
-        )
         for j in range(len(parents)):
             k = items_per_parent
             rack_slice = items[j * k : (j * k) + k]
@@ -89,18 +87,32 @@ class FreezerCreator:
 
 #%%
 cli = InventoryClient("http://localhost:8080", "abcdefghijklmnop4")
-shelves_per_freezer = 2
-racks_per_shelf = 2
-trays_per_rack = 2
-boxes_per_tray = 2
+shelves_per_freezer = 1
+racks_per_shelf = 1
+trays_per_rack = 1
+boxes_per_tray = 1
 freezerFactory = FreezerCreator(
     cli, shelves_per_freezer, racks_per_shelf, trays_per_rack, boxes_per_tray
 )
-freezer = freezerFactory.create_freezer("-80aa")
+freezer = freezerFactory.create_freezer("-80bb")
 print(freezer)
 
 
 #%%
-posts = [SamplePost(f"s{i}", subsample_count=8) for i in range(12)]
-resp = cli.bulk_create_sample(*posts)
-# print(resp)
+
+for box in freezer['boxes']:
+    print(f"Filling box {box} with samples", file =sys.stderr)
+    posts = [SamplePost(f"s{i}", subsample_count=4) for i in range(12)]
+    resp = cli.bulk_create_sample(*posts)
+    col = 1
+    st = time.perf_counter()
+    for result in resp.data['results']:
+        sample = result['record']
+        print (f"moving sample {sample['globalId']} to {box}", file = sys.stderr)
+        ss_ids = s_ids = [ss['globalId'] for ss in sample['subSamples']]
+        gp = ByColumn(col, 1, 12, 8, *ss_ids)
+        cli.add_items_to_grid_container('IC426568', gp)
+        col = col +1
+    stop = time.perf_counter()
+    print(f"Filling {box} took {(stop - st):.4f} ms", file = sys.stderr)
+
