@@ -91,11 +91,13 @@ class FreezerCreator:
 
 
 #%%
-#cli = InventoryClient("http://pangolin8086.researchspace.com", "abcdefghijklmnop4")
+### Configure the size of the freezer here ( or ask for input)
 shelves_per_freezer = 3
 racks_per_shelf = 3
 trays_per_rack = 3
 boxes_per_tray = 3
+box_cols=12
+box_rows=8
 print("Creating freezer", file=sys.stderr)
 freezerFactory = FreezerCreator(
     cli, shelves_per_freezer, racks_per_shelf, trays_per_rack, boxes_per_tray
@@ -104,13 +106,17 @@ freezer = freezerFactory.create_freezer("-80- 3x3x3x3")
 
 
 #%%
-
+samples_created = 0
+total_samples_to_create = len(freezer['boxes']) * box_cols
+print(f"Creating {total_samples_to_create} samples...", file=sys.stderr)
 for box in freezer["boxes"]:
     st = time.perf_counter()
     print(f"Creating samples for  {box}", file=sys.stderr)
-    posts = [SamplePost(f"s{i}", subsample_count=8) for i in range(12)]
+    posts = [SamplePost(f"s{i}", subsample_count=box_rows) for i in range(box_cols)]
     resp = cli.bulk_create_sample(*posts)
     col = 1
+    samples_created = samples_created + box_cols
+    print(f" created {samples_created} samples / {total_samples_to_create}", file=sys.stderr)
     
     ## we can move 8 samples at a time
     ss_ids = []
@@ -118,10 +124,10 @@ for box in freezer["boxes"]:
         sample = result["record"]
         s_ids = [ss["globalId"] for ss in sample["subSamples"]]
         ss_ids.extend(s_ids)
-    print(f"moving 8 samples to {box}", file=sys.stderr)
+    print(f"moving f{box_rows} samples to {box}", file=sys.stderr)
     
     
-    gp = ByColumn(col, 1, 12, 8, *ss_ids)
+    gp = ByColumn(col, 1, box_cols, box_rows, *ss_ids)
     cli.add_items_to_grid_container(box, gp)
     stop = time.perf_counter()
-    print(f"Filling {box} took {(stop - st):.4f} ms", file=sys.stderr)
+    print(f"Filling {box} took {(stop - st):.2f} s", file=sys.stderr)
