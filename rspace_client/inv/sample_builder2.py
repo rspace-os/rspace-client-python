@@ -111,17 +111,17 @@ class FieldBuilderGenerator:
         ## the api varies between 1.73 and 1.74
         elif t == "radio":
             options = []
-            if 'options' in f_def:
-                options = f_def['options']
-            elif 'definition' in f_def:
-                options = f_def['definition']["options"]
+            if "options" in f_def:
+                options = f_def["options"]
+            elif "definition" in f_def:
+                options = f_def["definition"]["options"]
             return v.OneOf(options)
         elif t == "choice":
             options = []
-            if 'options' in f_def:
-                options = f_def['options']
-            elif 'definition' in f_def:
-                options = f_def['definition']["options"]
+            if "options" in f_def:
+                options = f_def["options"]
+            elif "definition" in f_def:
+                options = f_def["definition"]["options"]
             return v.AllOf(options)
         elif t == "date":
             return v.Date()

@@ -24,9 +24,7 @@ class TreeImporter:
 
     def _create_file_linking_doc(self, content, parent_folder_id, name, path2Id):
         rs_doc = self.cli.create_document(
-            name,
-            parent_folder_id=parent_folder_id,
-            fields=[{"content": content}],
+            name, parent_folder_id=parent_folder_id, fields=[{"content": content}],
         )
         path2Id[name] = rs_doc["globalId"]
 
