@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file
 
 ## Unreleased
 
+### Added
+- Example script 'freezer.py' to set up a -80 freezer for testing
+- 'bulk_create_sample' method to create many samples at once.
+ 
+### Fixed
+- 'canStoreSamples' flag now set correctly when creating a  grid container
+
 ## 2.2.1 2022-01-28
 
 ### Fixed
