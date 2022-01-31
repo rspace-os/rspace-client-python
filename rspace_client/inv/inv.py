@@ -711,28 +711,6 @@ class SamplePost(ItemCreate):
         attachments=None,
     ):
         super().__init__(name, tags, description, extra_fields)
-        self._set_sample_properties(
-            sample_template_id,
-            fields,
-            storage_temperature_min,
-            storage_temperature_max,
-            expiry_date,
-            subsample_count,
-            total_quantity,
-            attachments,
-        )
-
-    def _set_sample_properties(
-        self,
-        sample_template_id,
-        fields,
-        storage_temperature_min,
-        storage_temperature_max,
-        expiry_date,
-        subsample_count,
-        total_quantity,
-        attachments,
-    ):
         ## converts arguments into JSON POST syntax
         self.data["type"] = "SAMPLE"
         if storage_temperature_min is not None:
@@ -1233,35 +1211,30 @@ class InventoryClient(ClientBase):
         location: Union[int, str] = "t",
     ) -> dict:
         """
-    
         Parameters
         ----------
         name : str
-            DESCRIPTION.
+            The container name.
         row_count : int
-            DESCRIPTION.
+            Then number of rows (max 24).
         column_count : int
-            DESCRIPTION.
+            The number of columns (max 24)
         tags : Optional[str], optional
-            DESCRIPTION. The default is None.
+            Comma-separated
         description : Optional[str], optional
-            DESCRIPTION. The default is None.
+            A description for this contaier. The default is None.
         extra_fields : Optional[Sequence], optional
-            DESCRIPTION. The default is [].
+            One or more ExtraFields. The default is [].
         can_store_containers : bool, optional
-            DESCRIPTION. The default is True.
-        can_store_subsamples : bool, optional
-            DESCRIPTION. The default is True.
+            Whether this container can store containers inside it. The default is True.
+        can_store_samples : bool, optional
+            Whether this container can store subsamples inside it. The default is True.
         location : Union[int, str], optional
-            DESCRIPTION. The default is "t".
-         : TYPE
-            DESCRIPTION.
-
+            Either a container ID, or 't' for top-level or 'w' for workbench. The default is "t".
         Returns
         -------
         dict
-            DESCRIPTION.
-
+            The created container.
         """
 
         data = ItemCreate(name, tags, description, extra_fields).data

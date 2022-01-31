@@ -9,6 +9,7 @@ Created on Fri Jan 28 20:04:29 2022
 #%%
 import sys, time
 import rspace_client
+
 cli = rspace_client.utils.createInventoryClient()
 from rspace_client.inv.inv import (
     GridContainer,
@@ -17,7 +18,9 @@ from rspace_client.inv.inv import (
     ByColumn,
     SamplePost,
 )
+
 #%%
+
 
 class FreezerCreator:
     def __init__(
@@ -117,7 +120,7 @@ freezer = freezerFactory.create_freezer(freezer_name)
 
 #%%
 samples_created = 0
-total_samples_to_create = len(freezer['boxes']) * box_cols
+total_samples_to_create = len(freezer["boxes"]) * box_cols
 print(f"Creating {total_samples_to_create} samples...", file=sys.stderr)
 for box in freezer["boxes"]:
     st = time.perf_counter()
@@ -126,17 +129,18 @@ for box in freezer["boxes"]:
     resp = cli.bulk_create_sample(*posts)
     col = 1
     samples_created = samples_created + box_cols
-    print(f" created {samples_created} samples / {total_samples_to_create}", file=sys.stderr)
-    
+    print(
+        f" created {samples_created} samples / {total_samples_to_create}",
+        file=sys.stderr,
+    )
+
     ## we can move 8 samples at a time
     ss_ids = []
     for result in resp.data["results"]:
         sample = result["record"]
         s_ids = [ss["globalId"] for ss in sample["subSamples"]]
         ss_ids.extend(s_ids)
-    print(f"moving {box_rows} samples to {box}", file=sys.stderr)
-    
-    
+    print(f"moving {samples_created} samples to {box}", file=sys.stderr)
     gp = ByColumn(col, 1, box_cols, box_rows, *ss_ids)
     cli.add_items_to_grid_container(box, gp)
     stop = time.perf_counter()
