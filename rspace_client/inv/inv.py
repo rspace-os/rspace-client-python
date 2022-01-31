@@ -1233,35 +1233,30 @@ class InventoryClient(ClientBase):
         location: Union[int, str] = "t",
     ) -> dict:
         """
-    
         Parameters
         ----------
         name : str
-            DESCRIPTION.
+            The container name.
         row_count : int
-            DESCRIPTION.
+            Then number of rows (max 24).
         column_count : int
-            DESCRIPTION.
+            The number of columns (max 24)
         tags : Optional[str], optional
-            DESCRIPTION. The default is None.
+            Comma-separated
         description : Optional[str], optional
-            DESCRIPTION. The default is None.
+            A description for this contaier. The default is None.
         extra_fields : Optional[Sequence], optional
-            DESCRIPTION. The default is [].
+            One or more ExtraFields. The default is [].
         can_store_containers : bool, optional
-            DESCRIPTION. The default is True.
-        can_store_subsamples : bool, optional
-            DESCRIPTION. The default is True.
+            Whether this container can store containers inside it. The default is True.
+        can_store_samples : bool, optional
+            Whether this container can store subsamples inside it. The default is True.
         location : Union[int, str], optional
-            DESCRIPTION. The default is "t".
-         : TYPE
-            DESCRIPTION.
-
+            Either a container ID, or 't' for top-level or 'w' for workbench. The default is "t".
         Returns
         -------
         dict
-            DESCRIPTION.
-
+            The created container.
         """
 
         data = ItemCreate(name, tags, description, extra_fields).data
