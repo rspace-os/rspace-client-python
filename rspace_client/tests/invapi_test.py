@@ -13,8 +13,7 @@ import pytest
 
 import rspace_client.tests.base_test as base
 from rspace_client.inv import inv, template_builder, sample_builder2
-from  rspace_client.inv import quantity_unit as qu
-
+from rspace_client.inv import quantity_unit as qu
 
 
 class InventoryApiTest(base.BaseApiTest):
@@ -58,13 +57,13 @@ class InventoryApiTest(base.BaseApiTest):
     def test_create_sample_name_only(self):
         sample = self.invapi.create_sample(base.random_string(5))
         self.assertIsNotNone(sample)
-        
+
     def test_create_bulk_sample(self):
-        s1 = inv.SamplePost('a')
-        s2 = inv.SamplePost('b')
+        s1 = inv.SamplePost("a")
+        s2 = inv.SamplePost("b")
         result = self.invapi.bulk_create_sample(s1, s2)
         self.assertTrue(result.is_ok())
-        self.assertEquals(2, len(result.data['results']))
+        self.assertEquals(2, len(result.data["results"]))
 
     def test_get_single_sample(self):
         sample = self.invapi.create_sample(base.random_string(5))

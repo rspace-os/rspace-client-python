@@ -711,28 +711,6 @@ class SamplePost(ItemCreate):
         attachments=None,
     ):
         super().__init__(name, tags, description, extra_fields)
-        self._set_sample_properties(
-            sample_template_id,
-            fields,
-            storage_temperature_min,
-            storage_temperature_max,
-            expiry_date,
-            subsample_count,
-            total_quantity,
-            attachments,
-        )
-
-    def _set_sample_properties(
-        self,
-        sample_template_id,
-        fields,
-        storage_temperature_min,
-        storage_temperature_max,
-        expiry_date,
-        subsample_count,
-        total_quantity,
-        attachments,
-    ):
         ## converts arguments into JSON POST syntax
         self.data["type"] = "SAMPLE"
         if storage_temperature_min is not None:
