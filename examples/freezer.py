@@ -39,7 +39,7 @@ class FreezerCreator:
         root = self.create_tier(1, name, self.shelves_per_freezer, 1)[0]
 
         ## shelves
-        print("Creating shelves", file=sys.stderr)
+        print(f"Creating {shelves_per_freezer} shelves", file=sys.stderr)
         shelves = self.create_tier(
             self.shelves_per_freezer, "shelf", self.racks_per_shelf, 1
         )
@@ -92,17 +92,27 @@ class FreezerCreator:
 
 #%%
 ### Configure the size of the freezer here ( or ask for input)
-shelves_per_freezer = 3
-racks_per_shelf = 3
-trays_per_rack = 3
-boxes_per_tray = 3
+print ("Please enter the number of shelves, racks, trays and boxes to create. Boxes are 12 x 8")
+shelves_per_freezer = int(input("Number of shelves? (1-5)"))
+racks_per_shelf = int(input("Number of racks per shelf? (1-5)"))
+trays_per_rack = int(input("Number of trays per rack? (1-5)"))
+boxes_per_tray = int(input("Number of boxes per tray? (1-4)"))
+
+params = (shelves_per_freezer, racks_per_shelf, trays_per_rack, boxes_per_tray)
+for i in params :
+    if i < 1 or i > 5:
+        raise ValueError(f"Input arguments {params}out of range")
 box_cols=12
 box_rows=8
+freezer_name = f"-80:{shelves_per_freezer}x{racks_per_shelf}x{trays_per_rack}x{boxes_per_tray}"
+user_freezer_name = input(f"Freezer name? ( default = {freezer_name})")
+if len(user_freezer_name) > 0:
+    freezer_name = user_freezer_name
 print("Creating freezer", file=sys.stderr)
 freezerFactory = FreezerCreator(
     cli, shelves_per_freezer, racks_per_shelf, trays_per_rack, boxes_per_tray
 )
-freezer = freezerFactory.create_freezer("-80- 3x3x3x3")
+freezer = freezerFactory.create_freezer(freezer_name)
 
 
 #%%
@@ -124,10 +134,10 @@ for box in freezer["boxes"]:
         sample = result["record"]
         s_ids = [ss["globalId"] for ss in sample["subSamples"]]
         ss_ids.extend(s_ids)
-    print(f"moving f{box_rows} samples to {box}", file=sys.stderr)
+    print(f"moving {box_rows} samples to {box}", file=sys.stderr)
     
     
     gp = ByColumn(col, 1, box_cols, box_rows, *ss_ids)
     cli.add_items_to_grid_container(box, gp)
     stop = time.perf_counter()
-    print(f"Filling {box} took {(stop - st):.2f} s", file=sys.stderr)
+    print(f"Filling {box} took {(stop - st):.2f}s", file=sys.stderr)
