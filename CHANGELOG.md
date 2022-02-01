@@ -4,7 +4,10 @@ All notable changes to this project will be documented in this file
 
 ## Unreleased
 
+## 2.2.2 2022-02-01
+
 ### Added
+
 - Example script 'freezer.py' to set up a -80 freezer for testing
 - 'bulk_create_sample' method to create many samples at once.
  

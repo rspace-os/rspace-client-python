@@ -95,19 +95,23 @@ class FreezerCreator:
 
 #%%
 ### Configure the size of the freezer here ( or ask for input)
-print ("Please enter the number of shelves, racks, trays and boxes to create. Boxes are 12 x 8")
+print(
+    "Please enter the number of shelves, racks, trays and boxes to create. Boxes are 12 x 8"
+)
 shelves_per_freezer = int(input("Number of shelves? (1-5)"))
 racks_per_shelf = int(input("Number of racks per shelf? (1-5)"))
 trays_per_rack = int(input("Number of trays per rack? (1-5)"))
 boxes_per_tray = int(input("Number of boxes per tray? (1-4)"))
 
 params = (shelves_per_freezer, racks_per_shelf, trays_per_rack, boxes_per_tray)
-for i in params :
+for i in params:
     if i < 1 or i > 5:
         raise ValueError(f"Input arguments {params}out of range")
-box_cols=12
-box_rows=8
-freezer_name = f"-80:{shelves_per_freezer}x{racks_per_shelf}x{trays_per_rack}x{boxes_per_tray}"
+box_cols = 12
+box_rows = 8
+freezer_name = (
+    f"-80:{shelves_per_freezer}x{racks_per_shelf}x{trays_per_rack}x{boxes_per_tray}"
+)
 user_freezer_name = input(f"Freezer name? ( default = {freezer_name})")
 if len(user_freezer_name) > 0:
     freezer_name = user_freezer_name
