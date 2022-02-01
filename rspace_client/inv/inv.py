@@ -1185,6 +1185,8 @@ class InventoryClient(ClientBase):
 
         data = ItemCreate(name, tags, description, extra_fields).data
         data["cType"] = "LIST"
+        if not can_store_containers and not can_store_samples:
+            raise ValueError("At least one of 'canStoreContainers' and 'canStoreSamples' must be True" )
         data["canStoreContainers"] = can_store_containers
         data["canStoreSamples"] = can_store_samples
         self._configure_parent_container_post(location, data)
@@ -1239,6 +1241,8 @@ class InventoryClient(ClientBase):
 
         data = ItemCreate(name, tags, description, extra_fields).data
         data["cType"] = "GRID"
+        if not can_store_containers and not can_store_samples:
+            raise ValueError("At least one of 'canStoreContainers' and 'canStoreSamples' must be True" )
         data["canStoreContainers"] = can_store_containers
         data["canStoreSamples"] = can_store_samples
         data["gridLayout"] = {"columnsNumber": column_count, "rowsNumber": row_count}

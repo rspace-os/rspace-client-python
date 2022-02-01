@@ -63,7 +63,7 @@ class InventoryApiTest(base.BaseApiTest):
         s2 = inv.SamplePost("b")
         result = self.invapi.bulk_create_sample(s1, s2)
         self.assertTrue(result.is_ok())
-        self.assertEquals(2, len(result.data["results"]))
+        self.assertEqual(2, len(result.data["results"]))
 
     def test_get_single_sample(self):
         sample = self.invapi.create_sample(base.random_string(5))
@@ -249,12 +249,19 @@ class InventoryApiTest(base.BaseApiTest):
         workbench_ob = inv.Container.of(workbenches[0])
         self.assertTrue(workbench_ob.is_workbench())
 
+    def test_container_must_store_samples_or_containers(self):
+       self.assertRaises(ValueError, self.invapi.create_list_container, "n","","",[], False, False, "t")
+       
+    def test_grid_container_must_store_samples_or_containers(self):
+       self.assertRaises(ValueError, self.invapi.create_grid_container, "n",1,2,"","",[], False, False, "t")
+       
     def test_create_list_container(self):
         name = base.random_string()
-        ct = self.invapi.create_list_container(name, tags="ab,cd,ef")
+        ct = self.invapi.create_list_container(name, tags="ab,cd,ef", can_store_samples=False)
         ## default is top-level
         self.assertTrue(ct["cType"] == "LIST")
         self.assertEqual(0, len(ct["parentContainers"]))
+        self.assertFalse(ct['canStoreSamples'])
 
         ## create in workbench
         ct_in_wb = self.invapi.create_list_container(
