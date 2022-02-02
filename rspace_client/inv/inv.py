@@ -732,10 +732,9 @@ class SamplePost(ItemPost):
             if not isinstance(attachments, list):
                 raise ValueError("attachments must be a list of open files")
 
-    
 
 class ContainerPost(ItemPost):
-     def __init__(
+    def __init__(
         self,
         name: str,
         tags: Optional[str] = None,
@@ -744,17 +743,17 @@ class ContainerPost(ItemPost):
         can_store_containers: bool = True,
         can_store_samples: bool = True,
         location: Union[str, int] = "t",
-        ):
-         super().__init__(name, tags, description, extra_fields)
-         if not can_store_containers and not can_store_samples:
+    ):
+        super().__init__(name, tags, description, extra_fields)
+        if not can_store_containers and not can_store_samples:
             raise ValueError(
                 "At least one of 'canStoreContainers' and 'canStoreSamples' must be True"
             )
-         self.data["canStoreContainers"] = can_store_containers
-         self.data["canStoreSamples"] = can_store_samples
-         self._configure_parent_container_post(location)
-         
-     def _configure_parent_container_post(self, location):
+        self.data["canStoreContainers"] = can_store_containers
+        self.data["canStoreSamples"] = can_store_samples
+        self._configure_parent_container_post(location)
+
+    def _configure_parent_container_post(self, location):
         is_wb = False
         if location == "t":
             self.data["removeFromParentContainerRequest"] = True
@@ -767,11 +766,10 @@ class ContainerPost(ItemPost):
             self.data["parentContainers"] = [{"id": parent_id.as_id()}]
         else:
             raise TypeError("location must be 'w', 't' or a container id or global Id")
-         
-         
-         
+
+
 class ListContainerPost(ContainerPost):
-     def __init__(
+    def __init__(
         self,
         name: str,
         tags: Optional[str] = None,
@@ -780,11 +778,19 @@ class ListContainerPost(ContainerPost):
         can_store_containers: bool = True,
         can_store_samples: bool = True,
         location: Union[str, int] = "t",
-        ):
-         super().__init__(name, tags, description,
-                          extra_fields, can_store_containers, can_store_samples, location)
-         self.data["cType"] = "LIST"
-    
+    ):
+        super().__init__(
+            name,
+            tags,
+            description,
+            extra_fields,
+            can_store_containers,
+            can_store_samples,
+            location,
+        )
+        self.data["cType"] = "LIST"
+
+
 class InventoryClient(ClientBase):
     """
     Wrapper around RSpace Inventory API.
@@ -946,7 +952,9 @@ class InventoryClient(ClientBase):
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
         return self.retrieve_api_results(
-            f"/{endpoint}", request_type="GET", params=pagination.data,
+            f"/{endpoint}",
+            request_type="GET",
+            params=pagination.data,
         )
 
     def stream_samples(
@@ -1154,7 +1162,8 @@ class InventoryClient(ClientBase):
         id_to_copy = Id(item_to_duplicate)
         endpoint = id_to_copy.get_api_endpoint()
         rc = self.retrieve_api_results(
-            f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate", request_type="POST",
+            f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate",
+            request_type="POST",
         )
         if new_name is not None:
             rc = self.rename(rc, new_name)
@@ -1195,7 +1204,9 @@ class InventoryClient(ClientBase):
             raise ValueError("Supplied id is not a subsamples")
         data = {"content": note}
         return self.retrieve_api_results(
-            f"/subSamples/{ss_id.as_id()}/notes", request_type="POST", params=data,
+            f"/subSamples/{ss_id.as_id()}/notes",
+            request_type="POST",
+            params=data,
         )
 
     def get_workbenches(self) -> Sequence[dict]:
@@ -1210,7 +1221,6 @@ class InventoryClient(ClientBase):
         result = self.retrieve_api_results("/workbenches")
         return [wb for wb in result["containers"]]
 
-       
     def create_list_container(
         self,
         name: str,
@@ -1221,9 +1231,16 @@ class InventoryClient(ClientBase):
         can_store_samples: bool = True,
         location: Union[str, int] = "t",
     ) -> dict:
-        data = ListContainerPost(name, tags, description,
-                                 extra_fields, can_store_containers, can_store_samples, location).data
-  
+        data = ListContainerPost(
+            name,
+            tags,
+            description,
+            extra_fields,
+            can_store_containers,
+            can_store_samples,
+            location,
+        ).data
+
         container = self.retrieve_api_results(
             "/containers", request_type="POST", params=data
         )
@@ -1297,7 +1314,9 @@ class InventoryClient(ClientBase):
         )
 
     def add_items_to_list_container(
-        self, target_container_id: Union[str, int], *item_ids: str,
+        self,
+        target_container_id: Union[str, int],
+        *item_ids: str,
     ) -> list:
         """
         Adds 1 or more items to a list container
@@ -1674,7 +1693,8 @@ class InventoryClient(ClientBase):
         """
         id_to_restore = Id(sample_template_id)
         return self.retrieve_api_results(
-            f"/sampleTemplates/{id_to_restore.as_id()}/restore", request_type="PUT",
+            f"/sampleTemplates/{id_to_restore.as_id()}/restore",
+            request_type="PUT",
         )
 
     def transfer_sample_template_owner(
