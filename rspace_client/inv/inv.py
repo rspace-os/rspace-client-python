@@ -743,27 +743,32 @@ class ContainerPost(ItemPost):
         can_store_containers: bool = True,
         can_store_samples: bool = True,
         location: Union[str, int] = "t",
+        grid_location: GridLocation = None
     ):
         super().__init__(name, tags, description, extra_fields)
         if not can_store_containers and not can_store_samples:
             raise ValueError(
                 "At least one of 'canStoreContainers' and 'canStoreSamples' must be True"
             )
+        self.data["type"] = "CONTAINER"
         self.data["canStoreContainers"] = can_store_containers
         self.data["canStoreSamples"] = can_store_samples
-        self._configure_parent_container_post(location)
+        self._configure_parent_container_post(location, grid_location)
 
-    def _configure_parent_container_post(self, location):
+    def _configure_parent_container_post(self, location, grid_location: GridLocation =None):
         is_wb = False
         if location == "t":
             self.data["removeFromParentContainerRequest"] = True
         elif location == "w":
             is_wb = True
+        
         elif isinstance(location, int) or not is_wb:
             parent_id = Id(location)
             if not parent_id.is_container(True):
                 raise ValueError("Id must be that of a container")
             self.data["parentContainers"] = [{"id": parent_id.as_id()}]
+            if grid_location is not None:
+                self.data["parentLocation"]= { "coordX":grid_location.x, "coordY":grid_location.y } 
         else:
             raise TypeError("location must be 'w', 't' or a container id or global Id")
 
@@ -778,6 +783,8 @@ class ListContainerPost(ContainerPost):
         can_store_containers: bool = True,
         can_store_samples: bool = True,
         location: Union[str, int] = "t",
+        grid_location: GridLocation = None
+        
     ):
         super().__init__(
             name,
@@ -787,9 +794,36 @@ class ListContainerPost(ContainerPost):
             can_store_containers,
             can_store_samples,
             location,
+            grid_location
         )
         self.data["cType"] = "LIST"
 
+class GridContainerPost(ContainerPost):
+    def __init__(
+        self,
+        name: str,
+        row_count: int,
+        column_count: int,
+        tags: Optional[str] = None,
+        description: Optional[str] = None,
+        extra_fields: Optional[Sequence] = [],
+        can_store_containers: bool = True,
+        can_store_samples: bool = True,
+        location: Union[str, int] = "t",
+        grid_location: GridLocation = None
+    ):
+        super().__init__(
+            name,
+            tags,
+            description,
+            extra_fields,
+            can_store_containers,
+            can_store_samples,
+            location,
+            grid_location
+        )
+        self.data["cType"] = "LIST"
+        self.data["gridLayout"] = {"columnsNumber": column_count, "rowsNumber": row_count}
 
 class InventoryClient(ClientBase):
     """
@@ -1221,6 +1255,15 @@ class InventoryClient(ClientBase):
         result = self.retrieve_api_results("/workbenches")
         return [wb for wb in result["containers"]]
 
+    def bulk_create_container(self, *container_posts):
+        if len(container_posts) > InventoryClient.MAX_BULK:
+            raise ValueError(
+                f"Max permitted samples is {InventoryClient.MAX_BULK} but was {len(container_posts)}"
+            )
+        toPost = [c.data for c in container_posts]
+        bulk_post = {"operationType": "CREATE", "records": toPost}
+        return self._do_bulk(bulk_post)
+
     def create_list_container(
         self,
         name: str,
@@ -1289,16 +1332,9 @@ class InventoryClient(ClientBase):
             The created container.
         """
 
-        data = ItemPost(name, tags, description, extra_fields).data
+        data = GridContainerPost(name, row_count, column_count, tags, description, extra_fields, can_store_containers,
+            can_store_samples,location,).data
         data["cType"] = "GRID"
-        if not can_store_containers and not can_store_samples:
-            raise ValueError(
-                "At least one of 'canStoreContainers' and 'canStoreSamples' must be True"
-            )
-        data["canStoreContainers"] = can_store_containers
-        data["canStoreSamples"] = can_store_samples
-        data["gridLayout"] = {"columnsNumber": column_count, "rowsNumber": row_count}
-        self._configure_parent_container_post(location, data)
 
         container = self.retrieve_api_results(
             "/containers", request_type="POST", params=data

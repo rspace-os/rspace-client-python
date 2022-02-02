@@ -8,6 +8,7 @@ Created on Sat Oct  2 22:09:40 2021
 import sys, os
 import json
 import datetime as dt
+import pprint
 
 import pytest
 
@@ -248,6 +249,27 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(1, len(workbenches))
         workbench_ob = inv.Container.of(workbenches[0])
         self.assertTrue(workbench_ob.is_workbench())
+        
+    def test_bulk_create_containers(self):
+        list_post = inv.ListContainerPost("list1", description = "xxx")
+        grid_post = inv.GridContainerPost("grid1",2,4, description = "xxx")
+        results = self.invapi.bulk_create_container(list_post, grid_post)
+        self.assertTrue(results.is_ok())
+        self.assertEqual(2, len(results.data['results']))   
+    
+    def test_bulk_create_containers_in_grid(self):
+        num_items=5
+        grid = self.invapi.create_grid_container("grid1",1,num_items, description = "xxx")
+        ## Create 5 list containers and add them to cells in the grid.
+        list_posts = [inv.ListContainerPost(f"c-{i}", location=grid['id'], 
+                                            grid_location=inv.GridLocation(i+1,1)) for i in range(num_items)]
+
+        results = self.invapi.bulk_create_container(*list_posts)
+        self.assertTrue(results.is_ok())
+        self.assertEqual(5, len(results.data['results']))
+        for list_c in results.data['results']:
+            self.assertEqual(grid['id'], list_c['record']['parentContainers'][0]['id'])
+        
 
     def test_container_must_store_samples_or_containers(self):
         self.assertRaises(
