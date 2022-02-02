@@ -236,6 +236,9 @@ class ByLocation(GridPlacement):
 
 
 class BulkOperationResult:
+    """
+    Encapsulates the return value from any bulk operation
+    """
     def __init__(self, json):
         self.data = json
 
@@ -247,6 +250,10 @@ class BulkOperationResult:
 
     def __str__(self):
         return f"Succeeded: {self.is_ok()}: Result JSON: {self.data}"
+    
+    def __repr__(self):
+        return f"Succeeded: {self.is_ok()}: Result JSON: {self.data!r}"
+    
 
 
 class Container:
@@ -1276,7 +1283,7 @@ class InventoryClient(ClientBase):
         -------
         BulkOperationResult
         """
-   
+
         if len(container_posts) > InventoryClient.MAX_BULK:
             raise ValueError(
                 f"Max permitted samples is {InventoryClient.MAX_BULK} but was {len(container_posts)}"
@@ -1294,7 +1301,7 @@ class InventoryClient(ClientBase):
         can_store_containers: bool = True,
         can_store_samples: bool = True,
         location: Union[str, int] = "t",
-        grid_location: GridLocation = None
+        grid_location: GridLocation = None,
     ) -> dict:
         """
         Creates a single List Container, either 'top-level',  on the Workbench,
