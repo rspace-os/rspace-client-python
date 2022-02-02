@@ -668,7 +668,7 @@ class ExtraField:
 {self.data['content']!r})"
 
 
-class ItemCreate:
+class ItemPost:
     """
     Help define core properties of an Inventory item
     """
@@ -690,7 +690,7 @@ class ItemCreate:
             self.data["extraFields"] = [ef.data for ef in extra_fields]
 
 
-class SamplePost(ItemCreate):
+class SamplePost(ItemPost):
     """
     Help define sample data structures to create or modify samples
     """
@@ -732,7 +732,59 @@ class SamplePost(ItemCreate):
             if not isinstance(attachments, list):
                 raise ValueError("attachments must be a list of open files")
 
+    
 
+class ContainerPost(ItemPost):
+     def __init__(
+        self,
+        name: str,
+        tags: Optional[str] = None,
+        description: Optional[str] = None,
+        extra_fields: Optional[Sequence] = [],
+        can_store_containers: bool = True,
+        can_store_samples: bool = True,
+        location: Union[str, int] = "t",
+        ):
+         super().__init__(name, tags, description, extra_fields)
+         if not can_store_containers and not can_store_samples:
+            raise ValueError(
+                "At least one of 'canStoreContainers' and 'canStoreSamples' must be True"
+            )
+         self.data["canStoreContainers"] = can_store_containers
+         self.data["canStoreSamples"] = can_store_samples
+         self._configure_parent_container_post(location)
+         
+     def _configure_parent_container_post(self, location):
+        is_wb = False
+        if location == "t":
+            self.data["removeFromParentContainerRequest"] = True
+        elif location == "w":
+            is_wb = True
+        elif isinstance(location, int) or not is_wb:
+            parent_id = Id(location)
+            if not parent_id.is_container(True):
+                raise ValueError("Id must be that of a container")
+            self.data["parentContainers"] = [{"id": parent_id.as_id()}]
+        else:
+            raise TypeError("location must be 'w', 't' or a container id or global Id")
+         
+         
+         
+class ListContainerPost(ContainerPost):
+     def __init__(
+        self,
+        name: str,
+        tags: Optional[str] = None,
+        description: Optional[str] = None,
+        extra_fields: Optional[Sequence] = [],
+        can_store_containers: bool = True,
+        can_store_samples: bool = True,
+        location: Union[str, int] = "t",
+        ):
+         super().__init__(name, tags, description,
+                          extra_fields, can_store_containers, can_store_samples, location)
+         self.data["cType"] = "LIST"
+    
 class InventoryClient(ClientBase):
     """
     Wrapper around RSpace Inventory API.
@@ -1158,20 +1210,7 @@ class InventoryClient(ClientBase):
         result = self.retrieve_api_results("/workbenches")
         return [wb for wb in result["containers"]]
 
-    def _configure_parent_container_post(self, location, data):
-        is_wb = False
-        if location == "t":
-            data["removeFromParentContainerRequest"] = True
-        elif location == "w":
-            is_wb = True
-        elif isinstance(location, int) or not is_wb:
-            parent_id = Id(location)
-            if not parent_id.is_container(True):
-                raise ValueError("Id must be that of a container")
-            data["parentContainers"] = [{"id": parent_id.as_id()}]
-        else:
-            raise TypeError("location must be 'w', 't' or a container id or global Id")
-
+       
     def create_list_container(
         self,
         name: str,
@@ -1182,17 +1221,9 @@ class InventoryClient(ClientBase):
         can_store_samples: bool = True,
         location: Union[str, int] = "t",
     ) -> dict:
-
-        data = ItemCreate(name, tags, description, extra_fields).data
-        data["cType"] = "LIST"
-        if not can_store_containers and not can_store_samples:
-            raise ValueError(
-                "At least one of 'canStoreContainers' and 'canStoreSamples' must be True"
-            )
-        data["canStoreContainers"] = can_store_containers
-        data["canStoreSamples"] = can_store_samples
-        self._configure_parent_container_post(location, data)
-
+        data = ListContainerPost(name, tags, description,
+                                 extra_fields, can_store_containers, can_store_samples, location).data
+  
         container = self.retrieve_api_results(
             "/containers", request_type="POST", params=data
         )
@@ -1241,7 +1272,7 @@ class InventoryClient(ClientBase):
             The created container.
         """
 
-        data = ItemCreate(name, tags, description, extra_fields).data
+        data = ItemPost(name, tags, description, extra_fields).data
         data["cType"] = "GRID"
         if not can_store_containers and not can_store_samples:
             raise ValueError(
