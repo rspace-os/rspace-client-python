@@ -239,6 +239,7 @@ class BulkOperationResult:
     """
     Encapsulates the return value from any bulk operation
     """
+
     def __init__(self, json):
         self.data = json
 
@@ -250,10 +251,9 @@ class BulkOperationResult:
 
     def __str__(self):
         return f"Succeeded: {self.is_ok()}: Result JSON: {self.data}"
-    
+
     def __repr__(self):
         return f"Succeeded: {self.is_ok()}: Result JSON: {self.data!r}"
-    
 
 
 class Container:
