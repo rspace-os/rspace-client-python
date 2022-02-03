@@ -492,7 +492,7 @@ class Id:
         "SA": "samples",
         "IT": "sampleTemplates",
     }
-    
+
     @staticmethod
     def is_valid_id(arg):
         try:
@@ -747,14 +747,15 @@ class SamplePost(ItemPost):
             if not isinstance(attachments, list):
                 raise ValueError("attachments must be a list of open files")
 
+
 class TargetLocation:
     def __init__(self, target_container: Union[str, int, dict, Container]):
-        
-        self.data={}
+
+        self.data = {}
         if target_container == "t":
             self.data["removeFromParentContainerRequest"] = True
         elif target_container == "w":
-           self.data = {}
+            self.data = {}
 
         elif Id.is_valid_id(target_container):
             parent_id = Id(target_container)
@@ -763,21 +764,26 @@ class TargetLocation:
             self.data["parentContainers"] = [{"id": parent_id.as_id()}]
         else:
             raise TypeError("location must be 'w', 't' or a container id or global Id")
+
     def __repr__(self):
         return f"{self.__class__.__name__}: {self.data!r}"
-        
+
+
 class ListContainerTargetLocation(TargetLocation):
-     def __init__(self, target_container: Union[str, int, dict, Container]):
-         super().__init__(target_container)
+    def __init__(self, target_container: Union[str, int, dict, Container]):
+        super().__init__(target_container)
+
 
 class GridContainerTargetLocation(TargetLocation):
-    def __init__(self, target_container: Union[str, int, dict, Container], col_index :int, row_index:int):
+    def __init__(
+        self,
+        target_container: Union[str, int, dict, Container],
+        col_index: int,
+        row_index: int,
+    ):
         super().__init__(target_container)
-        self.data["parentLocation"] = {
-                    "coordX": col_index,
-                    "coordY": row_index
-                    }
-    
+        self.data["parentLocation"] = {"coordX": col_index, "coordY": row_index}
+
 
 class ContainerPost(ItemPost):
     def __init__(
@@ -788,7 +794,7 @@ class ContainerPost(ItemPost):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TargetLocation("w")
+        location: TargetLocation = TargetLocation("w"),
     ):
         super().__init__(name, tags, description, extra_fields)
         print(location)
@@ -804,6 +810,7 @@ class ContainerPost(ItemPost):
     def __repr__(self):
         return f"{self.__class__.__name__}: {self.data!r}"
 
+
 class ListContainerPost(ContainerPost):
     def __init__(
         self,
@@ -813,7 +820,7 @@ class ListContainerPost(ContainerPost):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TargetLocation("w")
+        location: TargetLocation = TargetLocation("w"),
     ):
         super().__init__(
             name,
@@ -822,10 +829,9 @@ class ListContainerPost(ContainerPost):
             extra_fields,
             can_store_containers,
             can_store_samples,
-            location
+            location,
         )
         self.data["cType"] = "LIST"
-        
 
 
 class GridContainerPost(ContainerPost):
@@ -839,7 +845,7 @@ class GridContainerPost(ContainerPost):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TargetLocation("w")
+        location: TargetLocation = TargetLocation("w"),
     ):
         super().__init__(
             name,
@@ -855,7 +861,6 @@ class GridContainerPost(ContainerPost):
             "columnsNumber": column_count,
             "rowsNumber": row_count,
         }
-    
 
 
 class InventoryClient(ClientBase):
@@ -1317,7 +1322,7 @@ class InventoryClient(ClientBase):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TargetLocation("t")
+        location: TargetLocation = TargetLocation("t"),
     ) -> dict:
         """
         Creates a single List Container, either 'top-level',  on the Workbench,
@@ -1353,7 +1358,7 @@ class InventoryClient(ClientBase):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TargetLocation("t")
+        location: TargetLocation = TargetLocation("t"),
     ) -> dict:
         """
         Parameters

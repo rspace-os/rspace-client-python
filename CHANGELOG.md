@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file
 
 ## Unreleased
 
+### Added
+
+- static method Id.is_valid_id() to check if an object can be parsed as an id
+- bulk 'createContainer' methods 
+
+### Changed
+- BREAKING: altered create_grid_container and create_list_container location arguments
+
 ## 2.2.2 2022-02-01
 
 ### Added

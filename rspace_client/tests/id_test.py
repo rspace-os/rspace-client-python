@@ -59,10 +59,11 @@ class IdUnitTest(unittest.TestCase):
         self.assertNotEqual(Id(1234), Id("SA1234"))
         self.assertNotEqual(Id("IT1234"), Id("SA1234"))
         self.assertNotEqual(Id("SA1234"), Id(1234))
-        
+
     def test_valid_id(self):
         self.assertTrue(Id.is_valid_id(1233))
-        self.assertTrue(Id.is_valid_id('SA1233'))
-        self.assertTrue(Id.is_valid_id({"id": 123, "globalId": "BE123", "cType": "WORKBENCH"}))
+        self.assertTrue(Id.is_valid_id("SA1233"))
+        self.assertTrue(
+            Id.is_valid_id({"id": 123, "globalId": "BE123", "cType": "WORKBENCH"})
+        )
         self.assertFalse(Id.is_valid_id("ndjfndskjf"))
-        
