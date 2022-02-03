@@ -492,6 +492,14 @@ class Id:
         "SA": "samples",
         "IT": "sampleTemplates",
     }
+    
+    @staticmethod
+    def is_valid_id(arg):
+        try:
+            Id(arg)
+        except ValueError:
+            return False
+        return True
 
     def __init__(self, value: Union[int, str, dict, Container, Workbench, Sample]):
 
@@ -739,6 +747,37 @@ class SamplePost(ItemPost):
             if not isinstance(attachments, list):
                 raise ValueError("attachments must be a list of open files")
 
+class TargetLocation:
+    def __init__(self, target_container: Union[str, int, dict, Container]):
+        
+        self.data={}
+        if target_container == "t":
+            self.data["removeFromParentContainerRequest"] = True
+        elif target_container == "w":
+           self.data = {}
+
+        elif Id.is_valid_id(target_container):
+            parent_id = Id(target_container)
+            if not parent_id.is_container(True):
+                raise ValueError("Id must be that of a container")
+            self.data["parentContainers"] = [{"id": parent_id.as_id()}]
+        else:
+            raise TypeError("location must be 'w', 't' or a container id or global Id")
+    def __repr__(self):
+        return f"{self.__class__.__name__}: {self.data!r}"
+        
+class ListContainerTargetLocation(TargetLocation):
+     def __init__(self, target_container: Union[str, int, dict, Container]):
+         super().__init__(target_container)
+
+class GridContainerTargetLocation(TargetLocation):
+    def __init__(self, target_container: Union[str, int, dict, Container], col_index :int, row_index:int):
+        super().__init__(target_container)
+        self.data["parentLocation"] = {
+                    "coordX": col_index,
+                    "coordY": row_index
+                    }
+    
 
 class ContainerPost(ItemPost):
     def __init__(
@@ -749,10 +788,10 @@ class ContainerPost(ItemPost):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: Union[str, int] = "t",
-        grid_location: GridLocation = None,
+        location: TargetLocation = TargetLocation("w")
     ):
         super().__init__(name, tags, description, extra_fields)
+        print(location)
         if not can_store_containers and not can_store_samples:
             raise ValueError(
                 "At least one of 'canStoreContainers' and 'canStoreSamples' must be True"
@@ -760,30 +799,10 @@ class ContainerPost(ItemPost):
         self.data["type"] = "CONTAINER"
         self.data["canStoreContainers"] = can_store_containers
         self.data["canStoreSamples"] = can_store_samples
-        self._configure_parent_container_post(location, grid_location)
+        self.data.update(location.data)
 
-    def _configure_parent_container_post(
-        self, location, grid_location: GridLocation = None
-    ):
-        is_wb = False
-        if location == "t":
-            self.data["removeFromParentContainerRequest"] = True
-        elif location == "w":
-            is_wb = True
-
-        elif isinstance(location, int) or not is_wb:
-            parent_id = Id(location)
-            if not parent_id.is_container(True):
-                raise ValueError("Id must be that of a container")
-            self.data["parentContainers"] = [{"id": parent_id.as_id()}]
-            if grid_location is not None:
-                self.data["parentLocation"] = {
-                    "coordX": grid_location.x,
-                    "coordY": grid_location.y,
-                }
-        else:
-            raise TypeError("location must be 'w', 't' or a container id or global Id")
-
+    def __repr__(self):
+        return f"{self.__class__.__name__}: {self.data!r}"
 
 class ListContainerPost(ContainerPost):
     def __init__(
@@ -794,8 +813,7 @@ class ListContainerPost(ContainerPost):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: Union[str, int] = "t",
-        grid_location: GridLocation = None,
+        location: TargetLocation = TargetLocation("w")
     ):
         super().__init__(
             name,
@@ -804,10 +822,10 @@ class ListContainerPost(ContainerPost):
             extra_fields,
             can_store_containers,
             can_store_samples,
-            location,
-            grid_location,
+            location
         )
         self.data["cType"] = "LIST"
+        
 
 
 class GridContainerPost(ContainerPost):
@@ -821,8 +839,7 @@ class GridContainerPost(ContainerPost):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: Union[str, int] = "t",
-        grid_location: GridLocation = None,
+        location: TargetLocation = TargetLocation("w")
     ):
         super().__init__(
             name,
@@ -832,13 +849,13 @@ class GridContainerPost(ContainerPost):
             can_store_containers,
             can_store_samples,
             location,
-            grid_location,
         )
         self.data["cType"] = "LIST"
         self.data["gridLayout"] = {
             "columnsNumber": column_count,
             "rowsNumber": row_count,
         }
+    
 
 
 class InventoryClient(ClientBase):
@@ -1300,8 +1317,7 @@ class InventoryClient(ClientBase):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: Union[str, int] = "t",
-        grid_location: GridLocation = None,
+        location: TargetLocation = TargetLocation("t")
     ) -> dict:
         """
         Creates a single List Container, either 'top-level',  on the Workbench,
@@ -1337,7 +1353,7 @@ class InventoryClient(ClientBase):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: Union[int, str] = "t",
+        location: TargetLocation = TargetLocation("t")
     ) -> dict:
         """
         Parameters

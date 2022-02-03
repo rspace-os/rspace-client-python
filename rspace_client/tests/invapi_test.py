@@ -265,7 +265,7 @@ class InventoryApiTest(base.BaseApiTest):
         ## Create 5 list containers and add them to cells in the grid.
         list_posts = [
             inv.ListContainerPost(
-                f"c-{i}", location=grid["id"], grid_location=inv.GridLocation(i + 1, 1)
+                f"c-{i}", location=inv.GridContainerTargetLocation(grid["id"], i + 1, 1)
             )
             for i in range(num_items)
         ]
