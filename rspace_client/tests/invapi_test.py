@@ -322,7 +322,7 @@ class InventoryApiTest(base.BaseApiTest):
 
         ## create in parent list container
         ct_sub_container = self.invapi.create_list_container(
-            name, tags="ab,cd,ef", location=inv.TargetLocation(ct['id'])
+            name, tags="ab,cd,ef", location=inv.TargetLocation(ct["id"])
         )
         self.assertEqual(
             ct["globalId"], ct_sub_container["parentContainers"][0]["globalId"]

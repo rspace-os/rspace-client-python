@@ -749,8 +749,26 @@ class SamplePost(ItemPost):
 
 
 class TargetLocation:
-    def __init__(self, target_container: Union[str, int, dict, Container]):
+    """
+    Base class of target locations. It is recommended to use one of the subclasses
+    and not instantiate this directly.
+    """
 
+    def __init__(self, target_container: Union[str, int, dict, Container]):
+        """
+
+        Parameters
+        ----------
+        target_container : Union[str, int, dict, Container]
+            A numeric or global ID of a container, or a Container object, or a dict of a Container,
+            or a string 'w' for workbench, 't' for top-level.
+        Raises
+        ------
+        ValueError
+            If the global id is not 'IC' or the argument is a dict but not that of a container
+        TypeError
+            If type is not supported
+        """
         self.data = {}
         if target_container == "t":
             self.data["removeFromParentContainerRequest"] = True
@@ -763,10 +781,20 @@ class TargetLocation:
                 raise ValueError("Id must be that of a container")
             self.data["parentContainers"] = [{"id": parent_id.as_id()}]
         else:
-            raise TypeError("location must be 'w', 't' or a container id or global Id")
+            raise TypeError("location must be 'w', 't' or a Container, id or global Id")
 
     def __repr__(self):
         return f"{self.__class__.__name__}: {self.data!r}"
+
+
+class WorkbenchTargetLocation(TargetLocation):
+    def __init__(self):
+        super().__init__("w")
+
+
+class TopLevelTargetLocation(TargetLocation):
+    def __init__(self):
+        super().__init__("t")
 
 
 class ListContainerTargetLocation(TargetLocation):
@@ -775,6 +803,10 @@ class ListContainerTargetLocation(TargetLocation):
 
 
 class GridContainerTargetLocation(TargetLocation):
+    """
+    Defines the identity of a grid location to move into, and its coordinates in the grid.
+    """
+
     def __init__(
         self,
         target_container: Union[str, int, dict, Container],
@@ -782,10 +814,15 @@ class GridContainerTargetLocation(TargetLocation):
         row_index: int,
     ):
         super().__init__(target_container)
-        self.data["parentLocation"] = {"coordX": col_index, "coordY": row_index}
+        gl = GridLocation(col_index, row_index)  ## validates coords
+        self.data["parentLocation"] = {"coordX": gl.x, "coordY": gl.y}
 
 
 class ContainerPost(ItemPost):
+    """
+    Base class for defining a new Container
+    """
+
     def __init__(
         self,
         name: str,
@@ -794,7 +831,7 @@ class ContainerPost(ItemPost):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TargetLocation("w"),
+        location: TargetLocation = WorkbenchTargetLocation(),
     ):
         super().__init__(name, tags, description, extra_fields)
         if not can_store_containers and not can_store_samples:
@@ -819,7 +856,7 @@ class ListContainerPost(ContainerPost):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TargetLocation("w"),
+        location: TargetLocation = WorkbenchTargetLocation(),
     ):
         super().__init__(
             name,
@@ -844,7 +881,7 @@ class GridContainerPost(ContainerPost):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TargetLocation("w"),
+        location: TargetLocation = WorkbenchTargetLocation(),
     ):
         super().__init__(
             name,
