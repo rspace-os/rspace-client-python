@@ -831,7 +831,7 @@ class ContainerPost(ItemPost):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = WorkbenchTargetLocation(),
+        location: TargetLocation = TopLevelTargetLocation(),
     ):
         super().__init__(name, tags, description, extra_fields)
         if not can_store_containers and not can_store_samples:
@@ -856,7 +856,7 @@ class ListContainerPost(ContainerPost):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = WorkbenchTargetLocation(),
+        location: TargetLocation = TopLevelTargetLocation(),
     ):
         super().__init__(
             name,
@@ -881,7 +881,7 @@ class GridContainerPost(ContainerPost):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = WorkbenchTargetLocation(),
+        location: TargetLocation = TopLevelTargetLocation(),
     ):
         super().__init__(
             name,
@@ -1358,7 +1358,7 @@ class InventoryClient(ClientBase):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TargetLocation("t"),
+        location: TargetLocation = TopLevelTargetLocation(),
     ) -> dict:
         """
         Creates a single List Container, either 'top-level',  on the Workbench,
@@ -1394,7 +1394,7 @@ class InventoryClient(ClientBase):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TargetLocation("t"),
+        location: TargetLocation = TopLevelTargetLocation(),
     ) -> dict:
         """
         Parameters
@@ -1415,8 +1415,8 @@ class InventoryClient(ClientBase):
             Whether this container can store containers inside it. The default is True.
         can_store_samples : bool, optional
             Whether this container can store subsamples inside it. The default is True.
-        location : Union[int, str], optional
-            Either a container ID, or 't' for top-level or 'w' for workbench. The default is "t".
+        location : TargetLocation
+            A subclass of TargetLocation. Defaults to TopLevel
         Returns
         -------
         dict
