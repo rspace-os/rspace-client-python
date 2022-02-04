@@ -797,7 +797,6 @@ class ContainerPost(ItemPost):
         location: TargetLocation = TargetLocation("w"),
     ):
         super().__init__(name, tags, description, extra_fields)
-        print(location)
         if not can_store_containers and not can_store_samples:
             raise ValueError(
                 "At least one of 'canStoreContainers' and 'canStoreSamples' must be True"

@@ -316,13 +316,13 @@ class InventoryApiTest(base.BaseApiTest):
 
         ## create in workbench
         ct_in_wb = self.invapi.create_list_container(
-            name, tags="ab,cd,ef", location="w"
+            name, tags="ab,cd,ef", location=inv.TargetLocation("w")
         )
         self.assertEqual("BE", ct_in_wb["parentContainers"][0]["globalId"][0:2])
 
         ## create in parent list container
         ct_sub_container = self.invapi.create_list_container(
-            name, tags="ab,cd,ef", location=ct["id"]
+            name, tags="ab,cd,ef", location=inv.TargetLocation(ct['id'])
         )
         self.assertEqual(
             ct["globalId"], ct_sub_container["parentContainers"][0]["globalId"]
