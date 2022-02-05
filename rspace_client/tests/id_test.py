@@ -32,12 +32,14 @@ class IdUnitTest(unittest.TestCase):
         minimal_container = {"id": 123, "globalId": "IC123", "cType": "LIST"}
         c = Id(ListContainer(minimal_container))
         self.assertEqual(123, c.as_id())
+        self.assertTrue(c.is_container())
 
     def test_id_from_workbench(self):
         workbench = {"id": 123, "globalId": "BE123", "cType": "WORKBENCH"}
         c = Id(Workbench(workbench))
         self.assertEqual(123, c.as_id())
         self.assertEqual("BE", c.prefix)
+        self.assertTrue(c.is_bench())
 
     def test_repr(self):
         id_a = Id("SA1234")
@@ -48,8 +50,11 @@ class IdUnitTest(unittest.TestCase):
     def test_str(self):
         id_a = Id("SA1234")
         self.assertEqual("SA1234", str(id_a))
+        self.assertTrue(id_a.is_sample())
         id_a = Id(1234)
         self.assertEqual("1234", str(id_a))
+        self.assertFalse(id_a.is_sample())
+        self.assertTrue(id_a.is_sample(maybe=True))
 
     def test_id_equals(self):
         self.assertEqual(Id(1234), Id(1234))
@@ -59,3 +64,11 @@ class IdUnitTest(unittest.TestCase):
         self.assertNotEqual(Id(1234), Id("SA1234"))
         self.assertNotEqual(Id("IT1234"), Id("SA1234"))
         self.assertNotEqual(Id("SA1234"), Id(1234))
+
+    def test_valid_id(self):
+        self.assertTrue(Id.is_valid_id(1233))
+        self.assertTrue(Id.is_valid_id("SA1233"))
+        self.assertTrue(
+            Id.is_valid_id({"id": 123, "globalId": "BE123", "cType": "WORKBENCH"})
+        )
+        self.assertFalse(Id.is_valid_id("ndjfndskjf"))

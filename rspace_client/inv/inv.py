@@ -236,17 +236,39 @@ class ByLocation(GridPlacement):
 
 
 class BulkOperationResult:
+    """
+    Encapsulates the return value from any bulk operation
+    """
+
     def __init__(self, json):
         self.data = json
 
     def is_ok(self):
         return self.data["status"] == "COMPLETED"
 
+    def results(self):
+        return self.data["results"]
+
+    def success_results(self):
+        """
+        Returns results as list of dicts{record: error:} where result was successful
+        """
+        return list(filter(lambda x: x["record"] is not None, self.results()))
+
+    def error_results(self):
+        """
+        Returns results as list of dicts{record: error:} where  error field is not None
+        """
+        return list(filter(lambda x: x["error"] is not None, self.results()))
+
     def is_failed(self):
         return not self.is_ok()
 
     def __str__(self):
         return f"Succeeded: {self.is_ok()}: Result JSON: {self.data}"
+
+    def __repr__(self):
+        return f"Succeeded: {self.is_ok()}: Result JSON: {self.data!r}"
 
 
 class Container:
@@ -486,6 +508,14 @@ class Id:
         "IT": "sampleTemplates",
     }
 
+    @staticmethod
+    def is_valid_id(arg):
+        try:
+            Id(arg)
+        except ValueError:
+            return False
+        return True
+
     def __init__(self, value: Union[int, str, dict, Container, Workbench, Sample]):
 
         if isinstance(value, str):
@@ -565,6 +595,12 @@ class Id:
 
     def is_subsample(self, maybe: bool = False) -> bool:
         return self._check("SS", maybe)
+
+    def is_bench(self, maybe: bool = False) -> bool:
+        return self._check("BE", maybe)
+
+    def is_sample(self, maybe: bool = False) -> bool:
+        return self._check("SA", maybe)
 
     def is_movable(self, maybe: bool = False) -> bool:
         return self.is_subsample(maybe) or self.is_container(maybe)
@@ -668,7 +704,7 @@ class ExtraField:
 {self.data['content']!r})"
 
 
-class ItemCreate:
+class ItemPost:
     """
     Help define core properties of an Inventory item
     """
@@ -690,7 +726,7 @@ class ItemCreate:
             self.data["extraFields"] = [ef.data for ef in extra_fields]
 
 
-class SamplePost(ItemCreate):
+class SamplePost(ItemPost):
     """
     Help define sample data structures to create or modify samples
     """
@@ -731,6 +767,164 @@ class SamplePost(ItemCreate):
         if attachments is not None:
             if not isinstance(attachments, list):
                 raise ValueError("attachments must be a list of open files")
+
+
+class TargetLocation:
+    """
+    Base class of target locations. It is recommended to use one of the subclasses
+    and not instantiate this directly.
+    """
+
+    def __init__(self, target_container: Union[str, int, dict, Container]):
+        """
+        Parameters
+        ----------
+        target_container : Union[str, int, dict, Container]
+            A numeric or global ID of a container, or a Container object, or a dict of a Container,
+            or a string: 'w' for workbench, 't' for top-level.
+        Raises
+        ------
+        ValueError
+            If the global id is not 'IC' or the argument is a dict but not that of a container
+        TypeError
+            If type is not supported
+        """
+        self.data = {}
+        if target_container == "t":
+            self.data["removeFromParentContainerRequest"] = True
+        elif target_container == "w":
+            self.data = {}
+
+        elif Id.is_valid_id(target_container):
+            parent_id = Id(target_container)
+            if not parent_id.is_container(True):
+                raise ValueError("Id must be that of a container")
+            self.data["parentContainers"] = [{"id": parent_id.as_id()}]
+        else:
+            raise TypeError("location must be 'w', 't' or a Container, id or global Id")
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}: {self.data!r}"
+
+
+class BenchTargetLocation(TargetLocation):
+    def __init__(self):
+        super().__init__("w")
+
+
+class TopLevelTargetLocation(TargetLocation):
+    def __init__(self):
+        super().__init__("t")
+
+
+class ListContainerTargetLocation(TargetLocation):
+    def __init__(self, target_container: Union[str, int, dict, Container]):
+        super().__init__(target_container)
+
+
+class GridContainerTargetLocation(TargetLocation):
+    """
+    Defines the identity of a grid location to move into, and its coordinates in the grid.
+    """
+
+    def __init__(
+        self,
+        target_container: Union[str, int, dict, Container],
+        col_index: int,
+        row_index: int,
+    ):
+        super().__init__(target_container)
+        gl = GridLocation(col_index, row_index)  ## validates coords
+        self.data["parentLocation"] = {"coordX": gl.x, "coordY": gl.y}
+
+
+class ContainerPost(ItemPost):
+    """
+    Base class for defining a new Container
+    """
+
+    def __init__(
+        self,
+        name: str,
+        tags: Optional[str] = None,
+        description: Optional[str] = None,
+        extra_fields: Optional[Sequence] = [],
+        can_store_containers: bool = True,
+        can_store_samples: bool = True,
+        location: TargetLocation = TopLevelTargetLocation(),
+    ):
+        super().__init__(name, tags, description, extra_fields)
+        if not can_store_containers and not can_store_samples:
+            raise ValueError(
+                "At least one of 'canStoreContainers' and 'canStoreSamples' must be True"
+            )
+        self.data["type"] = "CONTAINER"
+        self.data["canStoreContainers"] = can_store_containers
+        self.data["canStoreSamples"] = can_store_samples
+        self.data.update(location.data)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}: {self.data!r}"
+
+
+class ListContainerPost(ContainerPost):
+    """
+      Define a new ListContainer to create
+    """
+
+    def __init__(
+        self,
+        name: str,
+        tags: Optional[str] = None,
+        description: Optional[str] = None,
+        extra_fields: Optional[Sequence] = [],
+        can_store_containers: bool = True,
+        can_store_samples: bool = True,
+        location: TargetLocation = TopLevelTargetLocation(),
+    ):
+        super().__init__(
+            name,
+            tags,
+            description,
+            extra_fields,
+            can_store_containers,
+            can_store_samples,
+            location,
+        )
+        self.data["cType"] = "LIST"
+
+
+class GridContainerPost(ContainerPost):
+    """
+     Define a new grid container to create
+    """
+
+    def __init__(
+        self,
+        name: str,
+        row_count: int,
+        column_count: int,
+        tags: Optional[str] = None,
+        description: Optional[str] = None,
+        extra_fields: Optional[Sequence] = [],
+        can_store_containers: bool = True,
+        can_store_samples: bool = True,
+        location: TargetLocation = TopLevelTargetLocation(),
+    ):
+        super().__init__(
+            name,
+            tags,
+            description,
+            extra_fields,
+            can_store_containers,
+            can_store_samples,
+            location,
+        )
+        self.data["cType"] = "LIST"
+        self.data["gridLayout"] = {
+            "columnsNumber": column_count,
+            "rowsNumber": row_count,
+        }
 
 
 class InventoryClient(ClientBase):
@@ -1158,19 +1352,26 @@ class InventoryClient(ClientBase):
         result = self.retrieve_api_results("/workbenches")
         return [wb for wb in result["containers"]]
 
-    def _configure_parent_container_post(self, location, data):
-        is_wb = False
-        if location == "t":
-            data["removeFromParentContainerRequest"] = True
-        elif location == "w":
-            is_wb = True
-        elif isinstance(location, int) or not is_wb:
-            parent_id = Id(location)
-            if not parent_id.is_container(True):
-                raise ValueError("Id must be that of a container")
-            data["parentContainers"] = [{"id": parent_id.as_id()}]
-        else:
-            raise TypeError("location must be 'w', 't' or a container id or global Id")
+    def bulk_create_container(self, *container_posts):
+        """
+        Create up to MAX_BULK containers at once.
+        Parameters
+        ----------
+        *container_posts : An unpacked iterable of >=1 ContainerPost objects
+            Up to MAX_BULK ContainerPost objects can be sent at once.
+
+        Returns
+        -------
+        BulkOperationResult
+        """
+
+        if len(container_posts) > InventoryClient.MAX_BULK:
+            raise ValueError(
+                f"Max permitted samples is {InventoryClient.MAX_BULK} but was {len(container_posts)}"
+            )
+        toPost = [c.data for c in container_posts]
+        bulk_post = {"operationType": "CREATE", "records": toPost}
+        return self._do_bulk(bulk_post)
 
     def create_list_container(
         self,
@@ -1180,18 +1381,22 @@ class InventoryClient(ClientBase):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: Union[str, int] = "t",
+        location: TargetLocation = TopLevelTargetLocation(),
     ) -> dict:
+        """
+        Creates a single List Container, either 'top-level',  on the Workbench,
+         or inside an existing Grid or List Container
 
-        data = ItemCreate(name, tags, description, extra_fields).data
-        data["cType"] = "LIST"
-        if not can_store_containers and not can_store_samples:
-            raise ValueError(
-                "At least one of 'canStoreContainers' and 'canStoreSamples' must be True"
-            )
-        data["canStoreContainers"] = can_store_containers
-        data["canStoreSamples"] = can_store_samples
-        self._configure_parent_container_post(location, data)
+        """
+        data = ListContainerPost(
+            name,
+            tags,
+            description,
+            extra_fields,
+            can_store_containers,
+            can_store_samples,
+            location,
+        ).data
 
         container = self.retrieve_api_results(
             "/containers", request_type="POST", params=data
@@ -1212,7 +1417,7 @@ class InventoryClient(ClientBase):
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: Union[int, str] = "t",
+        location: TargetLocation = TopLevelTargetLocation(),
     ) -> dict:
         """
         Parameters
@@ -1233,24 +1438,26 @@ class InventoryClient(ClientBase):
             Whether this container can store containers inside it. The default is True.
         can_store_samples : bool, optional
             Whether this container can store subsamples inside it. The default is True.
-        location : Union[int, str], optional
-            Either a container ID, or 't' for top-level or 'w' for workbench. The default is "t".
+        location : TargetLocation
+            A subclass of TargetLocation. Defaults to TopLevel
         Returns
         -------
         dict
             The created container.
         """
 
-        data = ItemCreate(name, tags, description, extra_fields).data
+        data = GridContainerPost(
+            name,
+            row_count,
+            column_count,
+            tags,
+            description,
+            extra_fields,
+            can_store_containers,
+            can_store_samples,
+            location,
+        ).data
         data["cType"] = "GRID"
-        if not can_store_containers and not can_store_samples:
-            raise ValueError(
-                "At least one of 'canStoreContainers' and 'canStoreSamples' must be True"
-            )
-        data["canStoreContainers"] = can_store_containers
-        data["canStoreSamples"] = can_store_samples
-        data["gridLayout"] = {"columnsNumber": column_count, "rowsNumber": row_count}
-        self._configure_parent_container_post(location, data)
 
         container = self.retrieve_api_results(
             "/containers", request_type="POST", params=data
