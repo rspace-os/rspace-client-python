@@ -245,21 +245,21 @@ class BulkOperationResult:
 
     def is_ok(self):
         return self.data["status"] == "COMPLETED"
-    
+
     def results(self):
         return self.data["results"]
-    
+
     def success_results(self):
         """
         Returns results as list of dicts{record: error:} where result was successful
         """
-        return list(filter( lambda x: x['record'] is not None,  self.results()))
-    
+        return list(filter(lambda x: x["record"] is not None, self.results()))
+
     def error_results(self):
         """
         Returns results as list of dicts{record: error:} where  error field is not None
         """
-        return list(filter (lambda x: x["error"] is not None, self.results()))
+        return list(filter(lambda x: x["error"] is not None, self.results()))
 
     def is_failed(self):
         return not self.is_ok()
@@ -595,7 +595,7 @@ class Id:
 
     def is_subsample(self, maybe: bool = False) -> bool:
         return self._check("SS", maybe)
-    
+
     def is_bench(self, maybe: bool = False) -> bool:
         return self._check("BE", maybe)
 
@@ -1078,9 +1078,7 @@ class InventoryClient(ClientBase):
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
         return self.retrieve_api_results(
-            f"/{endpoint}",
-            request_type="GET",
-            params=pagination.data,
+            f"/{endpoint}", request_type="GET", params=pagination.data,
         )
 
     def stream_samples(
@@ -1288,8 +1286,7 @@ class InventoryClient(ClientBase):
         id_to_copy = Id(item_to_duplicate)
         endpoint = id_to_copy.get_api_endpoint()
         rc = self.retrieve_api_results(
-            f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate",
-            request_type="POST",
+            f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate", request_type="POST",
         )
         if new_name is not None:
             rc = self.rename(rc, new_name)
@@ -1330,9 +1327,7 @@ class InventoryClient(ClientBase):
             raise ValueError("Supplied id is not a subsamples")
         data = {"content": note}
         return self.retrieve_api_results(
-            f"/subSamples/{ss_id.as_id()}/notes",
-            request_type="POST",
-            params=data,
+            f"/subSamples/{ss_id.as_id()}/notes", request_type="POST", params=data,
         )
 
     def get_workbenches(self) -> Sequence[dict]:
@@ -1468,9 +1463,7 @@ class InventoryClient(ClientBase):
         )
 
     def add_items_to_list_container(
-        self,
-        target_container_id: Union[str, int],
-        *item_ids: str,
+        self, target_container_id: Union[str, int], *item_ids: str,
     ) -> list:
         """
         Adds 1 or more items to a list container
@@ -1847,8 +1840,7 @@ class InventoryClient(ClientBase):
         """
         id_to_restore = Id(sample_template_id)
         return self.retrieve_api_results(
-            f"/sampleTemplates/{id_to_restore.as_id()}/restore",
-            request_type="PUT",
+            f"/sampleTemplates/{id_to_restore.as_id()}/restore", request_type="PUT",
         )
 
     def transfer_sample_template_owner(

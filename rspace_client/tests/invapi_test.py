@@ -256,30 +256,54 @@ class InventoryApiTest(base.BaseApiTest):
         results = self.invapi.bulk_create_container(list_post, grid_post)
         self.assertTrue(results.is_ok())
         self.assertEqual(2, len(results.data["results"]))
-        
+
     def test_bulk_create_containers_in_bench(self):
-        list_post = inv.ListContainerPost("list1", description="xxx", location=inv.WorkbenchTargetLocation())
-        grid_post = inv.GridContainerPost("grid1", 2, 4, description="xxx",location=inv.WorkbenchTargetLocation())
+        list_post = inv.ListContainerPost(
+            "list1", description="xxx", location=inv.WorkbenchTargetLocation()
+        )
+        grid_post = inv.GridContainerPost(
+            "grid1", 2, 4, description="xxx", location=inv.WorkbenchTargetLocation()
+        )
         results = self.invapi.bulk_create_container(list_post, grid_post)
         self.assertTrue(results.is_ok())
         self.assertEqual(2, len(results.data["results"]))
-        
-        ids = [x["record"]["parentContainers"][0]["globalId"] for x in results.success_results()]
+
+        ids = [
+            x["record"]["parentContainers"][0]["globalId"]
+            for x in results.success_results()
+        ]
         self.assertTrue(all(inv.Id(x).is_bench() for x in ids))
-        
+
     def test_bulk_create_containers_in_list(self):
-        target_c = self.invapi.create_list_container("c_to_dup")
-        
-        grid_posts = [ inv.GridContainerPost(f"grid-{i}", 2, 4, description="grid",location=inv.ListContainerTargetLocation(target_c['id']))
-                          for i in range(3)]
-        list_posts = [ inv.ListContainerPost(f"grid-{i}",  description="list",
-                                             location=inv.ListContainerTargetLocation(target_c['id']))
-                          for i in range(3)]
+        target_c = self.invapi.create_list_container("top-level")
+
+        grid_posts = [
+            inv.GridContainerPost(
+                f"grid-{i}",
+                2,
+                4,
+                description="grid",
+                location=inv.ListContainerTargetLocation(target_c["id"]),
+            )
+            for i in range(3)
+        ]
+        list_posts = [
+            inv.ListContainerPost(
+                f"list-{i}",
+                description="list",
+                location=inv.ListContainerTargetLocation(target_c["id"]),
+            )
+            for i in range(3)
+        ]
         list_posts.extend(grid_posts)
         results = self.invapi.bulk_create_container(*list_posts)
         self.assertTrue(results.is_ok())
         self.assertEqual(6, len(results.data["results"]))
-        
+        ids = [
+            x["record"]["parentContainers"][0]["globalId"]
+            for x in results.success_results()
+        ]
+        self.assertTrue(all(parent_id == target_c["globalId"] for parent_id in ids))
 
     def test_bulk_create_containers_in_grid(self):
         num_items = 5
@@ -402,7 +426,9 @@ class InventoryApiTest(base.BaseApiTest):
         rows = 2
         cols = 2
         grid_c = self.invapi.create_grid_container("gridX", rows, cols)
-        sample = self.invapi.create_sample(name="toomany", subsample_count=rows * cols + 1)
+        sample = self.invapi.create_sample(
+            name="toomany", subsample_count=rows * cols + 1
+        )
 
         ss_ids = [x["globalId"] for x in sample["subSamples"]]
         ## using GridContainer object, we can check capacity before requesting
