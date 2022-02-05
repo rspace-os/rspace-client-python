@@ -12,6 +12,10 @@ All notable changes to this project will be documented in this file
 - static method Id.is_valid_id() to check if an object can be parsed as an id
 - bulk 'createContainer' methods 
 - methods 'error_results' and 'success_results' on BulkOperationResult
+- methods in Id: is_bench, is_sample
+- Classes to  define new Containers: GridContainerPost, ListContainerPost
+- Classes to define where new items are placed: ListContainerTargetLocation,
+    GridContainerTargetLocation, BenchTargetLocation, TopLevelTargetLocation
 
 ### Changed
 - BREAKING: altered create_grid_container and create_list_container location arguments

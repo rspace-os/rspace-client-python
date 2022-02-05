@@ -777,12 +777,11 @@ class TargetLocation:
 
     def __init__(self, target_container: Union[str, int, dict, Container]):
         """
-
         Parameters
         ----------
         target_container : Union[str, int, dict, Container]
             A numeric or global ID of a container, or a Container object, or a dict of a Container,
-            or a string 'w' for workbench, 't' for top-level.
+            or a string: 'w' for workbench, 't' for top-level.
         Raises
         ------
         ValueError
@@ -808,7 +807,7 @@ class TargetLocation:
         return f"{self.__class__.__name__}: {self.data!r}"
 
 
-class WorkbenchTargetLocation(TargetLocation):
+class BenchTargetLocation(TargetLocation):
     def __init__(self):
         super().__init__("w")
 
@@ -869,6 +868,10 @@ class ContainerPost(ItemPost):
 
 
 class ListContainerPost(ContainerPost):
+    """
+      Define a new ListContainer to create
+    """
+
     def __init__(
         self,
         name: str,
@@ -892,6 +895,10 @@ class ListContainerPost(ContainerPost):
 
 
 class GridContainerPost(ContainerPost):
+    """
+     Define a new grid container to create
+    """
+
     def __init__(
         self,
         name: str,

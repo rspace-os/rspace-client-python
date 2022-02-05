@@ -244,11 +244,11 @@ class InventoryApiTest(base.BaseApiTest):
         ss_dup = self.invapi.duplicate(ss)
         self.assertNotEqual(ss["id"], ss_dup["id"])
 
-    def test_get_workbenches(self):
-        workbenches = self.invapi.get_workbenches()
-        self.assertEqual(1, len(workbenches))
-        workbench_ob = inv.Container.of(workbenches[0])
-        self.assertTrue(workbench_ob.is_workbench())
+    def test_get_benches(self):
+        benches = self.invapi.get_workbenches()
+        self.assertEqual(1, len(benches))
+        bench_ob = inv.Container.of(benches[0])
+        self.assertTrue(bench_ob.is_workbench())
 
     def test_bulk_create_top_level_containers(self):
         list_post = inv.ListContainerPost("list1", description="xxx")
@@ -259,10 +259,10 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_bulk_create_containers_in_bench(self):
         list_post = inv.ListContainerPost(
-            "list1", description="xxx", location=inv.WorkbenchTargetLocation()
+            "list1", description="xxx", location=inv.BenchTargetLocation()
         )
         grid_post = inv.GridContainerPost(
-            "grid1", 2, 4, description="xxx", location=inv.WorkbenchTargetLocation()
+            "grid1", 2, 4, description="xxx", location=inv.BenchTargetLocation()
         )
         results = self.invapi.bulk_create_container(list_post, grid_post)
         self.assertTrue(results.is_ok())
@@ -362,9 +362,9 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(0, len(ct["parentContainers"]))
         self.assertFalse(ct["canStoreSamples"])
 
-        ## create in workbench
+        ## create in Bench
         ct_in_wb = self.invapi.create_list_container(
-            name, tags="ab,cd,ef", location=inv.TargetLocation("w")
+            name, tags="ab,cd,ef", location=inv.BenchTargetLocation()
         )
         self.assertEqual("BE", ct_in_wb["parentContainers"][0]["globalId"][0:2])
 
