@@ -599,6 +599,9 @@ class Id:
     def is_bench(self, maybe: bool = False) -> bool:
         return self._check("BE", maybe)
 
+    def is_sample(self, maybe: bool = False) -> bool:
+        return self._check("SA", maybe)
+
     def is_movable(self, maybe: bool = False) -> bool:
         return self.is_subsample(maybe) or self.is_container(maybe)
 
