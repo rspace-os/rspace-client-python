@@ -245,6 +245,21 @@ class BulkOperationResult:
 
     def is_ok(self):
         return self.data["status"] == "COMPLETED"
+    
+    def results(self):
+        return self.data["results"]
+    
+    def success_results(self):
+        """
+        Returns results as list of dicts{record: error:} where result was successful
+        """
+        return list(filter( lambda x: x['record'] is not None,  self.results()))
+    
+    def error_results(self):
+        """
+        Returns results as list of dicts{record: error:} where  error field is not None
+        """
+        return list(filter (lambda x: x["error"] is not None, self.results()))
 
     def is_failed(self):
         return not self.is_ok()
@@ -580,6 +595,9 @@ class Id:
 
     def is_subsample(self, maybe: bool = False) -> bool:
         return self._check("SS", maybe)
+    
+    def is_bench(self, maybe: bool = False) -> bool:
+        return self._check("BE", maybe)
 
     def is_movable(self, maybe: bool = False) -> bool:
         return self.is_subsample(maybe) or self.is_container(maybe)

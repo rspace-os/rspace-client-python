@@ -2,12 +2,16 @@
 
 All notable changes to this project will be documented in this file
 
+## Proposed breaking changes
+ - replace naming of classes and methods using 'Workbench' to 'Bench'
+
 ## Unreleased
 
 ### Added
 
 - static method Id.is_valid_id() to check if an object can be parsed as an id
 - bulk 'createContainer' methods 
+- methods 'error_results' and 'success_results' on BulkOperationResult
 
 ### Changed
 - BREAKING: altered create_grid_container and create_list_container location arguments
