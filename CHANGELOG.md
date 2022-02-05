@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file
 
 ## Proposed breaking changes
  - replace naming of classes and methods using 'Workbench' to 'Bench'
+ - replace create_sample, create_container long argument lists with new XXXPost objects
 
 ## Unreleased
 
