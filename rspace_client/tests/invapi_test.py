@@ -375,15 +375,15 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(
             ct["globalId"], ct_sub_container["parentContainers"][0]["globalId"]
         )
-        
+
     def test_create_image_container(self):
-        image_file=base.get_datafile("freezer.jpg")
-        loci = [(180,300), (740, 350), (520,300)]
+        image_file = base.get_datafile("freezer.jpg")
+        loci = [(180, 300), (740, 350), (520, 300)]
         image_post = inv.ImageContainerPost("freezer", image_file, loci)
-        c= self.invapi.create_image_container(image_post)
-        self.assertIsNotNone(c['id'])
-        self.assertEqual(3, len(c['locations']))
-        
+        c = self.invapi.create_image_container(image_post)
+        self.assertIsNotNone(c["id"])
+        self.assertEqual(3, len(c["locations"]))
+
     def test_move_container_to_list_container(self):
         name = base.random_string() + "_to_move"
         toMove = self.invapi.create_list_container(name)

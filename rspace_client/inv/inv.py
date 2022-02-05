@@ -893,6 +893,7 @@ class ListContainerPost(ContainerPost):
         )
         self.data["cType"] = "LIST"
 
+
 class ImageContainerPost(ContainerPost):
     """
       Define a new ImageContainer to create.
@@ -902,7 +903,7 @@ class ImageContainerPost(ContainerPost):
         self,
         name: str,
         image_file_path: str,
-        locations : Optional[Sequence] = [],
+        locations: Optional[Sequence] = [],
         tags: Optional[str] = None,
         description: Optional[str] = None,
         extra_fields: Optional[Sequence] = [],
@@ -940,13 +941,14 @@ class ImageContainerPost(ContainerPost):
             location,
         )
         with open(image_file_path, "rb") as img_file:
-            image_b64 = base64.b64encode(img_file.read()).decode('ascii')
-            print("x"+ (str(image_b64)))
-            self.data['newBase64LocationsImage']="data:image/png;base64," + str(image_b64)
-        locs = [{'coordX': p[0], 'coordY':p[1]} for p in locations ]
-        self.data['locations'] = locs 
+            image_b64 = base64.b64encode(img_file.read()).decode("ascii")
+            print("x" + (str(image_b64)))
+            self.data["newBase64LocationsImage"] = "data:image/png;base64," + str(
+                image_b64
+            )
+        locs = [{"coordX": p[0], "coordY": p[1]} for p in locations]
+        self.data["locations"] = locs
         self.data["cType"] = "IMAGE"
-        
 
 
 class GridContainerPost(ContainerPost):
@@ -980,6 +982,7 @@ class GridContainerPost(ContainerPost):
             "columnsNumber": column_count,
             "rowsNumber": row_count,
         }
+
 
 class InventoryClient(ClientBase):
     """
@@ -1429,6 +1432,7 @@ class InventoryClient(ClientBase):
             "/containers", request_type="POST", params=imageContainerPost.data
         )
         return container
+
     def create_list_container(
         self,
         name: str,
