@@ -3,7 +3,7 @@ import datetime, math
 
 import json
 import re
-import sys
+import sys, io, base64
 import requests
 import pprint
 from typing import Optional, Sequence, Union, List
@@ -893,6 +893,61 @@ class ListContainerPost(ContainerPost):
         )
         self.data["cType"] = "LIST"
 
+class ImageContainerPost(ContainerPost):
+    """
+      Define a new ImageContainer to create.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        image_file_path: str,
+        locations : Optional[Sequence] = [],
+        tags: Optional[str] = None,
+        description: Optional[str] = None,
+        extra_fields: Optional[Sequence] = [],
+        can_store_containers: bool = True,
+        can_store_samples: bool = True,
+        location: TargetLocation = TopLevelTargetLocation(),
+    ):
+        """
+        Parameters
+        ----------
+        name : str
+            Name of the image container.
+        image_file_path : str
+            A full file path to the image to use.
+        locations : Optional[Sequence], optional
+            An optional list of (x,y) coordinate tuples of marked locations.
+        tags : Optional[str], optional
+            Comma separated tags
+        description : Optional[str], optional
+        extra_fields : Optional[Sequence], optional
+        can_store_containers : bool, optional
+            The default is True.
+        can_store_samples : bool, optional
+            The default is True.
+        location : TargetLocation, optional
+            The default is TopLevelTargetLocation.
+        """
+        super().__init__(
+            name,
+            tags,
+            description,
+            extra_fields,
+            can_store_containers,
+            can_store_samples,
+            location,
+        )
+        with open(image_file_path, "rb") as img_file:
+            image_b64 = base64.b64encode(img_file.read()).decode('ascii')
+            print("x"+ (str(image_b64)))
+            self.data['newBase64LocationsImage']="data:image/png;base64," + str(image_b64)
+        locs = [{'coordX': p[0], 'coordY':p[1]} for p in locations ]
+        self.data['locations'] = locs 
+        self.data["cType"] = "IMAGE"
+        
+
 
 class GridContainerPost(ContainerPost):
     """
@@ -925,7 +980,6 @@ class GridContainerPost(ContainerPost):
             "columnsNumber": column_count,
             "rowsNumber": row_count,
         }
-
 
 class InventoryClient(ClientBase):
     """
@@ -1152,7 +1206,6 @@ class InventoryClient(ClientBase):
         Returns
         -------
         None.
-
         """
         id_to_delete = Id(sample_id)
         self.doDelete("samples", id_to_delete.as_id())
@@ -1219,7 +1272,6 @@ class InventoryClient(ClientBase):
         Returns
         -------
         A list of split subsamples
-
         """
 
         def _do_call(ss_id, params):
@@ -1291,7 +1343,6 @@ class InventoryClient(ClientBase):
         Returns
         -------
         The duplicated item
-
         """
         id_to_copy = Id(item_to_duplicate)
         endpoint = id_to_copy.get_api_endpoint()
@@ -1373,6 +1424,11 @@ class InventoryClient(ClientBase):
         bulk_post = {"operationType": "CREATE", "records": toPost}
         return self._do_bulk(bulk_post)
 
+    def create_image_container(self, imageContainerPost: ImageContainerPost):
+        container = self.retrieve_api_results(
+            "/containers", request_type="POST", params=imageContainerPost.data
+        )
+        return container
     def create_list_container(
         self,
         name: str,
@@ -1536,7 +1592,6 @@ class InventoryClient(ClientBase):
         -------
         list
             A list of updated items showing their current position
-
         """
         if isinstance(target_container_id, GridContainer):
             if target_container_id.free() < len(grid_placement.items_to_move):
@@ -1727,7 +1782,6 @@ class InventoryClient(ClientBase):
         -------
         Dict
             The newly created template.
-
         """
         return self.retrieve_api_results(
             "/sampleTemplates", request_type="POST", params=sample_template_post
@@ -1804,7 +1858,6 @@ class InventoryClient(ClientBase):
         Returns
         -------
         void, no return value
-
         """
         st_id = Id(sample_template_id)
         url_base = self._get_api_url()
@@ -1846,7 +1899,6 @@ class InventoryClient(ClientBase):
         -------
         dict
             The updated template.
-
         """
         id_to_restore = Id(sample_template_id)
         return self.retrieve_api_results(
@@ -1869,7 +1921,6 @@ class InventoryClient(ClientBase):
         -------
         dict
             The updated sample template.
-
         """
         st_id = Id(sample_template_id)
         return self._do_transfer_owner("sampleTemplates", st_id, new_owner)
@@ -1888,7 +1939,6 @@ class InventoryClient(ClientBase):
         -------
         dict
             The updated sample.
-
         """
         sample_id = Id(sample_id)
         return self._do_transfer_owner("samples", sample_id, new_owner)
