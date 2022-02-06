@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file
 - Classes to  define new Containers: GridContainerPost, ListContainerPost
 - Classes to define where new items are placed: ListContainerTargetLocation,
     GridContainerTargetLocation, BenchTargetLocation, TopLevelTargetLocation
+- create ImageContainer, createInImageContainer,add_items_to_image_container
 
 ### Changed
 - BREAKING: altered create_grid_container and create_list_container location arguments

@@ -376,13 +376,36 @@ class InventoryApiTest(base.BaseApiTest):
             ct["globalId"], ct_sub_container["parentContainers"][0]["globalId"]
         )
 
-    def test_create_image_container(self):
+    def _createImageContainerPost(self):
         image_file = base.get_datafile("freezer.jpg")
         loci = [(180, 300), (740, 350), (520, 300)]
         image_post = inv.ImageContainerPost("freezer", image_file, loci)
+        return image_post
+
+    def test_create_image_container(self):
+        image_post = self._createImageContainerPost()
         c = self.invapi.create_image_container(image_post)
         self.assertIsNotNone(c["id"])
         self.assertEqual(3, len(c["locations"]))
+
+    def test_create_container_in_image_container(self):
+        image_post = self._createImageContainerPost()
+        image_c = self.invapi.create_image_container(image_post)
+        first_location = image_c["locations"][0]["id"]
+        sub_container = self.invapi.create_list_container(
+            "list",
+            location=inv.ImageContainerTargetLocation(image_c["id"], first_location),
+        )
+
+        self.assertEqual(image_c["id"], sub_container["parentContainers"][0]["id"])
+
+    def test_add_items_to_image_container(self):
+        image_post = self._createImageContainerPost()
+        image_c = self.invapi.create_image_container(image_post)
+        loci = [l["id"] for l in image_c["locations"]]
+        sample = self.invapi.create_sample("in-image", subsample_count=3)
+        self.invapi.add_items_to_image_container(image_c, sample["subSamples"], loci)
+        ## TODO add assertions and validation of IDs as being movable
 
     def test_move_container_to_list_container(self):
         name = base.random_string() + "_to_move"

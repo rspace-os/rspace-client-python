@@ -822,6 +822,22 @@ class ListContainerTargetLocation(TargetLocation):
         super().__init__(target_container)
 
 
+class ImageContainerTargetLocation(TargetLocation):
+    """
+     An location in an ImageContainer is specified by the the container, and the 
+     ID of the location within the container.
+    """
+
+    def __init__(
+        self,
+        target_container: Union[str, int, dict, Container],
+        target_location_id: int,
+    ):
+        super().__init__(target_container)
+        self.data["parentLocation"] = {"id": target_location_id}
+        del self.data["parentContainers"]
+
+
 class GridContainerTargetLocation(TargetLocation):
     """
     Defines the identity of a grid location to move into, and its coordinates in the grid.
@@ -862,6 +878,7 @@ class ContainerPost(ItemPost):
         self.data["canStoreContainers"] = can_store_containers
         self.data["canStoreSamples"] = can_store_samples
         self.data.update(location.data)
+        print(self.data)
 
     def __repr__(self):
         return f"{self.__class__.__name__}: {self.data!r}"
@@ -942,7 +959,6 @@ class ImageContainerPost(ContainerPost):
         )
         with open(image_file_path, "rb") as img_file:
             image_b64 = base64.b64encode(img_file.read()).decode("ascii")
-            print("x" + (str(image_b64)))
             self.data["newBase64LocationsImage"] = "data:image/png;base64," + str(
                 image_b64
             )
@@ -1524,7 +1540,21 @@ class InventoryClient(ClientBase):
         )
         return container
 
-    def set_as_top_level_container(self, container: Union[int, str, dict, Container]):
+    def set_as_top_level_container(
+        self, container: Union[int, str, dict, Container]
+    ) -> dict:
+        """
+        Moves a container from its current location to be a top-level container    
+
+        Parameters
+        ----------
+        container : Union[int, str, dict, Container]
+            Id, dict or container object.
+        Returns
+        -------
+        The updated container
+
+        """
         data = {"removeFromParentContainerRequest": True}
         c_id = Id(container)
 
@@ -1573,6 +1603,31 @@ class InventoryClient(ClientBase):
 
         return self._do_add_to_list_container(valid_item_ids, id_target)
 
+    def add_items_to_image_container(
+        self,
+        target_container_id: Union[str, int, dict],
+        items_to_move: Sequence,
+        location_ids: Sequence,
+    ) -> BulkOperationResult:
+
+        id_target = Id(target_container_id)
+        if not id_target.is_container(maybe=True):
+            raise ValueError("Target must be a container")
+
+        loci = []
+        for (item, loc_id) in zip(items_to_move, location_ids):
+            item_id = Id(item)
+            loci.append(
+                {
+                    "type": item_id.get_type(),
+                    "id": item_id.as_id(),
+                    "parentLocation": {"id": loc_id},
+                }
+            )
+        bulk_post = {"operationType": "MOVE", "records": loci}
+        print(bulk_post)
+        return self._do_bulk(bulk_post)
+
     def add_items_to_grid_container(
         self,
         target_container_id: Union[str, int, GridContainer],
@@ -1609,14 +1664,7 @@ class InventoryClient(ClientBase):
 
         bulk_post = self._create_bulk_move(id_target, grid_placement)
 
-        ## get target - are there enough spaces?
-        ## iterate over grid (0 or 1 based?)
-        ## use bulk API?
-
-        resp_json = self.retrieve_api_results(
-            "/bulk", request_type="POST", params=bulk_post
-        )
-        return BulkOperationResult(resp_json)
+        return self._do_bulk(bulk_post)
 
     def _do_add_to_list_container(self, items, id_target):
         coords = []
@@ -1629,12 +1677,7 @@ class InventoryClient(ClientBase):
                 }
             )
         to_post = {"operationType": "MOVE", "records": coords}
-
-        resp_json = self.retrieve_api_results(
-            "/bulk", request_type="POST", params=to_post
-        )
-
-        return BulkOperationResult(resp_json)
+        return self._do_bulk(to_post)
 
     def _create_bulk_move(self, grid_id: Id, gp: GridPlacement):
         coords = []  # array of x,y coords
