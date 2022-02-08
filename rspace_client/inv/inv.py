@@ -878,7 +878,6 @@ class ContainerPost(ItemPost):
         self.data["canStoreContainers"] = can_store_containers
         self.data["canStoreSamples"] = can_store_samples
         self.data.update(location.data)
-        print(self.data)
 
     def __repr__(self):
         return f"{self.__class__.__name__}: {self.data!r}"
@@ -1562,9 +1561,13 @@ class InventoryClient(ClientBase):
             f"/containers/{c_id.as_id()}", request_type="PUT", params=data
         )
 
-    def add_items_to_list_container(
-        self, target_container_id: Union[str, int], *item_ids: str,
-    ) -> list:
+    def _id_as_container_id(self, target_container_id):
+        id_target = Id(target_container_id)
+        if not id_target.is_container(maybe=True):
+            raise ValueError("Target must be a container")
+        return id_target
+
+    def add_items_to_list_container(self, target_container_id, *item_ids: str,) -> list:
         """
         Adds 1 or more items to a list container
 
@@ -1584,12 +1587,9 @@ class InventoryClient(ClientBase):
         Returns
         -------
         BulkoperationResult
-
         """
-        id_target = Id(target_container_id)
-        if not id_target.is_container(maybe=True):
-            raise ValueError("Target must be a container")
 
+        id_target = self._id_as_container_id(target_container_id)
         valid_item_ids = []
 
         ## assert there are no invalid globai ids
@@ -1609,10 +1609,24 @@ class InventoryClient(ClientBase):
         items_to_move: Sequence,
         location_ids: Sequence,
     ) -> BulkOperationResult:
+        """
+        Adds a list of items to move to a list of  locations in an image container.
+        The 2 lists must be of equal length. If unequal length, items in the longer list
+         will be ignored once items in the shorter list are exhausted (like 'zip' function)
+        Parameters
+        ----------
+        target_container_id : Union[str, int, dict]
+            DESCRIPTION.
+        items_to_move : Sequence
+            A list of globalIds or dicts of items to move.
+        location_ids : Sequence
+            A List of location identifiers that are the ids of image container locations.
+        Returns
+        -------
+        BulkOperationResult
+        """
 
-        id_target = Id(target_container_id)
-        if not id_target.is_container(maybe=True):
-            raise ValueError("Target must be a container")
+        self._id_as_container_id(target_container_id)
 
         loci = []
         for (item, loc_id) in zip(items_to_move, location_ids):
@@ -1625,7 +1639,6 @@ class InventoryClient(ClientBase):
                 }
             )
         bulk_post = {"operationType": "MOVE", "records": loci}
-        print(bulk_post)
         return self._do_bulk(bulk_post)
 
     def add_items_to_grid_container(
@@ -1646,7 +1659,6 @@ class InventoryClient(ClientBase):
         ------
         ValueError
             If items are the wrong or inconsistent type
-
         Returns
         -------
         list
@@ -1657,13 +1669,10 @@ class InventoryClient(ClientBase):
                 raise ValueError(
                     f"not enough space in {target_container_id.data['globalId']} to store {len(grid_placement.items_to_move)} - only {target_container_id.free()} spaces free."
                 )
-        id_target = Id(target_container_id)
-        if not id_target.is_container(maybe=True):
-            raise ValueError("Target must be a container")
+        id_target = self._id_as_container_id(target_container_id)
         ## assert there are no invalid global ids (things that are not subsamples)
 
         bulk_post = self._create_bulk_move(id_target, grid_placement)
-
         return self._do_bulk(bulk_post)
 
     def _do_add_to_list_container(self, items, id_target):

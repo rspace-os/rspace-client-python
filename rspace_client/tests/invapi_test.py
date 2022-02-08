@@ -404,7 +404,11 @@ class InventoryApiTest(base.BaseApiTest):
         image_c = self.invapi.create_image_container(image_post)
         loci = [l["id"] for l in image_c["locations"]]
         sample = self.invapi.create_sample("in-image", subsample_count=3)
-        self.invapi.add_items_to_image_container(image_c, sample["subSamples"], loci)
+        result = self.invapi.add_items_to_image_container(
+            image_c, sample["subSamples"], loci
+        )
+        self.assertTrue(result.is_ok())
+        self.assertEqual(3, len(result.success_results()))
         ## TODO add assertions and validation of IDs as being movable
 
     def test_move_container_to_list_container(self):
