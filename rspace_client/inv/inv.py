@@ -273,7 +273,7 @@ class BulkOperationResult:
 
 class Container:
     """
-    Base class of all Container types
+    Base class of all Container types (representing Container data obtained from RSpace).
     """
 
     @classmethod
@@ -303,6 +303,8 @@ class Container:
             return ListContainer(container)
         elif container["cType"] == "WORKBENCH":
             return Workbench(container)
+        elif container["cType"] == "IMAGE":
+            return ImageContainer(container)
         else:
             raise ValueError(f"unsupported container type {container['cType']}")
 
@@ -330,6 +332,9 @@ class Container:
         return False
 
     def is_workbench(self) -> bool:
+        return False
+    
+    def is_image(self) -> bool:
         return False
 
     def accept_subsamples(self) -> bool:
@@ -364,6 +369,42 @@ class ListContainer(Container):
         return f"{self.__class__.__name__}, id={self.data['globalId']!r},storesContainers={self.accept_containers()},\
 storesSubsamples={self.accept_subsamples}"
 
+class ImageContainer(Container):
+    """
+    Wrapper around dict of ImageContainer JSON
+    """
+    def __init__(self, image_container: dict):
+        super().__init__(image_container)
+        self._validate_type(image_container, "IMAGE")
+        
+    def is_image(self) -> bool:
+        return True
+    
+    def capacity(self) -> int:
+        """
+        Returns number of locations defined.
+        """
+        return len(self.data['locations'])
+    
+    
+    def free_locations(self) ->int:
+        """
+        Returns
+        -------
+        int
+            Number of locations with no content.
+
+        """
+        return len(list(filter(lambda x: x['content'] is None, self.data['locations'] )))
+    
+    def used_locations(self) -> int:
+        """
+        Returns
+        -------
+        int
+            Number of locations with content.
+        """
+        return self.capacity()  - self.free_locations()
 
 class Workbench(Container):
     """
@@ -1443,6 +1484,18 @@ class InventoryClient(ClientBase):
         return self._do_bulk(bulk_post)
 
     def create_image_container(self, imageContainerPost: ImageContainerPost):
+        """
+        Create a single image container
+
+        Parameters
+        ----------
+        imageContainerPost : ImageContainerPost
+            A definition of the ImageContainerPost to create.
+
+        Returns
+        -------
+        container : A dict of JSON data representing the newly created container.
+        """
         container = self.retrieve_api_results(
             "/containers", request_type="POST", params=imageContainerPost.data
         )
@@ -1616,7 +1669,7 @@ class InventoryClient(ClientBase):
         Parameters
         ----------
         target_container_id : Union[str, int, dict]
-            DESCRIPTION.
+            An identifier for the container.
         items_to_move : Sequence
             A list of globalIds or dicts of items to move.
         location_ids : Sequence
