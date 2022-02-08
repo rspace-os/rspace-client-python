@@ -878,7 +878,6 @@ class ImageContainerTargetLocation(TargetLocation):
         self.data["parentLocation"] = {"id": target_location_id}
         del self.data["parentContainers"]
 
-
 class GridContainerTargetLocation(TargetLocation):
     """
     Defines the identity of a grid location to move into, and its coordinates in the grid.
@@ -955,7 +954,6 @@ class ImageContainerPost(ContainerPost):
     """
       Define a new ImageContainer to create.
     """
-
     def __init__(
         self,
         name: str,
@@ -1605,7 +1603,6 @@ class InventoryClient(ClientBase):
         Returns
         -------
         The updated container
-
         """
         data = {"removeFromParentContainerRequest": True}
         c_id = Id(container)
@@ -1678,7 +1675,6 @@ class InventoryClient(ClientBase):
         -------
         BulkOperationResult
         """
-
         self._id_as_container_id(target_container_id)
 
         loci = []

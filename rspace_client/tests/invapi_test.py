@@ -415,10 +415,10 @@ class InventoryApiTest(base.BaseApiTest):
         )
         self.assertTrue(result.is_ok())
         self.assertEqual(3, len(result.success_results()))
-        ## TODO add assertions and validation of IDs as being movable
         ## reload:
         image_c = inv.ImageContainer(self.invapi.get_container_by_id(image_c))
         self.assertEqual(0,  image_c.free_locations())
+        self.assertEqual(3,  image_c.capacity())
 
     def test_move_container_to_list_container(self):
         name = base.random_string() + "_to_move"
