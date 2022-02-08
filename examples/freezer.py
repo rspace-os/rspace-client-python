@@ -17,6 +17,7 @@ from rspace_client.inv.inv import (
     ByRow,
     ByColumn,
     SamplePost,
+    GridContainerPost
 )
 
 #%%
@@ -78,11 +79,15 @@ class FreezerCreator:
 
     def create_tier(self, n, name_prefix, rows, columns, store_samples=False):
         items = []
+        posts=[]
         for i in range(n):
-            item = self.cli.create_grid_container(
-                f"{name_prefix}-{i}", rows, columns, can_store_samples=store_samples
-            )
-            items.append(item["globalId"])
+            c_post = GridContainerPost(f"{name_prefix}-{i}", rows, columns, can_store_samples=store_samples)
+            posts.append(c_post)
+        
+        results = self.cli.bulk_create_container(*posts)
+        if not results.is_ok():
+            raise Exception("creating didn't work")
+        items = [c['record']['globalId'] for c in results.success_results()]
         return items
 
     def add_to_parent_tier(self, parents, parents_per_gp, items_per_parent, items):
