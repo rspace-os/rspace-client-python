@@ -138,13 +138,13 @@ for box in freezer["boxes"]:
         file=sys.stderr,
     )
 
-    ## we can move 8 samples at a time
+    ## we can move 12 samples at a time
     ss_ids = []
     for result in resp.data["results"]:
         sample = result["record"]
         s_ids = [ss["globalId"] for ss in sample["subSamples"]]
         ss_ids.extend(s_ids)
-    print(f"moving {samples_created} samples to {box}", file=sys.stderr)
+    print(f"moving {box_cols} samples to {box}", file=sys.stderr)
     gp = ByColumn(col, 1, box_cols, box_rows, *ss_ids)
     cli.add_items_to_grid_container(box, gp)
     stop = time.perf_counter()
