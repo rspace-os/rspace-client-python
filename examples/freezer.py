@@ -141,7 +141,7 @@ for box in freezer["boxes"]:
     col = 1
     samples_created = samples_created + box_cols
     print(
-        f" created {samples_created} samples / {total_samples_to_create}",
+        f" created {box_cols} samples / {total_samples_to_create}",
         file=sys.stderr,
     )
 
@@ -156,3 +156,4 @@ for box in freezer["boxes"]:
     cli.add_items_to_grid_container(box, gp)
     stop = time.perf_counter()
     print(f"Filling {box} took {(stop - st):.2f}s", file=sys.stderr)
+print("COMPLETED", file=sys.stderr)
