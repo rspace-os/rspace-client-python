@@ -878,8 +878,6 @@ class ContainerPost(ItemPost):
         self.data["canStoreContainers"] = can_store_containers
         self.data["canStoreSamples"] = can_store_samples
         self.data.update(location.data)
-        print(self.data)
-
     def __repr__(self):
         return f"{self.__class__.__name__}: {self.data!r}"
 
@@ -1625,7 +1623,6 @@ class InventoryClient(ClientBase):
                 }
             )
         bulk_post = {"operationType": "MOVE", "records": loci}
-        print(bulk_post)
         return self._do_bulk(bulk_post)
 
     def add_items_to_grid_container(
