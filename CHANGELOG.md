@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file
 
 ## Unreleased
 
-## 2.3.0 2022-02-09
+## 2.3.1 2022-02-09
 
 ### Added
 
@@ -24,6 +24,9 @@ All notable changes to this project will be documented in this file
 
 ### Changed
 - BREAKING: altered create_grid_container and create_list_container location arguments
+
+## 2.3.0 2022-02-01
+- incorrectly built. Obsolete 
 
 ## 2.2.2 2022-02-01
 
