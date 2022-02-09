@@ -867,8 +867,8 @@ class ListContainerTargetLocation(TargetLocation):
 
 class ImageContainerTargetLocation(TargetLocation):
     """
-     An location in an ImageContainer is specified by the the container, and the 
-     ID of the location within the container.
+    An location in an ImageContainer is specified by the the container, and the
+    ID of the location within the container.
     """
 
     def __init__(
@@ -928,7 +928,7 @@ class ContainerPost(ItemPost):
 
 class ListContainerPost(ContainerPost):
     """
-      Define a new ListContainer to create
+    Define a new ListContainer to create
     """
 
     def __init__(
@@ -955,7 +955,7 @@ class ListContainerPost(ContainerPost):
 
 class ImageContainerPost(ContainerPost):
     """
-      Define a new ImageContainer to create.
+    Define a new ImageContainer to create.
     """
 
     def __init__(
@@ -1011,7 +1011,7 @@ class ImageContainerPost(ContainerPost):
 
 class GridContainerPost(ContainerPost):
     """
-     Define a new grid container to create
+    Define a new grid container to create
     """
 
     def __init__(
@@ -1203,7 +1203,9 @@ class InventoryClient(ClientBase):
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
         return self.retrieve_api_results(
-            f"/{endpoint}", request_type="GET", params=pagination.data,
+            f"/{endpoint}",
+            request_type="GET",
+            params=pagination.data,
         )
 
     def stream_samples(
@@ -1408,7 +1410,8 @@ class InventoryClient(ClientBase):
         id_to_copy = Id(item_to_duplicate)
         endpoint = id_to_copy.get_api_endpoint()
         rc = self.retrieve_api_results(
-            f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate", request_type="POST",
+            f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate",
+            request_type="POST",
         )
         if new_name is not None:
             rc = self.rename(rc, new_name)
@@ -1449,7 +1452,9 @@ class InventoryClient(ClientBase):
             raise ValueError("Supplied id is not a subsamples")
         data = {"content": note}
         return self.retrieve_api_results(
-            f"/subSamples/{ss_id.as_id()}/notes", request_type="POST", params=data,
+            f"/subSamples/{ss_id.as_id()}/notes",
+            request_type="POST",
+            params=data,
         )
 
     def get_workbenches(self) -> Sequence[dict]:
@@ -1598,7 +1603,7 @@ class InventoryClient(ClientBase):
         self, container: Union[int, str, dict, Container]
     ) -> dict:
         """
-        Moves a container from its current location to be a top-level container    
+        Moves a container from its current location to be a top-level container
 
         Parameters
         ----------
@@ -1621,7 +1626,11 @@ class InventoryClient(ClientBase):
             raise ValueError("Target must be a container")
         return id_target
 
-    def add_items_to_list_container(self, target_container_id, *item_ids: str,) -> list:
+    def add_items_to_list_container(
+        self,
+        target_container_id,
+        *item_ids: str,
+    ) -> list:
         """
         Adds 1 or more items to a list container
 
@@ -2011,7 +2020,8 @@ class InventoryClient(ClientBase):
         """
         id_to_restore = Id(sample_template_id)
         return self.retrieve_api_results(
-            f"/sampleTemplates/{id_to_restore.as_id()}/restore", request_type="PUT",
+            f"/sampleTemplates/{id_to_restore.as_id()}/restore",
+            request_type="PUT",
         )
 
     def transfer_sample_template_owner(
