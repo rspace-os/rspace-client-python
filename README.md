@@ -23,8 +23,13 @@ See [DEVELOPING.md](DEVELOPING.md) for details of running tests.
 To install rspace-client and its dependencies, run
 
 ```bash
-pip install rspace-client==2.2.2
+pip install rspace-client==2.3.0
 ```
+
+### Compatibility with RSpace server versions
+
+ELN API compatible with 1.69 or later
+Inventory API compatible with 1.73, 1.74
 
 
 You may need to install `requests` module:

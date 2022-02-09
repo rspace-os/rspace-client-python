@@ -376,6 +376,50 @@ class InventoryApiTest(base.BaseApiTest):
             ct["globalId"], ct_sub_container["parentContainers"][0]["globalId"]
         )
 
+    def _createImageContainerPost(self):
+        image_file = base.get_datafile("freezer.jpg")
+        loci = [(180, 300), (740, 350), (520, 300)]
+        image_post = inv.ImageContainerPost("freezer", image_file, loci)
+        return image_post
+
+    def test_create_image_container(self):
+        image_post = self._createImageContainerPost()
+        c = self.invapi.create_image_container(image_post)
+        self.assertIsNotNone(c["id"])
+        self.assertEqual(3, len(c["locations"]))
+
+        image_c_object = inv.ImageContainer(c)
+        self.assertTrue(image_c_object.is_image())
+        self.assertEqual(3, image_c_object.capacity())
+        self.assertEqual(0, image_c_object.used_locations())
+        self.assertEqual(3, image_c_object.free_locations())
+
+    def test_create_container_in_image_container(self):
+        image_post = self._createImageContainerPost()
+        image_c = self.invapi.create_image_container(image_post)
+        first_location = image_c["locations"][0]["id"]
+        sub_container = self.invapi.create_list_container(
+            "list",
+            location=inv.ImageContainerTargetLocation(image_c["id"], first_location),
+        )
+
+        self.assertEqual(image_c["id"], sub_container["parentContainers"][0]["id"])
+
+    def test_add_items_to_image_container(self):
+        image_post = self._createImageContainerPost()
+        image_c = self.invapi.create_image_container(image_post)
+        loci = [l["id"] for l in image_c["locations"]]
+        sample = self.invapi.create_sample("in-image", subsample_count=3)
+        result = self.invapi.add_items_to_image_container(
+            image_c, sample["subSamples"], loci
+        )
+        self.assertTrue(result.is_ok())
+        self.assertEqual(3, len(result.success_results()))
+        ## reload:
+        image_c = inv.ImageContainer(self.invapi.get_container_by_id(image_c))
+        self.assertEqual(0, image_c.free_locations())
+        self.assertEqual(3, image_c.capacity())
+
     def test_move_container_to_list_container(self):
         name = base.random_string() + "_to_move"
         toMove = self.invapi.create_list_container(name)

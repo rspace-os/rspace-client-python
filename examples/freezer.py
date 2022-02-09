@@ -17,6 +17,7 @@ from rspace_client.inv.inv import (
     ByRow,
     ByColumn,
     SamplePost,
+    GridContainerPost,
 )
 
 #%%
@@ -78,11 +79,17 @@ class FreezerCreator:
 
     def create_tier(self, n, name_prefix, rows, columns, store_samples=False):
         items = []
+        posts = []
         for i in range(n):
-            item = self.cli.create_grid_container(
+            c_post = GridContainerPost(
                 f"{name_prefix}-{i}", rows, columns, can_store_samples=store_samples
             )
-            items.append(item["globalId"])
+            posts.append(c_post)
+
+        results = self.cli.bulk_create_container(*posts)
+        if not results.is_ok():
+            raise Exception("creating didn't work")
+        items = [c["record"]["globalId"] for c in results.success_results()]
         return items
 
     def add_to_parent_tier(self, parents, parents_per_gp, items_per_parent, items):
@@ -134,8 +141,7 @@ for box in freezer["boxes"]:
     col = 1
     samples_created = samples_created + box_cols
     print(
-        f" created {samples_created} samples / {total_samples_to_create}",
-        file=sys.stderr,
+        f" created {box_cols} samples / {total_samples_to_create}", file=sys.stderr,
     )
 
     ## we can move 12 samples at a time
@@ -149,3 +155,4 @@ for box in freezer["boxes"]:
     cli.add_items_to_grid_container(box, gp)
     stop = time.perf_counter()
     print(f"Filling {box} took {(stop - st):.2f}s", file=sys.stderr)
+print("COMPLETED", file=sys.stderr)

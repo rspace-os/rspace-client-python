@@ -3,7 +3,7 @@ import datetime, math
 
 import json
 import re
-import sys
+import sys, io, base64
 import requests
 import pprint
 from typing import Optional, Sequence, Union, List
@@ -273,7 +273,7 @@ class BulkOperationResult:
 
 class Container:
     """
-    Base class of all Container types
+    Base class of all Container types (representing Container data obtained from RSpace).
     """
 
     @classmethod
@@ -303,6 +303,8 @@ class Container:
             return ListContainer(container)
         elif container["cType"] == "WORKBENCH":
             return Workbench(container)
+        elif container["cType"] == "IMAGE":
+            return ImageContainer(container)
         else:
             raise ValueError(f"unsupported container type {container['cType']}")
 
@@ -330,6 +332,9 @@ class Container:
         return False
 
     def is_workbench(self) -> bool:
+        return False
+
+    def is_image(self) -> bool:
         return False
 
     def accept_subsamples(self) -> bool:
@@ -363,6 +368,44 @@ class ListContainer(Container):
     def __repr__(self):
         return f"{self.__class__.__name__}, id={self.data['globalId']!r},storesContainers={self.accept_containers()},\
 storesSubsamples={self.accept_subsamples}"
+
+
+class ImageContainer(Container):
+    """
+    Wrapper around dict of ImageContainer JSON
+    """
+
+    def __init__(self, image_container: dict):
+        super().__init__(image_container)
+        self._validate_type(image_container, "IMAGE")
+
+    def is_image(self) -> bool:
+        return True
+
+    def capacity(self) -> int:
+        """
+        Returns number of locations defined.
+        """
+        return len(self.data["locations"])
+
+    def free_locations(self) -> int:
+        """
+        Returns
+        -------
+        int
+            Number of locations with no content.
+
+        """
+        return len(list(filter(lambda x: x["content"] is None, self.data["locations"])))
+
+    def used_locations(self) -> int:
+        """
+        Returns
+        -------
+        int
+            Number of locations with content.
+        """
+        return self.capacity() - self.free_locations()
 
 
 class Workbench(Container):
@@ -822,6 +865,22 @@ class ListContainerTargetLocation(TargetLocation):
         super().__init__(target_container)
 
 
+class ImageContainerTargetLocation(TargetLocation):
+    """
+     An location in an ImageContainer is specified by the the container, and the 
+     ID of the location within the container.
+    """
+
+    def __init__(
+        self,
+        target_container: Union[str, int, dict, Container],
+        target_location_id: int,
+    ):
+        super().__init__(target_container)
+        self.data["parentLocation"] = {"id": target_location_id}
+        del self.data["parentContainers"]
+
+
 class GridContainerTargetLocation(TargetLocation):
     """
     Defines the identity of a grid location to move into, and its coordinates in the grid.
@@ -892,6 +951,62 @@ class ListContainerPost(ContainerPost):
             location,
         )
         self.data["cType"] = "LIST"
+
+
+class ImageContainerPost(ContainerPost):
+    """
+      Define a new ImageContainer to create.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        image_file_path: str,
+        locations: Optional[Sequence] = [],
+        tags: Optional[str] = None,
+        description: Optional[str] = None,
+        extra_fields: Optional[Sequence] = [],
+        can_store_containers: bool = True,
+        can_store_samples: bool = True,
+        location: TargetLocation = TopLevelTargetLocation(),
+    ):
+        """
+        Parameters
+        ----------
+        name : str
+            Name of the image container.
+        image_file_path : str
+            A full file path to the image to use.
+        locations : Optional[Sequence], optional
+            An optional list of (x,y) coordinate tuples of marked locations.
+        tags : Optional[str], optional
+            Comma separated tags
+        description : Optional[str], optional
+        extra_fields : Optional[Sequence], optional
+        can_store_containers : bool, optional
+            The default is True.
+        can_store_samples : bool, optional
+            The default is True.
+        location : TargetLocation, optional
+            The default is TopLevelTargetLocation.
+        """
+        super().__init__(
+            name,
+            tags,
+            description,
+            extra_fields,
+            can_store_containers,
+            can_store_samples,
+            location,
+        )
+        with open(image_file_path, "rb") as img_file:
+            image_b64 = base64.b64encode(img_file.read()).decode("ascii")
+            self.data["newBase64LocationsImage"] = "data:image/png;base64," + str(
+                image_b64
+            )
+        locs = [{"coordX": p[0], "coordY": p[1]} for p in locations]
+        self.data["locations"] = locs
+        self.data["cType"] = "IMAGE"
 
 
 class GridContainerPost(ContainerPost):
@@ -1152,7 +1267,6 @@ class InventoryClient(ClientBase):
         Returns
         -------
         None.
-
         """
         id_to_delete = Id(sample_id)
         self.doDelete("samples", id_to_delete.as_id())
@@ -1219,7 +1333,6 @@ class InventoryClient(ClientBase):
         Returns
         -------
         A list of split subsamples
-
         """
 
         def _do_call(ss_id, params):
@@ -1291,7 +1404,6 @@ class InventoryClient(ClientBase):
         Returns
         -------
         The duplicated item
-
         """
         id_to_copy = Id(item_to_duplicate)
         endpoint = id_to_copy.get_api_endpoint()
@@ -1372,6 +1484,24 @@ class InventoryClient(ClientBase):
         toPost = [c.data for c in container_posts]
         bulk_post = {"operationType": "CREATE", "records": toPost}
         return self._do_bulk(bulk_post)
+
+    def create_image_container(self, imageContainerPost: ImageContainerPost):
+        """
+        Create a single image container
+
+        Parameters
+        ----------
+        imageContainerPost : ImageContainerPost
+            A definition of the ImageContainerPost to create.
+
+        Returns
+        -------
+        container : A dict of JSON data representing the newly created container.
+        """
+        container = self.retrieve_api_results(
+            "/containers", request_type="POST", params=imageContainerPost.data
+        )
+        return container
 
     def create_list_container(
         self,
@@ -1464,7 +1594,20 @@ class InventoryClient(ClientBase):
         )
         return container
 
-    def set_as_top_level_container(self, container: Union[int, str, dict, Container]):
+    def set_as_top_level_container(
+        self, container: Union[int, str, dict, Container]
+    ) -> dict:
+        """
+        Moves a container from its current location to be a top-level container    
+
+        Parameters
+        ----------
+        container : Union[int, str, dict, Container]
+            Id, dict or container object.
+        Returns
+        -------
+        The updated container
+        """
         data = {"removeFromParentContainerRequest": True}
         c_id = Id(container)
 
@@ -1472,9 +1615,13 @@ class InventoryClient(ClientBase):
             f"/containers/{c_id.as_id()}", request_type="PUT", params=data
         )
 
-    def add_items_to_list_container(
-        self, target_container_id: Union[str, int], *item_ids: str,
-    ) -> list:
+    def _id_as_container_id(self, target_container_id):
+        id_target = Id(target_container_id)
+        if not id_target.is_container(maybe=True):
+            raise ValueError("Target must be a container")
+        return id_target
+
+    def add_items_to_list_container(self, target_container_id, *item_ids: str,) -> list:
         """
         Adds 1 or more items to a list container
 
@@ -1494,12 +1641,9 @@ class InventoryClient(ClientBase):
         Returns
         -------
         BulkoperationResult
-
         """
-        id_target = Id(target_container_id)
-        if not id_target.is_container(maybe=True):
-            raise ValueError("Target must be a container")
 
+        id_target = self._id_as_container_id(target_container_id)
         valid_item_ids = []
 
         ## assert there are no invalid globai ids
@@ -1512,6 +1656,43 @@ class InventoryClient(ClientBase):
             valid_item_ids.append(id_ob)
 
         return self._do_add_to_list_container(valid_item_ids, id_target)
+
+    def add_items_to_image_container(
+        self,
+        target_container_id: Union[str, int, dict],
+        items_to_move: Sequence,
+        location_ids: Sequence,
+    ) -> BulkOperationResult:
+        """
+        Adds a list of items to move to a list of  locations in an image container.
+        The 2 lists must be of equal length. If unequal length, items in the longer list
+         will be ignored once items in the shorter list are exhausted (like 'zip' function)
+        Parameters
+        ----------
+        target_container_id : Union[str, int, dict]
+            An identifier for the container.
+        items_to_move : Sequence
+            A list of globalIds or dicts of items to move.
+        location_ids : Sequence
+            A List of location identifiers that are the ids of image container locations.
+        Returns
+        -------
+        BulkOperationResult
+        """
+        self._id_as_container_id(target_container_id)
+
+        loci = []
+        for (item, loc_id) in zip(items_to_move, location_ids):
+            item_id = Id(item)
+            loci.append(
+                {
+                    "type": item_id.get_type(),
+                    "id": item_id.as_id(),
+                    "parentLocation": {"id": loc_id},
+                }
+            )
+        bulk_post = {"operationType": "MOVE", "records": loci}
+        return self._do_bulk(bulk_post)
 
     def add_items_to_grid_container(
         self,
@@ -1531,33 +1712,21 @@ class InventoryClient(ClientBase):
         ------
         ValueError
             If items are the wrong or inconsistent type
-
         Returns
         -------
         list
             A list of updated items showing their current position
-
         """
         if isinstance(target_container_id, GridContainer):
             if target_container_id.free() < len(grid_placement.items_to_move):
                 raise ValueError(
                     f"not enough space in {target_container_id.data['globalId']} to store {len(grid_placement.items_to_move)} - only {target_container_id.free()} spaces free."
                 )
-        id_target = Id(target_container_id)
-        if not id_target.is_container(maybe=True):
-            raise ValueError("Target must be a container")
+        id_target = self._id_as_container_id(target_container_id)
         ## assert there are no invalid global ids (things that are not subsamples)
 
         bulk_post = self._create_bulk_move(id_target, grid_placement)
-
-        ## get target - are there enough spaces?
-        ## iterate over grid (0 or 1 based?)
-        ## use bulk API?
-
-        resp_json = self.retrieve_api_results(
-            "/bulk", request_type="POST", params=bulk_post
-        )
-        return BulkOperationResult(resp_json)
+        return self._do_bulk(bulk_post)
 
     def _do_add_to_list_container(self, items, id_target):
         coords = []
@@ -1570,12 +1739,7 @@ class InventoryClient(ClientBase):
                 }
             )
         to_post = {"operationType": "MOVE", "records": coords}
-
-        resp_json = self.retrieve_api_results(
-            "/bulk", request_type="POST", params=to_post
-        )
-
-        return BulkOperationResult(resp_json)
+        return self._do_bulk(to_post)
 
     def _create_bulk_move(self, grid_id: Id, gp: GridPlacement):
         coords = []  # array of x,y coords
@@ -1727,7 +1891,6 @@ class InventoryClient(ClientBase):
         -------
         Dict
             The newly created template.
-
         """
         return self.retrieve_api_results(
             "/sampleTemplates", request_type="POST", params=sample_template_post
@@ -1804,7 +1967,6 @@ class InventoryClient(ClientBase):
         Returns
         -------
         void, no return value
-
         """
         st_id = Id(sample_template_id)
         url_base = self._get_api_url()
@@ -1846,7 +2008,6 @@ class InventoryClient(ClientBase):
         -------
         dict
             The updated template.
-
         """
         id_to_restore = Id(sample_template_id)
         return self.retrieve_api_results(
@@ -1869,7 +2030,6 @@ class InventoryClient(ClientBase):
         -------
         dict
             The updated sample template.
-
         """
         st_id = Id(sample_template_id)
         return self._do_transfer_owner("sampleTemplates", st_id, new_owner)
@@ -1888,7 +2048,6 @@ class InventoryClient(ClientBase):
         -------
         dict
             The updated sample.
-
         """
         sample_id = Id(sample_id)
         return self._do_transfer_owner("samples", sample_id, new_owner)

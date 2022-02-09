@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file
 
 ## Unreleased
 
+## 2.3.0 2022-02-09
+
 ### Added
 
 - static method Id.is_valid_id() to check if an object can be parsed as an id
@@ -17,6 +19,8 @@ All notable changes to this project will be documented in this file
 - Classes to  define new Containers: GridContainerPost, ListContainerPost
 - Classes to define where new items are placed: ListContainerTargetLocation,
     GridContainerTargetLocation, BenchTargetLocation, TopLevelTargetLocation
+- create ImageContainerPost, createInImageContainer,add_items_to_image_container
+- create ImageContainer class to wrap dicts of ImageContainers from the server.
 
 ### Changed
 - BREAKING: altered create_grid_container and create_list_container location arguments
