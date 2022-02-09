@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file
 
 ## Unreleased
 
+## 2.3.0 2022-02-09
+
 ### Added
 
 - static method Id.is_valid_id() to check if an object can be parsed as an id
