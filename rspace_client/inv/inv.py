@@ -333,7 +333,7 @@ class Container:
 
     def is_workbench(self) -> bool:
         return False
-    
+
     def is_image(self) -> bool:
         return False
 
@@ -369,25 +369,26 @@ class ListContainer(Container):
         return f"{self.__class__.__name__}, id={self.data['globalId']!r},storesContainers={self.accept_containers()},\
 storesSubsamples={self.accept_subsamples}"
 
+
 class ImageContainer(Container):
     """
     Wrapper around dict of ImageContainer JSON
     """
+
     def __init__(self, image_container: dict):
         super().__init__(image_container)
         self._validate_type(image_container, "IMAGE")
-        
+
     def is_image(self) -> bool:
         return True
-    
+
     def capacity(self) -> int:
         """
         Returns number of locations defined.
         """
-        return len(self.data['locations'])
-    
-    
-    def free_locations(self) ->int:
+        return len(self.data["locations"])
+
+    def free_locations(self) -> int:
         """
         Returns
         -------
@@ -395,8 +396,8 @@ class ImageContainer(Container):
             Number of locations with no content.
 
         """
-        return len(list(filter(lambda x: x['content'] is None, self.data['locations'] )))
-    
+        return len(list(filter(lambda x: x["content"] is None, self.data["locations"])))
+
     def used_locations(self) -> int:
         """
         Returns
@@ -404,7 +405,8 @@ class ImageContainer(Container):
         int
             Number of locations with content.
         """
-        return self.capacity()  - self.free_locations()
+        return self.capacity() - self.free_locations()
+
 
 class Workbench(Container):
     """
@@ -878,6 +880,7 @@ class ImageContainerTargetLocation(TargetLocation):
         self.data["parentLocation"] = {"id": target_location_id}
         del self.data["parentContainers"]
 
+
 class GridContainerTargetLocation(TargetLocation):
     """
     Defines the identity of a grid location to move into, and its coordinates in the grid.
@@ -954,6 +957,7 @@ class ImageContainerPost(ContainerPost):
     """
       Define a new ImageContainer to create.
     """
+
     def __init__(
         self,
         name: str,
