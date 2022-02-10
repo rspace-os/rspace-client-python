@@ -755,11 +755,13 @@ class ItemPost:
     def __init__(
         self,
         name: str,
+        itemType:str,
         tags: Optional[str] = None,
         description: Optional[str] = None,
         extra_fields: Optional[Sequence] = [],
     ):
         self.data = {}
+        self.data["type"] = itemType
         self.data["name"] = name
         if tags is not None:
             self.data["tags"] = tags
@@ -789,9 +791,9 @@ class SamplePost(ItemPost):
         total_quantity: Quantity = None,
         attachments=None,
     ):
-        super().__init__(name, tags, description, extra_fields)
+        super().__init__(name,"SAMPLE", tags, description, extra_fields)
         ## converts arguments into JSON POST syntax
-        self.data["type"] = "SAMPLE"
+     
         if storage_temperature_min is not None:
             self.data["storageTempMin"] = storage_temperature_min._toDict()
         if storage_temperature_max is not None:
@@ -912,7 +914,7 @@ class ContainerPost(ItemPost):
         can_store_samples: bool = True,
         location: TargetLocation = TopLevelTargetLocation(),
     ):
-        super().__init__(name, tags, description, extra_fields)
+        super().__init__(name, "CONTAINER", tags, description, extra_fields)
         if not can_store_containers and not can_store_samples:
             raise ValueError(
                 "At least one of 'canStoreContainers' and 'canStoreSamples' must be True"
@@ -1085,6 +1087,7 @@ class InventoryClient(ClientBase):
             )
         toPost = [s.data for s in sample_posts]
         bulk_post = {"operationType": "CREATE", "records": toPost}
+        print(bulk_post)
         return self._do_bulk(bulk_post)
 
     def create_sample(
