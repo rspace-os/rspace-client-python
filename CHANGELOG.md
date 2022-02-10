@@ -8,6 +8,12 @@ All notable changes to this project will be documented in this file
 
 ## Unreleased
 
+## 2.3.2 2022-02-09
+
+### Fixed
+
+- #31 Extra fields ignored in bulk/ sample posts
+
 ## 2.3.1 2022-02-09
 
 ### Added

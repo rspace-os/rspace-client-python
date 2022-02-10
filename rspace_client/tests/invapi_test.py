@@ -154,22 +154,24 @@ class InventoryApiTest(base.BaseApiTest):
         for sample in gen:
             result_count += 1
         self.assertEqual(0, result_count)
-        
+
     def test_create_sample_withextra_fields(self):
         ef1 = inv.ExtraField(name="ef1", content="createdf1 content")
-        sample = self.invapi.create_sample(base.random_string(),extra_fields=[ef1])
+        sample = self.invapi.create_sample(base.random_string(), extra_fields=[ef1])
         updatedS = self.invapi.get_sample_by_id(sample["globalId"])
         self.assertEqual(1, len(updatedS["extraFields"]))
-    
+
     def test_bulkcreate_sample_withextra_fields(self):
         ## TODO Fix
-        ef1 = inv.ExtraField(name="ef1",fieldType=inv.ExtraFieldType.TEXT, content="createdf1 content")
-        sample_post=inv.SamplePost(base.random_string(),extra_fields=[ef1])
-        sample = self.invapi.bulk_create_sample(sample_post).success_results()[0]['record']
+        ef1 = inv.ExtraField(
+            name="ef1", fieldType=inv.ExtraFieldType.TEXT, content="createdf1 content"
+        )
+        sample_post = inv.SamplePost(base.random_string(), extra_fields=[ef1])
+        sample = self.invapi.bulk_create_sample(sample_post).success_results()[0][
+            "record"
+        ]
         self.assertEqual(1, len(sample["extraFields"]))
         ## this works: {
-
-
 
     def test_add_extra_fields(self):
         sample = self.invapi.create_sample(base.random_string())
