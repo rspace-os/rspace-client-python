@@ -16,7 +16,7 @@ sed -ibk -e "s/==$old/==$new/" README.md
 sed -ibk -e "s/\"$old\"/\"$new\"/" pyproject.toml
 
 black rspace_client
-"committing and tagging"
+echo "committing and tagging"
 git ci -am "Release $new"
 git tag -m"$new" -a "v$new" 
 

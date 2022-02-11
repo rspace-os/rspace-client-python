@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file
 
 ## 2.3.3  2022-02-11
 
+- Removed print statements from builk_create_sample
+
 ## 2.3.2 2022-02-09
 
 ### Fixed
