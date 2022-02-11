@@ -23,7 +23,7 @@ See [DEVELOPING.md](DEVELOPING.md) for details of running tests.
 To install rspace-client and its dependencies, run
 
 ```bash
-pip install rspace-client==2.3.2
+pip install rspace-client==2.3.3
 ```
 
 ### Compatibility with RSpace server versions

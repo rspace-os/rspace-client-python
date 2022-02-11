@@ -18,6 +18,6 @@ sed -ibk -e "s/\"$old\"/\"$new\"/" pyproject.toml
 black rspace_client
 "committing and tagging"
 git ci -am "Release $new"
-git tag -m"$new" -a $new 
+git tag -m"$new" -a "v$new" 
 
 echo "now run poetry shell, poetry build && poetry publish and push to Github"
