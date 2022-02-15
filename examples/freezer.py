@@ -78,19 +78,22 @@ class FreezerCreator:
         }
 
     def create_tier(self, n, name_prefix, rows, columns, store_samples=False):
-        items = []
+        rc = []
         posts = []
-        for i in range(n):
-            c_post = GridContainerPost(
+        for i in range(0,n,100):
+            for j in range(i, min(n, i+100)-i):    
+                c_post = GridContainerPost(
                 f"{name_prefix}-{i}", rows, columns, can_store_samples=store_samples
-            )
-            posts.append(c_post)
+                )
+                posts.append(c_post)
 
-        results = self.cli.bulk_create_container(*posts)
-        if not results.is_ok():
-            raise Exception("creating didn't work")
-        items = [c["record"]["globalId"] for c in results.success_results()]
-        return items
+            results = self.cli.bulk_create_container(*posts)
+            if not results.is_ok():
+                raise Exception("creating didn't work")
+            items = [c["record"]["globalId"] for c in results.success_results()]
+            rc.extend(items)
+            
+        return rc
 
     def add_to_parent_tier(self, parents, parents_per_gp, items_per_parent, items):
         for j in range(len(parents)):

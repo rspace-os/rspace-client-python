@@ -1087,7 +1087,6 @@ class InventoryClient(ClientBase):
             )
         toPost = [s.data for s in sample_posts]
         bulk_post = {"operationType": "CREATE", "records": toPost}
-        print(bulk_post)
         return self._do_bulk(bulk_post)
 
     def create_sample(
