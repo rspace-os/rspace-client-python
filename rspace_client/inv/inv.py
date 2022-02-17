@@ -1205,7 +1205,9 @@ class InventoryClient(ClientBase):
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
         return self.retrieve_api_results(
-            f"/{endpoint}", request_type="GET", params=pagination.data,
+            f"/{endpoint}",
+            request_type="GET",
+            params=pagination.data,
         )
 
     def stream_samples(
@@ -1259,6 +1261,31 @@ class InventoryClient(ClientBase):
             f"/{endpoint}/{s_id.as_id()}", request_type="PUT", params={"name": new_name}
         )
 
+    def set_image(self, item_id: Union[str, dict], file) -> dict:
+        """
+        Sets image for a sample, subsample or container
+
+        Parameters
+        ----------
+        item_id : Union[str, dict]
+            The id or dict of the item to set the image for.
+        file : File object
+            An open file object.
+
+        Returns
+        -------
+        dict
+            The upddated item with links of rel=image and rel=thumnail set.
+
+        """
+        s_id = Id(item_id)
+        endpoint = s_id.get_api_endpoint()
+        image_b64 = base64.b64encode(file.read()).decode("ascii")
+        data = {"newBase64Image": "data:image/png;base64," + str(image_b64)}
+        return self.retrieve_api_results(
+            f"/{endpoint}/{s_id.as_id()}", request_type="PUT", params=data
+        )
+
     def delete_sample(self, sample_id: Union[int, str]):
         """
         Parameters
@@ -1286,7 +1313,7 @@ class InventoryClient(ClientBase):
             params={"extraFields": toPut},
         )
 
-    def uploadAttachment(self, inventory_item: Union[str, dict], file) -> dict:
+    def upload_attachment(self, inventory_item: Union[str, dict], file) -> dict:
         """
         Uploads an attachment file to a sample, subsample or container.
         Parameters
@@ -1410,7 +1437,8 @@ class InventoryClient(ClientBase):
         id_to_copy = Id(item_to_duplicate)
         endpoint = id_to_copy.get_api_endpoint()
         rc = self.retrieve_api_results(
-            f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate", request_type="POST",
+            f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate",
+            request_type="POST",
         )
         if new_name is not None:
             rc = self.rename(rc, new_name)
@@ -1451,7 +1479,9 @@ class InventoryClient(ClientBase):
             raise ValueError("Supplied id is not a subsamples")
         data = {"content": note}
         return self.retrieve_api_results(
-            f"/subSamples/{ss_id.as_id()}/notes", request_type="POST", params=data,
+            f"/subSamples/{ss_id.as_id()}/notes",
+            request_type="POST",
+            params=data,
         )
 
     def get_workbenches(self) -> Sequence[dict]:
@@ -1623,7 +1653,11 @@ class InventoryClient(ClientBase):
             raise ValueError("Target must be a container")
         return id_target
 
-    def add_items_to_list_container(self, target_container_id, *item_ids: str,) -> list:
+    def add_items_to_list_container(
+        self,
+        target_container_id,
+        *item_ids: str,
+    ) -> list:
         """
         Adds 1 or more items to a list container
 
@@ -2013,7 +2047,8 @@ class InventoryClient(ClientBase):
         """
         id_to_restore = Id(sample_template_id)
         return self.retrieve_api_results(
-            f"/sampleTemplates/{id_to_restore.as_id()}/restore", request_type="PUT",
+            f"/sampleTemplates/{id_to_restore.as_id()}/restore",
+            request_type="PUT",
         )
 
     def transfer_sample_template_owner(

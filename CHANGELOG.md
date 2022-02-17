@@ -6,6 +6,17 @@ All notable changes to this project will be documented in this file
  - replace naming of classes and methods using 'Workbench' to 'Bench'
  - replace create_sample, create_container long argument lists with new XXXPost objects
 
+## Unreleased
+
+### Breaking change
+
+- renamed inv.uploadAttachment method to 'upload_attachment'
+
+### Added
+
+ - set_image sets a preview image for a sample,container or subsample
+
+
 ## 2.3.3  2022-02-11
 
 - Removed print statements from builk_create_sample

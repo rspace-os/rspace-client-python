@@ -55,6 +55,28 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(1, len(sample["attachments"]))
         s_ob = inv.Sample(sample)
 
+    def test_set_image_sample(self):
+        sample = self.invapi.create_sample(base.random_string(5))
+        file = base.get_datafile("AntibodySample150.png")
+        with open(file, "rb") as f:
+            updated_sample = self.invapi.set_image(sample, f)
+
+        links = updated_sample["_links"]
+        for l in links:
+            if l["rel"] == "image":
+                self.assertFalse(l["link"].endswith("-1"))
+
+    def test_set_image_container(self):
+        sample = self.invapi.create_list_container(base.random_string(5))
+        file = base.get_datafile("freezer.jpg")
+        with open(file, "rb") as f:
+            updated_c = self.invapi.set_image(sample, f)
+
+        links = updated_c["_links"]
+        for l in links:
+            if l["rel"] == "image":
+                self.assertFalse(l["link"].endswith("-1"))
+
     def test_create_sample_name_only(self):
         sample = self.invapi.create_sample(base.random_string(5))
         self.assertIsNotNone(sample)
