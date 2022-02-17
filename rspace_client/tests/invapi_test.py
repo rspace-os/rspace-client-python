@@ -437,11 +437,11 @@ class InventoryApiTest(base.BaseApiTest):
     def test_add_new_image_locations_to_image_container(self):
         image_post = self._createImageContainerPost()
         image_c = self.invapi.create_image_container(image_post)
-        initial_location_count = len(image_c['locations'])
+        initial_location_count = len(image_c["locations"])
         loci = [(80, 800), (740, 450), (520, 400)]
         updated = self.invapi.add_locations_to_image_container(image_c, *loci)
         self.assertEqual(initial_location_count + 3, len(updated["locations"]))
-        
+
     def test_create_container_in_image_container(self):
         image_post = self._createImageContainerPost()
         image_c = self.invapi.create_image_container(image_post)

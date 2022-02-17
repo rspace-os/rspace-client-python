@@ -80,10 +80,10 @@ class FreezerCreator:
     def create_tier(self, n, name_prefix, rows, columns, store_samples=False):
         rc = []
         posts = []
-        for i in range(0,n,100):
-            for j in range(i, min(n, i+100)-i):    
+        for i in range(0, n, 100):
+            for j in range(i, min(n, i + 100) - i):
                 c_post = GridContainerPost(
-                f"{name_prefix}-{i}", rows, columns, can_store_samples=store_samples
+                    f"{name_prefix}-{i}", rows, columns, can_store_samples=store_samples
                 )
                 posts.append(c_post)
 
@@ -92,7 +92,7 @@ class FreezerCreator:
                 raise Exception("creating didn't work")
             items = [c["record"]["globalId"] for c in results.success_results()]
             rc.extend(items)
-            
+
         return rc
 
     def add_to_parent_tier(self, parents, parents_per_gp, items_per_parent, items):
@@ -144,8 +144,7 @@ for box in freezer["boxes"]:
     col = 1
     samples_created = samples_created + box_cols
     print(
-        f" created {box_cols} samples / {total_samples_to_create}",
-        file=sys.stderr,
+        f" created {box_cols} samples / {total_samples_to_create}", file=sys.stderr,
     )
 
     ## we can move 12 samples at a time
