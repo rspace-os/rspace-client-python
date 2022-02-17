@@ -980,7 +980,8 @@ class ImageContainerPost(ContainerPost):
         image_file_path : str
             A full file path to the image to use.
         locations : Optional[Sequence], optional
-            An optional list of (x,y) coordinate tuples of marked locations.
+            An optional list of (x,y) coordinate tuples of marked locations within 
+            the image container.
         tags : Optional[str], optional
             Comma separated tags
         description : Optional[str], optional
@@ -990,7 +991,7 @@ class ImageContainerPost(ContainerPost):
         can_store_samples : bool, optional
             The default is True.
         location : TargetLocation, optional
-            The default is TopLevelTargetLocation.
+            Where this new container will be located. The default is TopLevelTargetLocation.
         """
         super().__init__(
             name,
@@ -1534,6 +1535,31 @@ class InventoryClient(ClientBase):
             "/containers", request_type="POST", params=imageContainerPost.data
         )
         return container
+    
+    def add_locations_to_image_container(self, image_container: Union[int, str, Container, dict], *locations: Sequence[tuple]) -> dict:
+        """
+        Adds 1 or more new locations to an existing image container.
+        If locations are empty, this  method has no effect.
+
+        Parameters
+        ----------
+        image_container : Union[int, str, Container, dict]
+            An identifier or representation of the iamge container to update.
+        *locations : Sequence[tuple]
+            A sequence of (x,y) coordinate tuples
+        Returns
+        -------
+        dict
+            The updated image container.
+        """
+        image_c_id = self._id_as_container_id(image_container)
+        loci = [{'newLocationRequest': True,'coordX':p[0], 'coordY':p[1]} for p in locations]
+        data = {'locations':loci}
+        if len(loci) == 0:
+            return
+        updated = self.retrieve_api_results(f"/containers/{image_c_id.as_id()}", request_type="PUT", params=data)
+        return updated
+        
 
     def create_list_container(
         self,
