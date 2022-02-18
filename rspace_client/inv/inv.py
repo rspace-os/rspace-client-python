@@ -1559,25 +1559,30 @@ class InventoryClient(ClientBase):
             for p in locations
         ]
         data = {"locations": loci}
-        
+
         updated = self.retrieve_api_results(
             f"/containers/{image_c_id.as_id()}", request_type="PUT", params=data
         )
         return updated
-    
-    def delete_locations_from_image_container(self,image_container: Union[int, str, Container, dict],
-        *locations: Sequence[int]):
+
+    def delete_locations_from_image_container(
+        self,
+        image_container: Union[int, str, Container, dict],
+        *locations: Sequence[int],
+    ):
         if len(locations) == 0:
             return
         image_c_id = self._id_as_container_id(image_container)
-        to_delete= [{"id": loc_id, "deleteLocationRequest": True } for loc_id in locations]
+        to_delete = [
+            {"id": loc_id, "deleteLocationRequest": True} for loc_id in locations
+        ]
         data = {"locations": to_delete}
         print(data)
         updated = self.retrieve_api_results(
             f"/containers/{image_c_id.as_id()}", request_type="PUT", params=data
         )
         return updated
-        
+
     ## TODO
 
     def create_list_container(
