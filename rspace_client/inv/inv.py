@@ -1134,7 +1134,7 @@ class InventoryClient(ClientBase):
         if attachments is not None:
             self.serr(f"adding {len(attachments)} attachments")
             for file in attachments:
-                self.uploadAttachment(sample["globalId"], file)
+                self.upload_attachment(sample["globalId"], file)
             ## get latest version
             sample = self.get_sample_by_id(sample["id"])
         return sample

@@ -99,7 +99,7 @@ class InventoryApiTest(base.BaseApiTest):
         sample = self.invapi.create_sample(base.random_string())
         data_file = base.get_any_datafile()
         with open(data_file, "rb") as f:
-            resp = self.invapi.uploadAttachment(sample["globalId"], f)
+            resp = self.invapi.upload_attachment(sample["globalId"], f)
             self.assertIsNotNone(resp["id"])
             self.assertTrue(resp["globalId"][0:2] == "IF")
 
@@ -830,4 +830,4 @@ class InventoryApiTest(base.BaseApiTest):
         ## upload a file separately, using the field ID.
         data_file = base.get_any_datafile()
         with open(data_file, "rb") as f:
-            self.invapi.uploadAttachment(created_sample["fields"][0]["globalId"], f)
+            self.invapi.upload_attachment(created_sample["fields"][0]["globalId"], f)
