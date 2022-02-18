@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file
  - replace naming of classes and methods using 'Workbench' to 'Bench'
  - replace create_sample, create_container long argument lists with new XXXPost objects
 
-## Unreleased
+## 2.4.0  2022-02-18
 
 ### Breaking change
 
@@ -15,6 +15,8 @@ All notable changes to this project will be documented in this file
 ### Added
 
  - set_image sets a preview image for a sample,container or subsample
+ - add_locations_to_image_container adds new marked locations to an image
+ - delete_locations_from_image_container removes marked locations from an image
 
 
 ## 2.3.3  2022-02-11

@@ -17,7 +17,10 @@ builder = None
 class TemplateBuilderTest(unittest.TestCase):
     def test_invalid_unit(self):
         self.assertRaises(
-            ValueError, TemplateBuilder, "name", "unknownUnit",
+            ValueError,
+            TemplateBuilder,
+            "name",
+            "unknownUnit",
         )
 
     def test_add_radio(self):
@@ -66,7 +69,10 @@ class TemplateBuilderTest(unittest.TestCase):
         builder = TemplateBuilder("myTemplate", "ml")
 
         self.assertRaises(
-            ValueError, builder.number, "pH", "XXX",
+            ValueError,
+            builder.number,
+            "pH",
+            "XXX",
         )
 
     def test_add_number_field_no_default(self):
@@ -77,7 +83,9 @@ class TemplateBuilderTest(unittest.TestCase):
     def test_name_required(self):
         builder = TemplateBuilder("myTemplate", "ml")
         self.assertRaises(
-            ValueError, builder.number, "",
+            ValueError,
+            builder.number,
+            "",
         )
 
     def test_add_date(self):
@@ -128,7 +136,10 @@ class TemplateBuilderTest(unittest.TestCase):
         self.assertEqual(2, builder.field_count())
         self.assertEqual("https://www.google.com", builder._fields()[0]["content"])
         self.assertRaises(
-            ValueError, builder.uri, "name", "aa://www.goog[le.com:XXXX",
+            ValueError,
+            builder.uri,
+            "name",
+            "aa://www.goog[le.com:XXXX",
         )
 
     def test_build(self):
