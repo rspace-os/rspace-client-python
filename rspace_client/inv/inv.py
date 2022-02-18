@@ -1551,18 +1551,34 @@ class InventoryClient(ClientBase):
         dict
             The updated image container.
         """
+        if len(locations) == 0:
+            return
         image_c_id = self._id_as_container_id(image_container)
         loci = [
             {"newLocationRequest": True, "coordX": p[0], "coordY": p[1]}
             for p in locations
         ]
         data = {"locations": loci}
-        if len(loci) == 0:
-            return
+        
         updated = self.retrieve_api_results(
             f"/containers/{image_c_id.as_id()}", request_type="PUT", params=data
         )
         return updated
+    
+    def delete_locations_from_image_container(self,image_container: Union[int, str, Container, dict],
+        *locations: Sequence[int]):
+        if len(locations) == 0:
+            return
+        image_c_id = self._id_as_container_id(image_container)
+        to_delete= [{"id": loc_id, "deleteLocationRequest": True } for loc_id in locations]
+        data = {"locations": to_delete}
+        print(data)
+        updated = self.retrieve_api_results(
+            f"/containers/{image_c_id.as_id()}", request_type="PUT", params=data
+        )
+        return updated
+        
+    ## TODO
 
     def create_list_container(
         self,

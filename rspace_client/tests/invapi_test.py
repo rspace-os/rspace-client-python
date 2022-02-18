@@ -441,6 +441,17 @@ class InventoryApiTest(base.BaseApiTest):
         loci = [(80, 800), (740, 450), (520, 400)]
         updated = self.invapi.add_locations_to_image_container(image_c, *loci)
         self.assertEqual(initial_location_count + 3, len(updated["locations"]))
+        
+    def test_delete_new_image_locations_from_image_container(self):
+        image_post = self._createImageContainerPost()
+        image_c = self.invapi.create_image_container(image_post)  
+        image_c_object = inv.ImageContainer(image_c)
+        self.assertEqual(3, image_c_object.capacity())
+        to_delete = [x['id'] for x in image_c["locations"]]
+        updated =self.invapi.delete_locations_from_image_container(image_c, *to_delete)
+        image_c_object = inv.ImageContainer(updated)
+        self.assertEqual(0, image_c_object.capacity())
+        
 
     def test_create_container_in_image_container(self):
         image_post = self._createImageContainerPost()
