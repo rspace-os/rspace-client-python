@@ -975,7 +975,7 @@ class ImageContainerPost(ContainerPost):
         image_file_path : str
             A full file path to the image to use.
         locations : Optional[Sequence], optional
-            An optional list of (x,y) coordinate tuples of marked locations within 
+            An optional list of (x,y) coordinate tuples of marked locations within
             the image container.
         tags : Optional[str], optional
             Comma separated tags
@@ -1129,7 +1129,7 @@ class InventoryClient(ClientBase):
         if attachments is not None:
             self.serr(f"adding {len(attachments)} attachments")
             for file in attachments:
-                self.uploadAttachment(sample["globalId"], file)
+                self.upload_attachment(sample["globalId"], file)
             ## get latest version
             sample = self.get_sample_by_id(sample["id"])
         return sample
@@ -1201,7 +1201,9 @@ class InventoryClient(ClientBase):
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
         return self.retrieve_api_results(
-            f"/{endpoint}", request_type="GET", params=pagination.data,
+            f"/{endpoint}",
+            request_type="GET",
+            params=pagination.data,
         )
 
     def stream_samples(
@@ -1431,7 +1433,8 @@ class InventoryClient(ClientBase):
         id_to_copy = Id(item_to_duplicate)
         endpoint = id_to_copy.get_api_endpoint()
         rc = self.retrieve_api_results(
-            f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate", request_type="POST",
+            f"/{endpoint}/{id_to_copy.as_id()}/actions/duplicate",
+            request_type="POST",
         )
         if new_name is not None:
             rc = self.rename(rc, new_name)
@@ -1472,7 +1475,9 @@ class InventoryClient(ClientBase):
             raise ValueError("Supplied id is not a subsamples")
         data = {"content": note}
         return self.retrieve_api_results(
-            f"/subSamples/{ss_id.as_id()}/notes", request_type="POST", params=data,
+            f"/subSamples/{ss_id.as_id()}/notes",
+            request_type="POST",
+            params=data,
         )
 
     def get_workbenches(self) -> Sequence[dict]:
@@ -1698,7 +1703,11 @@ class InventoryClient(ClientBase):
             raise ValueError("Target must be a container")
         return id_target
 
-    def add_items_to_list_container(self, target_container_id, *item_ids: str,) -> list:
+    def add_items_to_list_container(
+        self,
+        target_container_id,
+        *item_ids: str,
+    ) -> list:
         """
         Adds 1 or more items to a list container
 
@@ -2088,7 +2097,8 @@ class InventoryClient(ClientBase):
         """
         id_to_restore = Id(sample_template_id)
         return self.retrieve_api_results(
-            f"/sampleTemplates/{id_to_restore.as_id()}/restore", request_type="PUT",
+            f"/sampleTemplates/{id_to_restore.as_id()}/restore",
+            request_type="PUT",
         )
 
     def transfer_sample_template_owner(
