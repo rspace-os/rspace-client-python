@@ -25,26 +25,25 @@ For authoratative examples see the test cases in `rspace_client/tests/invapi_tes
     
 ### Create a List Container
 
-    ```python3
-    list_container = cli.create_list_container("shelf", can_store_samples=False,
+```python
+  list_container = cli.create_list_container("shelf", can_store_samples=False,
         can_store_containerS=True)
-    print(list_container['globalId'])
-    ```
+  print(list_container['globalId'])
+```
     
 ### Create a Grid Container
 
-    ```python
-    ## 8 rows and 12 columns
-    grid_container = cli.create_grid_container("Enzyme box", 8, 12, description="restriction enzymes")
-    print(grid_container['globalId'])
-    ```
+```python
+  ## 8 rows and 12 columns
+  grid_container = cli.create_grid_container("Enzyme box", 8, 12, description="restriction enzymes")
+  print(grid_container['globalId'])
+```
 
 ### Add a file attachment to a sample, subsample or container
 
-    ```python
-    data_file="path/to/attachment.txt"
-    
-    with open(data_file, "rb") as f:
-          updated_sample =  cli.upload_attachment(sample["globalId"], f)
-    ```
+```python
+  data_file="path/to/attachment.txt"
+  with open(data_file, "rb") as f:
+      updated_sample =  cli.upload_attachment(sample["globalId"], f)
+```
      
