@@ -18,14 +18,14 @@ For authoratative examples see the test cases in `rspace_client/tests/invapi_tes
 
 ### Create a sample on the Workbench
 
-    ```python
-    sample = cli.create_sample("sample_name", description="My first sample", subsample_count=10)
-    print(sample['globalId'])
-    ```
+```python
+  sample = cli.create_sample("sample_name", description="My first sample", subsample_count=10)
+  print(sample['globalId'])
+```
     
 ### Create a List Container
 
-    ```python
+    ```python3
     list_container = cli.create_list_container("shelf", can_store_samples=False,
         can_store_containerS=True)
     print(list_container['globalId'])
