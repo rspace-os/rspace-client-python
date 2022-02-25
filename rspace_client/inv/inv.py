@@ -959,11 +959,17 @@ class ImageContainerPost(ContainerPost):
     """
     Define a new ImageContainer to create.
     """
+    
+    def _setencoded(self, img_file):
+        image_b64 = base64.b64encode(img_file.read()).decode("ascii")
+        self.data["newBase64LocationsImage"] = "data:image/png;base64," + str(
+        image_b64
+    )
 
     def __init__(
         self,
         name: str,
-        image_file_path: str,
+        image_file: Union[str , io.BufferedReader],
         locations: Optional[Sequence] = [],
         tags: Optional[str] = None,
         description: Optional[str] = None,
@@ -978,7 +984,7 @@ class ImageContainerPost(ContainerPost):
         name : str
             Name of the image container.
         image_file_path : str
-            A full file path to the image to use.
+            A full file path to the image to use, or BufferedReader file object.
         locations : Optional[Sequence], optional
             An optional list of (x,y) coordinate tuples of marked locations within
             the image container.
@@ -1002,11 +1008,12 @@ class ImageContainerPost(ContainerPost):
             can_store_samples,
             location,
         )
-        with open(image_file_path, "rb") as img_file:
-            image_b64 = base64.b64encode(img_file.read()).decode("ascii")
-            self.data["newBase64LocationsImage"] = "data:image/png;base64," + str(
-                image_b64
-            )
+        
+        if isinstance(image_file, str):
+            with open(image_file, "rb") as img_file:
+                self._setencoded(img_file)
+        elif isinstance(image_file, io.BufferedReader):
+            self._setencoded(image_file) 
         locs = [{"coordX": p[0], "coordY": p[1]} for p in locations]
         self.data["locations"] = locs
         self.data["cType"] = "IMAGE"

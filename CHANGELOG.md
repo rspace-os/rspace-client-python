@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file
  - replace naming of classes and methods using 'Workbench' to 'Bench'
  - replace create_sample, create_container long argument lists with new XXXPost objects
 
+## Unreleased
+
+- ImageContainerPost can take a file object as well as a string path
+
 ## 2.4.0  2022-02-18
 
 ### Breaking change
