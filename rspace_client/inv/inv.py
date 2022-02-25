@@ -162,8 +162,6 @@ class ByRow(AutoFit):
             The total number of rows in the grid
         *items_to_move :
             One or more global Ids.
-         : TYPE
-            DESCRIPTION.
 
         Returns
         -------
@@ -207,9 +205,6 @@ class ByColumn(AutoFit):
             The total number of rows in the grid
         *items_to_move :
             One or more global Ids.
-         : TYPE
-            DESCRIPTION.
-
         """
         super().__init__(
             column_index,

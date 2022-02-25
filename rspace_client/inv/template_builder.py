@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""
+Define SampleTemplates using a Builder pattern
+"""
 from typing import Optional, Sequence, Union, List
 from urllib.parse import urlparse
 import numbers
