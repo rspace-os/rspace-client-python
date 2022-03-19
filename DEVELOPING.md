@@ -37,7 +37,7 @@ Tests can be invoked:
 poetry run pytest rspace_client/tests
 ```
 
-They should be run with a new account that does not belong to any groups.
+They should be run with a new RSpace account that does not belong to any groups.
  
 ### Writing Tests
  

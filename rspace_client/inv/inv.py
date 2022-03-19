@@ -954,17 +954,15 @@ class ImageContainerPost(ContainerPost):
     """
     Define a new ImageContainer to create.
     """
-    
+
     def _setencoded(self, img_file):
         image_b64 = base64.b64encode(img_file.read()).decode("ascii")
-        self.data["newBase64LocationsImage"] = "data:image/png;base64," + str(
-        image_b64
-    )
+        self.data["newBase64LocationsImage"] = "data:image/png;base64," + str(image_b64)
 
     def __init__(
         self,
         name: str,
-        image_file: Union[str , io.BufferedReader],
+        image_file: Union[str, io.BufferedReader],
         locations: Optional[Sequence] = [],
         tags: Optional[str] = None,
         description: Optional[str] = None,
@@ -1003,12 +1001,12 @@ class ImageContainerPost(ContainerPost):
             can_store_samples,
             location,
         )
-        
+
         if isinstance(image_file, str):
             with open(image_file, "rb") as img_file:
                 self._setencoded(img_file)
         elif isinstance(image_file, io.BufferedReader):
-            self._setencoded(image_file) 
+            self._setencoded(image_file)
         locs = [{"coordX": p[0], "coordY": p[1]} for p in locations]
         self.data["locations"] = locs
         self.data["cType"] = "IMAGE"
