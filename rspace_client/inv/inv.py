@@ -1134,7 +1134,6 @@ class InventoryClient(ClientBase):
             "/samples", request_type="POST", params=toPost.data
         )
         if attachments is not None:
-            self.serr(f"adding {len(attachments)} attachments")
             for file in attachments:
                 self.upload_attachment(sample["globalId"], file)
             ## get latest version
@@ -1584,7 +1583,6 @@ class InventoryClient(ClientBase):
             {"id": loc_id, "deleteLocationRequest": True} for loc_id in locations
         ]
         data = {"locations": to_delete}
-        print(data)
         updated = self.retrieve_api_results(
             f"/containers/{image_c_id.as_id()}", request_type="PUT", params=data
         )
