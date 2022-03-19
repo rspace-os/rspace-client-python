@@ -29,7 +29,7 @@ pip install rspace-client==2.4.1
 ### Compatibility with RSpace server versions
 
 - ELN API compatible with 1.69 or later
-- Inventory API compatible with 1.73, 1.74
+- Inventory API compatible with 1.73 - 1.76 inclusive
 
 
 You may need to install `requests` module:
