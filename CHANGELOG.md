@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file
  - replace naming of classes and methods using 'Workbench' to 'Bench'
  - replace create_sample, create_container long argument lists with new XXXPost objects
 
+## Unreleased
+
+- import of CSV files of inventory information
+
 ## 2.4.1  2022-03-19
 
 - ImageContainerPost can take a file object as well as a string path
