@@ -42,13 +42,19 @@ class ImportResult:
      Wraps JSON returned in response and provides simplified access.
     """
     
-    def __init_(self, import_result):
+    def __init__(self, import_result):
         self._data = import_result
         
-    def is_success(self):
+    def is_ok(self):
         return self._data['status'] == 'COMPLETED'
     
-    def response(self):
+    def containers_imported(self):
+        if 'containerResults' in self._data:
+            return self._data['containerResults']['successCount']
+        else:
+            return 0
+    
+    def data(self):
         return self._data
         
 
@@ -84,7 +90,7 @@ class Importer(ClientBase):
 
         Returns
         -------
-        Dict of JSON response
+        ImportResult
 
         """
         fs = { "containerSettings": { "fieldMappings" : columnMappings } }
@@ -95,5 +101,5 @@ class Importer(ClientBase):
             files={"containersFile":  container_csv_stream, "importSettings": (None, fsStr, "application/json")},
             headers=headers
         )
-        return self._handle_response(response)
+        return ImportResult(self._handle_response(response))
         
