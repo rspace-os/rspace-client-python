@@ -144,7 +144,8 @@ for box in freezer["boxes"]:
     col = 1
     samples_created = samples_created + box_cols
     print(
-        f" created {box_cols} samples / {total_samples_to_create}", file=sys.stderr,
+        f" created {box_cols} samples / {total_samples_to_create}",
+        file=sys.stderr,
     )
 
     ## we can move 12 samples at a time
