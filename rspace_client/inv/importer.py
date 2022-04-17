@@ -5,8 +5,9 @@ Created on Fri Apr 15 15:21:55 2022
 
 @author: richardadams
 """
-import json, requests
+import json, requests, csv
 from rspace_client.client_base import ClientBase, Pagination
+
 
 
 class ContainerColumnMap:
@@ -15,6 +16,18 @@ class ContainerColumnMap:
     """
     
     def __init__(self, nameColumn: str):
+        """
+
+        Parameters
+        ----------
+        nameColumn : str
+            The column name whos values will be the 'name' property of each container.
+
+        Returns
+        -------
+        None.
+
+        """
         self._mappings = {}
         self._mappings[nameColumn] = "name"
         
@@ -76,7 +89,7 @@ class Importer(ClientBase):
         return f"{self.rspace_url}/api/inventory/{self.API_VERSION}"
     
     
-    def import_container_csv(self, container_csv_stream, columnMappings):
+    def import_container_csv(self, container_csv_stream, column_mappings):
         """
         Imports a CSV of container data  to import.
 
@@ -86,14 +99,19 @@ class Importer(ClientBase):
             An open file or stream on a CSV file
 
         columnMappings : dict
-            A dict where keys are column names and values are RSpace concepts.
+            A dict where keys are column names and values are RSpace properties.
 
         Returns
         -------
         ImportResult
+        
+        Raises
+        -------
+        ValueError if the column_mappings is not compatible with CSV headers
 
         """
-        fs = { "containerSettings": { "fieldMappings" : columnMappings } }
+        self._validate(container_csv_stream, column_mappings)
+        fs = { "containerSettings": { "fieldMappings" : column_mappings } }
         fsStr = json.dumps(fs)
         headers = self._get_headers()
         response = requests.post(
@@ -102,4 +120,20 @@ class Importer(ClientBase):
             headers=headers
         )
         return ImportResult(self._handle_response(response))
+    
+    def _validate(self, container_csv_stream, columnMappings):
+        csv_reader = csv.reader(container_csv_stream)
+        header = next(csv_reader)
+        if header is None or len(header) ==0:
+            raise ValueError("Invalid CSV file - no content?")
+        
+        cols_exist = all (x in header for x in columnMappings.keys())
+        if not cols_exist:
+            raise ValueError("Not all specified columns exist in the CSV file")
+        ## restore stream to start
+        container_csv_stream.seek(0)
+        
+        
+               
+               
         

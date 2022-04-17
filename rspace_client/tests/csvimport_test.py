@@ -36,6 +36,13 @@ class CSVImportest(base.BaseApiTest):
         resp = self.api.import_container_csv(f, colmap)
         self.assertEqual(2, resp.containers_imported())
         
+    def test_validate_columns_exist(self):
+        f = io.StringIO("CName\nC1\nC2\n")
+        colmap= importer.ContainerColumnMap("XXXXX").build()
+        self.assertRaises(ValueError, self.api.import_container_csv,f, colmap)
+    
+        
+        
         
         
             
