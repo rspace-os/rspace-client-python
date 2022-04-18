@@ -66,9 +66,25 @@ class ImportResult:
             return self._data["containerResults"]["successCount"]
         else:
             return 0
+        
+    def name2globalid(self):
+        """
+        Gets a mapping of the row in CSV file to globalId
+
+        Returns
+        -------
+        rs : TYPE
+            DESCRIPTION.
+
+        """
+        rs = dict()
+        return rs
 
     def data(self):
         return self._data
+    
+    def __repr__(self):
+        return f"{self.__class__.__name__},ok={self.is_ok()},data={self._data}"
 
 
 class Importer(ClientBase):
@@ -124,13 +140,15 @@ class Importer(ClientBase):
         return ImportResult(self._handle_response(response))
 
     def _validate(self, container_csv_stream, columnMappings):
-        csv_reader = csv.reader(container_csv_stream)
-        header = next(csv_reader)
-        if header is None or len(header) == 0:
-            raise ValueError("Invalid CSV file - no content?")
-
-        cols_exist = all(x in header for x in columnMappings.keys())
-        if not cols_exist:
-            raise ValueError("Not all specified columns exist in the CSV file")
-        ## restore stream to start
-        container_csv_stream.seek(0)
+        try:
+            csv_reader = csv.reader(container_csv_stream)
+            header = next(csv_reader)
+            if header is None or len(header) == 0:
+                raise ValueError("Invalid CSV file - no content?")
+    
+            missing_cols = [x for x in columnMappings.keys() if x not in header]
+            if len(missing_cols) > 0:
+                raise ValueError(f"Mapping columns {','.join(missing_cols)} don't exist in the CSV file.")
+        finally:
+            ## restore stream to start
+            container_csv_stream.seek(0)

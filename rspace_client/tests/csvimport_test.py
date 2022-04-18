@@ -32,8 +32,11 @@ class CSVImportest(base.BaseApiTest):
         f = base.get_datafile("container_basic.csv")
         with open(f, "r") as container:
             resp = self.api.import_container_csv(container, mappings)
+            print(resp)
             self.assertTrue(resp.is_ok())
             self.assertEqual(5, resp.containers_imported())
+            
+    
 
     def test_names_only(self):
         f = io.StringIO("CName\nC1\nC2\n")
@@ -45,3 +48,13 @@ class CSVImportest(base.BaseApiTest):
         f = io.StringIO("CName\nC1\nC2\n")
         colmap = importer.ContainerColumnMap("XXXXX").build()
         self.assertRaises(ValueError, self.api.import_container_csv, f, colmap)
+        
+    def test_stream_still_readable_after_validation(self):
+        try:
+            f = io.StringIO("CName\nC1\nC2\n")
+            colmap = importer.ContainerColumnMap("XXX").build()
+            self.api.import_container_csv(f, colmap)
+            self.fail("Should throw exception")
+        except:
+            self.assertEqual("CName", f.readline().strip())
+        
