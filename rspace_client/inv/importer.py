@@ -67,6 +67,7 @@ class ImportResult:
         else:
             return 0
         
+    ## TODO
     def name2globalid(self):
         """
         Gets a mapping of the row in CSV file to globalId
