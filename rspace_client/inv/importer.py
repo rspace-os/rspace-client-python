@@ -45,6 +45,24 @@ class ContainerColumnMap:
     def parent_id_ref_column(self, parent_id_ref_column: str):
         self._mappings[parent_id_ref_column] = "parent container import id"
         return self
+    
+    def parent_rspace_id_column(self, parent_rspace_id_column: str):
+        """
+        A column that contains the RSpace global IDs of existing columns.
+
+        Parameters
+        ----------
+        parent_rspace_id_column : str
+            The name of the column with existing RSpace container ID.
+
+        Returns
+        -------
+        None.
+
+        """
+        self._mappings[parent_rspace_id_column] = "parent container global id"
+        return self
+        
 
     def build(self):
         return self._mappings
@@ -58,8 +76,16 @@ class ImportResult:
     def __init__(self, import_result):
         self._data = import_result
 
-    def is_ok(self):
+    def is_ok(self) -> bool:
         return self._data["status"] == "COMPLETED"
+    
+    def is_validation_error(self) -> bool:
+        return self._data["status"] == "PREVALIDATION_ERROR"
+        
+    
+    def is_in_default_container(self) -> bool:
+        return self._data["defaultContainer"] is not None
+        
 
     def containers_imported(self):
         if "containerResults" in self._data:
