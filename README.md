@@ -386,8 +386,28 @@ You can also export specific documents, notebooks or folders. _Note_ this requir
 Because export can be quite time-consuming, this is an asynchronous operation. On initial export you will receive a link to a job that you can query for progress updates. When the export has completed there will be a link to access the exported file - which may be very large.
 
 This Python API client provides an easy to use method that handles starting an export, polling the job's status and downloading the exported archive once it's ready. For example, to export current user's work in XML format: 
+
 ```python
 export_archive_file_path = client.download_export('xml', 'user', file_path='/tmp')
 ```
 
-There are ```start_export(self, format, scope, id=None)``` and ```get_job_status(self, job_id)``` functions to start the export and check its status as well.
+or to export a group's work in HTML by id:
+
+```python
+group_id=12345
+export_archive_file_path = client.download_export('html', 'group', uid=group_id, file_path='/tmp')
+```
+
+There are ```start_export(self, format, scope, id=None)``` and ```get_job_status(self, job_id)``` functions to start the export and check its status as well. When a job is complete, the response contains a download link that can be accessed directly, without making an API call:
+
+```json
+
+{'id': 1595,
+ 'status': 'COMPLETED',
+ 'result': {'expiryDate': '2022-03-12T18:27:52.261Z',
+  'size': 304694398,
+  'checksum': '20038299',
+  'algorithm': 'CRC32'},
+ 'percentComplete': 100.0,
+ '_links': [{'link': 'https://community.researchspace.com/api/v1/export/RSpace-2022-06-11-18-28-html-123456.zip',
+   'rel': 'enclosure'}]}
