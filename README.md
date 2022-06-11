@@ -400,9 +400,10 @@ export_archive_file_path = client.download_export('html', 'group', uid=group_id,
 
 There are ```start_export(self, format, scope, id=None)``` and ```get_job_status(self, job_id)``` functions to start the export and check its status as well. When a job is complete, the response contains a download link that can be accessed directly, without making an API call:
 
-```json
+```
 
-{'id': 1595,
+{
+ 'id': 1595,
  'status': 'COMPLETED',
  'result': {'expiryDate': '2022-03-12T18:27:52.261Z',
   'size': 304694398,
@@ -410,4 +411,5 @@ There are ```start_export(self, format, scope, id=None)``` and ```get_job_status
   'algorithm': 'CRC32'},
  'percentComplete': 100.0,
  '_links': [{'link': 'https://community.researchspace.com/api/v1/export/RSpace-2022-06-11-18-28-html-123456.zip',
-   'rel': 'enclosure'}]}
+   'rel': 'enclosure'}]
+}
