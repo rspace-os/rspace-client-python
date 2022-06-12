@@ -569,7 +569,7 @@ class ELNClient(ClientBase):
                 or status_response["status"] == "STARTING"
                 or status_response["status"] == "STARTED"
             ):
-                self._log_progress(progress_log, f"Running - {status_response['percentComplete']:2.2f}")
+                self._log_progress(progress_log, f"Running - {status_response['percentComplete']:2.2f}% complete")
                 time.sleep(wait_between_requests)
                 continue
             else:

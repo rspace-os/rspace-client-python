@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file
  - replace naming of classes and methods using 'Workbench' to 'Bench'
  - replace create_sample, create_container long argument lists with new XXXPost objects
 
-## Unreleased
+## 2.5.0  2022-06-12
 
 - Deprecated method `download_export()`. Use `export_and_download()` instead.
 - ELN: Add optional `progress_log` argument to `export_and_download()`
