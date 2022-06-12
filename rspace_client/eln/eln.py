@@ -540,23 +540,25 @@ class ELNClient(ClientBase):
         )
 
     def _wait_till_complete_then_download(
-        self, job_id, file_path, wait_between_requests=30
+        self, job_id, file_path, wait_between_requests=30, progress_log=None
     ):
+        
         while True:
             status_response = self.get_job_status(job_id)
 
             if status_response["status"] == "COMPLETED":
+                
                 download_url = self.get_link(status_response, "enclosure")
-
+                self._log_progress(progress_log, f"COMPLETED: download url is {download_url}")
                 if os.path.isdir(file_path):
                     file_path = os.path.join(file_path, download_url.split("/")[-1])
                 self.download_link_to_file(download_url, file_path)
                 return file_path
             elif status_response["status"] == "FAILED":
-                raise ClientBase.ApiError(
-                    "Export job failed: "
-                    + self._get_formated_error_message(status_response["result"])
-                )
+                msg = "Export job failed: "
+                + self._get_formated_error_message(status_response["result"])
+                self._log_progress(progress_log, msg)
+                raise ClientBase.ApiError(msg)
             elif status_response["status"] == "ABANDONED":
                 raise ClientBase.ApiError(
                     "Export job was abandoned: "
@@ -567,6 +569,7 @@ class ELNClient(ClientBase):
                 or status_response["status"] == "STARTING"
                 or status_response["status"] == "STARTED"
             ):
+                self._log_progress(progress_log, f"Running - {status_response['percentComplete']:2.2f}% complete")
                 time.sleep(wait_between_requests)
                 continue
             else:
@@ -574,15 +577,17 @@ class ELNClient(ClientBase):
                     "Unknown job status: " + status_response["status"]
                 )
 
-    def download_export(
-        self,
-        export_format,
-        scope,
-        file_path,
-        uid=None,
-        include_revisions=False,
+    def _log_progress(self, progress_log, msg: str):     
+        if progress_log is not None:
+            with open(progress_log, "a") as log:
+                log.write(msg)
+                if not msg.endswith("\n"):
+                    log.write("\n")
+                    
+    def export_and_download (self, export_format,scope,file_path, uid=None,
+       include_revisions=False,
         wait_between_requests=30,
-    ):
+        progress_log=None):
         """
         Exports user's or group's records and downloads the exported archive to a specified location.
         :param export_format: 'xml' or 'html'
@@ -591,8 +596,34 @@ class ELNClient(ClientBase):
         :param uid: id of a user or a group depending on the scope (current user or group will be used if not provided)
         :param include_revision_history: whether to include all revisions
         :param wait_between_requests: seconds to wait between job status requests (30 seconds default)
-        :return: file path to the downloaded export archive
+        :param an optional file-path to a writable log file, to log progress.
+        :return: file path to the downloaded export archive.
         """
+        return self.download_export(export_format,scope,file_path,uid, include_revisions,wait_between_requests, progress_log)
+            
+    def download_export(
+        self,
+        export_format,
+        scope,
+        file_path,
+        uid=None,
+        include_revisions=False,
+        wait_between_requests=30,
+        progress_log=None
+    ):
+        """
+        DEPRECATED since 2.5.0. Use 'export_and_download' which better describes this method and works in exactly the same way.
+        Exports user's or group's records and downloads the exported archive to a specified location.
+        :param export_format: 'xml' or 'html'
+        :param scope: 'user' or 'group'
+        :param file_path: can be either a directory or a new file in an existing directory
+        :param uid: id of a user or a group depending on the scope (current user or group will be used if not provided)
+        :param include_revision_history: whether to include all revisions
+        :param wait_between_requests: seconds to wait between job status requests (30 seconds default)
+        :param an optional file-path to a writable log file, to log progress.
+        :return: file path to the downloaded export archive.
+        """
+        self._log_progress(progress_log, f"{datetime.datetime.now()} - Starting export..")
         job_id = self.start_export(
             export_format=export_format,
             scope=scope,
@@ -600,7 +631,7 @@ class ELNClient(ClientBase):
             include_revisions=include_revisions,
         )["id"]
         return self._wait_till_complete_then_download(
-            job_id, file_path, wait_between_requests
+            job_id, file_path, wait_between_requests, progress_log
         )
 
     def get_job_status(self, job_id):

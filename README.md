@@ -391,11 +391,11 @@ This Python API client provides an easy to use method that handles starting an e
 export_archive_file_path = client.download_export('xml', 'user', file_path='/tmp')
 ```
 
-or to export a group's work in HTML by id:
+or to export a group's work in HTML by id, passing an appendable file to record progress (requires >= 2.5):
 
 ```python
 group_id=12345
-export_archive_file_path = client.download_export('html', 'group', uid=group_id, file_path='/tmp')
+export_archive_file_path = client.download_export('html', 'group', uid=group_id, file_path='/tmp', progress_log="a-writeable-file.log")
 ```
 
 There are ```start_export(self, format, scope, id=None)``` and ```get_job_status(self, job_id)``` functions to start the export and check its status as well. When a job is complete, the response contains a download link that can be accessed directly, without making an API call:

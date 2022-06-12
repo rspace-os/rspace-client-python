@@ -5,7 +5,7 @@ Created on Mon Jun  7 08:38:55 2021
 
 @author: richard
 """
-import os
+import os, os.path
 
 import rspace_client.eln.eln as cli
 from rspace_client.eln.dcs import DocumentCreationStrategy
@@ -96,3 +96,28 @@ class ELNClientAPIIntegrationTest(BaseApiTest):
         self.assertEqual("OK", res["status"])
         ## f, 2sf, and 3files in each sf
         self.assertEqual(9, len(res["path2Id"].keys()))
+        
+    def test_export_all_work_with_log_file(self):
+        file_path = "tmp-export.zip"
+        log_file = "tmp-log.txt"
+        try:    
+            self.api.export_and_download("html", "user", file_path, progress_log=log_file, wait_between_requests=5)
+            self.assertTrue(os.path.getsize(log_file) > 0)
+            self.assertTrue(os.path.getsize(file_path) > 0)
+        except BaseException as e:
+            self.fail("Unexpected exception" + str(e)) 
+        finally:
+            os.remove(file_path)
+            os.remove(log_file)
+            
+    def test_export_all_work_with_no_file(self):
+         file_path = "tmp-export.zip"
+         try:    
+             self.api.export_and_download("html", "user", file_path, wait_between_requests=5)
+             self.assertTrue(os.path.getsize(file_path) > 0)
+         except BaseException as e:
+             self.fail("Unexpected exception" + str(e)) 
+         finally:
+             os.remove(file_path)
+            
+            
