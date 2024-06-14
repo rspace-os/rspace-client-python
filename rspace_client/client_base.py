@@ -31,7 +31,7 @@ class ClientBase:
         Initializes RSpace client.
         :param api_key: RSpace API key of a user can be found on 'My Profile' page
         """
-        self.rspace_url = rspace_url
+        self.rspace_url = rspace_url.rstrip('/')
         self.api_key = api_key
 
     def _get_headers(self, content_type="application/json"):
