@@ -469,7 +469,7 @@ class ELNClient(ClientBase):
         :return: job id
         """
         self._check_export_format(export_format)
-        itemsToExport = "".join(item_ids)
+        itemsToExport = ",".join(map(str, item_ids))
         request_url = (
             self._get_api_url()
             + f"/export/{export_format}/selection?selections={itemsToExport}&includeRevisionHistory={include_revisions}"
