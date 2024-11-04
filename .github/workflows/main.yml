@@ -1,0 +1,92 @@
+name: Build, Deploy, Test, and Analyze with CodeQL
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  # schedule:
+  #   - cron: '30 14 * * 3'
+  workflow_dispatch: 
+
+jobs:
+  # CodeQL Analysis Job
+  analyze:
+    name: CodeQL Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'python' ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v1
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v1
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v1
+
+  # Build, Deploy, and Test Job
+  build:
+    runs-on: ubuntu-latest
+    needs: analyze 
+
+    steps:
+      - name: Check out the rspace-client-python code
+        uses: actions/checkout@v3
+
+      - name: Clone rspace-docker repository
+        run: |
+          git clone https://github.com/rspace-os/rspace-docker.git
+        working-directory: rspace-docker
+
+      - name: Download rspace.war
+        run: |
+          curl -L -o rspace.war https://github.com/rspace-os/rspace-web/releases/download/2.4.0/researchspace-2.4.0.war
+
+      - name: Start Docker Compose
+        run: |
+          cd rspace-docker
+          docker-compose up -d
+
+      - name: Run Healthcheck
+        run: |
+          until docker inspect --format "{{json .State.Health.Status }}" rspace-db | grep -q "healthy"; do
+            echo "Waiting for database to be healthy..."
+            sleep 5
+          done
+          echo "Database is healthy!"
+
+      - name: Set up Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo 'export PATH="$HOME/.local/bin:$PATH"' >> $GITHUB_ENV
+
+      - name: Install dependencies with Poetry
+        run: |
+          cd rspace-client-python
+          poetry install
+
+      - name: Set environment variables
+        env:
+          RSPACE_URL: "http://localhost:8080" 
+          RSPACE_API_KEY: ${{ secrets.RSPACE_API_KEY }}
+        run: echo "Environment variables set"
+
+      # - name: Run Tests
+      #   run: |
+      #     cd rspace-client-python
+      #     poetry run pytest rspace_client/tests
