@@ -563,7 +563,7 @@ class InventoryApiTest(base.BaseApiTest):
         )
         self.assertTrue(result.is_ok())
         ## get container
-        updated_container_json = self.invapi.get_container_by_id(grid_c["id"])
+        updated_container_json = self.invapi.get_container_by_id(grid_c["id"], include_content = True)
         container = inv.Container.of(updated_container_json)
         self.assertEqual(10, container.capacity())
         self.assertEqual(5, container.in_use())
