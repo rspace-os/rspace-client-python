@@ -395,7 +395,7 @@ class InventoryApiTest(base.BaseApiTest):
     def test_create_list_container(self):
         name = base.random_string()
         ct = self.invapi.create_list_container(
-            name, tags="ab,cd,ef", can_store_samples=False
+            name, tags=inv.gen_tags(["ab", "cd", "ef"]), can_store_samples=False
         )
         ## default is top-level
         self.assertTrue(ct["cType"] == "LIST")
@@ -404,13 +404,13 @@ class InventoryApiTest(base.BaseApiTest):
 
         ## create in Bench
         ct_in_wb = self.invapi.create_list_container(
-            name, tags="ab,cd,ef", location=inv.BenchTargetLocation()
+            name, tags=inv.gen_tags(["ab", "cd", "ef"]), location=inv.BenchTargetLocation()
         )
         self.assertEqual("BE", ct_in_wb["parentContainers"][0]["globalId"][0:2])
 
         ## create in parent list container
         ct_sub_container = self.invapi.create_list_container(
-            name, tags="ab,cd,ef", location=inv.TargetLocation(ct["id"])
+            name, tags=inv.gen_tags(["ab", "cd", "ef"]), location=inv.TargetLocation(ct["id"])
         )
         self.assertEqual(
             ct["globalId"], ct_sub_container["parentContainers"][0]["globalId"]
