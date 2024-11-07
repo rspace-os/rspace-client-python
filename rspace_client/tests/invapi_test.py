@@ -286,7 +286,7 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_get_benches(self):
         benches = self.invapi.get_workbenches()
-        self.assertEqual(1, len(benches))
+        self.assertEqual(2, len(benches))
         bench_ob = inv.Container.of(benches[0])
         self.assertTrue(bench_ob.is_workbench())
 
