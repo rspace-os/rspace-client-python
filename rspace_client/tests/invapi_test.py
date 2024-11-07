@@ -597,7 +597,7 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(10, len(rc.data["results"]))
 
         ## now reload the container, which should show subsamples
-        updated_container_json = self.invapi.get_container_by_id(grid_c["id"])
+        updated_container_json = self.invapi.get_container_by_id(grid_c["id"], include_content = True)
         container = inv.Container.of(updated_container_json)
         self.assertEqual(21, container.capacity())
         self.assertEqual(11, container.free())
