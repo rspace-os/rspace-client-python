@@ -483,7 +483,7 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertTrue(result.is_ok())
         self.assertEqual(3, len(result.success_results()))
         ## reload:
-        image_c = inv.ImageContainer(self.invapi.get_container_by_id(image_c))
+        image_c = inv.ImageContainer(self.invapi.get_container_by_id(image_c, include_content = True))
         self.assertEqual(0, image_c.free_locations())
         self.assertEqual(3, image_c.capacity())
 

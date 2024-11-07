@@ -1618,9 +1618,9 @@ class InventoryClient(ClientBase):
         )
         return container
 
-    def get_container_by_id(self, container_id: Union[str, int]) -> dict:
+    def get_container_by_id(self, container_id: Union[str, int], include_content = False) -> dict:
         c_id = Id(container_id)
-        return self.retrieve_api_results(f"/containers/{c_id.as_id()}")
+        return self.retrieve_api_results(f"/containers/{c_id.as_id()}?includeContent={include_content}")
 
     def create_grid_container(
         self,
