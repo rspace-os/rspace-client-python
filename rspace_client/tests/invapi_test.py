@@ -209,12 +209,12 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_search_sample(self):
         name = base.random_string()
-        tags = base.random_string()
-        sample = self.invapi.create_sample(name, tags=tags)
+        tag = base.random_string()
+        sample = self.invapi.create_sample(name, tags=inv.gen_tags([tag]))
         results = self.invapi.search(query=name)
         ## sample and its subsample
         self.assertEqual(2, results["totalHits"])
-        results_from_tag = self.invapi.search(query=tags)
+        results_from_tag = self.invapi.search(query=tag)
         self.assertEqual(1, results_from_tag["totalHits"])
 
         results2 = self.invapi.search(query=name, result_type=inv.ResultType.SAMPLE)
