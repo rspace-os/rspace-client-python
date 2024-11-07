@@ -27,7 +27,12 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_create_sample(self):
         sample_name = base.random_string(5)
-        sample_tags = base.random_string(4)
+        sample_tags = [{
+          "value": base.random_string(4),
+          "ontologyName": None,
+          "ontologyVersion": None,
+          "uri": None,
+        }]
         ef1 = inv.ExtraField("f1", inv.ExtraFieldType.TEXT, "hello")
         ef2 = inv.ExtraField("f2", inv.ExtraFieldType.NUMBER, 123)
 
