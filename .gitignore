@@ -99,3 +99,6 @@ examples/deletedUserslog.txt
 rspace_client/.spyproject/
 rspace_client/.spyproject/config/workspace.ini
 rspace_client/.spyproject/config/workspace.ini
+
+# mac os
+.DS_Store
