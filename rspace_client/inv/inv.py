@@ -2199,3 +2199,12 @@ def _calculate_start_index(
     elif FillingStrategy.BY_COLUMN == filling_strategy:
         index = ((col_start - 1) * total_rows) + row_start
     return index - 1
+
+
+def gen_tags(tags):
+  return [{
+    "value": value,
+    "ontologyName": None,
+    "ontologyVersion": None,
+    "uri": None
+  } for value in tags]
