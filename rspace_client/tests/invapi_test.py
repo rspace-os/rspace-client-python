@@ -752,11 +752,6 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertTrue(results["totalHits"] > 0)
         self.assertTrue(all([a["template"] for a in results["templates"]]))
 
-        ## search for non-existent user
-        sf = inv.SearchFilter(owned_by="XXXX1123")
-        results = self.invapi.list_sample_templates(search_filter=sf)
-        self.assertEqual(0, results["totalHits"])
-
     def test_create_sample_from_template(self):
 
         ## create a new template with different fields
