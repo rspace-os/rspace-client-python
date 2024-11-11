@@ -6,7 +6,7 @@ import re
 import sys, io, base64
 import requests
 import pprint
-from typing import Optional, Sequence, Union, List
+from typing import Optional, Sequence, Union, List, TypedDict
 
 from rspace_client.client_base import ClientBase, Pagination
 from rspace_client.inv import quantity_unit as qu
@@ -21,6 +21,13 @@ class DeletedItemFilter(Enum):
 class Barcode(Enum):
     BARCODE = 1
     QR = 2
+
+
+class Tag(TypedDict):
+  value: str
+  uri: str
+  ontologyName: str
+  ontologyVersion: str
 
 
 class FillingStrategy(Enum):
@@ -751,15 +758,14 @@ class ItemPost:
         self,
         name: str,
         itemType: str,
-        tags: Optional[str] = None,
+        tags: List[Tag] = [],
         description: Optional[str] = None,
         extra_fields: Optional[Sequence] = [],
     ):
         self.data = {}
         self.data["type"] = itemType
         self.data["name"] = name
-        if tags is not None:
-            self.data["tags"] = tags
+        self.data["tags"] = tags
         if description is not None:
             self.data["description"] = description
         if extra_fields is not None:
@@ -774,7 +780,7 @@ class SamplePost(ItemPost):
     def __init__(
         self,
         name: str,
-        tags: Optional[str] = None,
+        tags: List[Tag] = [],
         description: Optional[str] = None,
         extra_fields: Optional[Sequence] = [],
         sample_template_id=None,
@@ -902,7 +908,7 @@ class ContainerPost(ItemPost):
     def __init__(
         self,
         name: str,
-        tags: Optional[str] = None,
+        tags: List[Tag] = [],
         description: Optional[str] = None,
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
@@ -931,7 +937,7 @@ class ListContainerPost(ContainerPost):
     def __init__(
         self,
         name: str,
-        tags: Optional[str] = None,
+        tags: List[Tag] = [],
         description: Optional[str] = None,
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
@@ -964,7 +970,7 @@ class ImageContainerPost(ContainerPost):
         name: str,
         image_file: Union[str, io.BufferedReader],
         locations: Optional[Sequence] = [],
-        tags: Optional[str] = None,
+        tags: List[Tag] = [],
         description: Optional[str] = None,
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
@@ -981,8 +987,8 @@ class ImageContainerPost(ContainerPost):
         locations : Optional[Sequence], optional
             An optional list of (x,y) coordinate tuples of marked locations within
             the image container.
-        tags : Optional[str], optional
-            Comma separated tags
+        tags : List[Tag], list
+            List of tags
         description : Optional[str], optional
         extra_fields : Optional[Sequence], optional
         can_store_containers : bool, optional
@@ -1022,7 +1028,7 @@ class GridContainerPost(ContainerPost):
         name: str,
         row_count: int,
         column_count: int,
-        tags: Optional[str] = None,
+        tags: List[Tag] = [],
         description: Optional[str] = None,
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
@@ -1093,7 +1099,7 @@ class InventoryClient(ClientBase):
     def create_sample(
         self,
         name: str,
-        tags: Optional[str] = None,
+        tags: List[Tag] = [],
         description: Optional[str] = None,
         extra_fields: Optional[Sequence] = [],
         sample_template_id=None,
@@ -1591,7 +1597,7 @@ class InventoryClient(ClientBase):
     def create_list_container(
         self,
         name: str,
-        tags: Optional[str] = None,
+        tags: List[Tag] = [],
         description: Optional[str] = None,
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
@@ -1627,7 +1633,7 @@ class InventoryClient(ClientBase):
         name: str,
         row_count: int,
         column_count: int,
-        tags: Optional[str] = None,
+        tags: List[Tag] = [],
         description: Optional[str] = None,
         extra_fields: Optional[Sequence] = [],
         can_store_containers: bool = True,
@@ -1643,8 +1649,8 @@ class InventoryClient(ClientBase):
             Then number of rows (max 24).
         column_count : int
             The number of columns (max 24)
-        tags : Optional[str], optional
-            Comma-separated
+        tags : List[Tag]
+            List of tags
         description : Optional[str], optional
             A description for this contaier. The default is None.
         extra_fields : Optional[Sequence], optional
@@ -2201,7 +2207,7 @@ def _calculate_start_index(
     return index - 1
 
 
-def gen_tags(tags):
+def gen_tags(tags) -> List[Tag]:
   return [{
     "value": value,
     "ontologyName": None,
