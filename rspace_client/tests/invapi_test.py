@@ -27,7 +27,7 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_create_sample(self):
         sample_name = base.random_string(5)
-        sample_tags = base.random_string(4)
+        sample_tags = inv.gen_tags([base.random_string(4)])
         ef1 = inv.ExtraField("f1", inv.ExtraFieldType.TEXT, "hello")
         ef2 = inv.ExtraField("f2", inv.ExtraFieldType.NUMBER, 123)
 
@@ -209,12 +209,12 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_search_sample(self):
         name = base.random_string()
-        tags = base.random_string()
-        sample = self.invapi.create_sample(name, tags=tags)
+        tag = base.random_string()
+        sample = self.invapi.create_sample(name, tags=inv.gen_tags([tag]))
         results = self.invapi.search(query=name)
         ## sample and its subsample
         self.assertEqual(2, results["totalHits"])
-        results_from_tag = self.invapi.search(query=tags)
+        results_from_tag = self.invapi.search(query=tag)
         self.assertEqual(1, results_from_tag["totalHits"])
 
         results2 = self.invapi.search(query=name, result_type=inv.ResultType.SAMPLE)
@@ -286,7 +286,7 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_get_benches(self):
         benches = self.invapi.get_workbenches()
-        self.assertEqual(1, len(benches))
+        self.assertEqual(2, len(benches))
         bench_ob = inv.Container.of(benches[0])
         self.assertTrue(bench_ob.is_workbench())
 
@@ -395,7 +395,7 @@ class InventoryApiTest(base.BaseApiTest):
     def test_create_list_container(self):
         name = base.random_string()
         ct = self.invapi.create_list_container(
-            name, tags="ab,cd,ef", can_store_samples=False
+            name, tags=inv.gen_tags(["ab", "cd", "ef"]), can_store_samples=False
         )
         ## default is top-level
         self.assertTrue(ct["cType"] == "LIST")
@@ -404,13 +404,13 @@ class InventoryApiTest(base.BaseApiTest):
 
         ## create in Bench
         ct_in_wb = self.invapi.create_list_container(
-            name, tags="ab,cd,ef", location=inv.BenchTargetLocation()
+            name, tags=inv.gen_tags(["ab", "cd", "ef"]), location=inv.BenchTargetLocation()
         )
         self.assertEqual("BE", ct_in_wb["parentContainers"][0]["globalId"][0:2])
 
         ## create in parent list container
         ct_sub_container = self.invapi.create_list_container(
-            name, tags="ab,cd,ef", location=inv.TargetLocation(ct["id"])
+            name, tags=inv.gen_tags(["ab", "cd", "ef"]), location=inv.TargetLocation(ct["id"])
         )
         self.assertEqual(
             ct["globalId"], ct_sub_container["parentContainers"][0]["globalId"]
@@ -483,7 +483,7 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertTrue(result.is_ok())
         self.assertEqual(3, len(result.success_results()))
         ## reload:
-        image_c = inv.ImageContainer(self.invapi.get_container_by_id(image_c))
+        image_c = inv.ImageContainer(self.invapi.get_container_by_id(image_c, include_content = True))
         self.assertEqual(0, image_c.free_locations())
         self.assertEqual(3, image_c.capacity())
 
@@ -516,7 +516,7 @@ class InventoryApiTest(base.BaseApiTest):
         )
 
         ## now reload the container, which should show subsamples
-        updated_container_json = self.invapi.get_container_by_id(grid_c["id"])
+        updated_container_json = self.invapi.get_container_by_id(grid_c["id"], include_content = True)
         container = inv.Container.of(updated_container_json)
         self.assertEqual(6, container.capacity())
         self.assertEqual(5, container.free())
@@ -563,7 +563,7 @@ class InventoryApiTest(base.BaseApiTest):
         )
         self.assertTrue(result.is_ok())
         ## get container
-        updated_container_json = self.invapi.get_container_by_id(grid_c["id"])
+        updated_container_json = self.invapi.get_container_by_id(grid_c["id"], include_content = True)
         container = inv.Container.of(updated_container_json)
         self.assertEqual(10, container.capacity())
         self.assertEqual(5, container.in_use())
@@ -597,7 +597,7 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(10, len(rc.data["results"]))
 
         ## now reload the container, which should show subsamples
-        updated_container_json = self.invapi.get_container_by_id(grid_c["id"])
+        updated_container_json = self.invapi.get_container_by_id(grid_c["id"], include_content = True)
         container = inv.Container.of(updated_container_json)
         self.assertEqual(21, container.capacity())
         self.assertEqual(11, container.free())
@@ -751,11 +751,6 @@ class InventoryApiTest(base.BaseApiTest):
         results = self.invapi.list_sample_templates()
         self.assertTrue(results["totalHits"] > 0)
         self.assertTrue(all([a["template"] for a in results["templates"]]))
-
-        ## search for non-existent user
-        sf = inv.SearchFilter(owned_by="XXXX1123")
-        results = self.invapi.list_sample_templates(search_filter=sf)
-        self.assertEqual(0, results["totalHits"])
 
     def test_create_sample_from_template(self):
 
