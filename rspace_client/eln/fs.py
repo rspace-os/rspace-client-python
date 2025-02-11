@@ -5,6 +5,7 @@ from fs.info import Info
 from fs.permissions import Permissions
 from fs.subfs import SubFS
 from fs import errors
+from typing import Any
 
 def path_to_id(path):
     """
@@ -83,3 +84,9 @@ class GalleryFilesystem(FS):
 
     def setinfo(self, path: Text, info: Mapping[Text, Mapping[Text, object]]) -> None:
         raise NotImplementedError
+
+    def download(self, path: Text, file: BinaryIO, chunk_size: Optional[int] = None, **options: Any) -> None:
+        if chunk_size is not None:
+            self.eln_client.download_file(path_to_id(path), file, chunk_size)
+        else:
+            self.eln_client.download_file(path_to_id(path), file)

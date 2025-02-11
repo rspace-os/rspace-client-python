@@ -334,17 +334,18 @@ class ELNClient(ClientBase):
         numeric_file_id = self._get_numeric_record_id(file_id)
         return self.retrieve_api_results("/files/{}".format(numeric_file_id))
 
-    def download_file(self, file_id, filename):
+    def download_file(self, file_id, filename, chunk_size=128):
         """
         Downloads file contents. More information on
         https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
         :param file_id: numeric document ID or global ID
-        :param filename: file path to save the file to
+        :param filename: file path to save the file to or a file object
+        :param chunk_size: size of chunks to download at a time (optional, default is 128 bytes)
         """
         numeric_file_id = self._get_numeric_record_id(file_id)
         url_base = self._get_api_url()
         return self.download_link_to_file(
-            f"{url_base}/files/{numeric_file_id}/file", filename
+            f"{url_base}/files/{numeric_file_id}/file", filename, chunk_size
         )
 
     def upload_file(self, file, folder_id=None, caption=None):
