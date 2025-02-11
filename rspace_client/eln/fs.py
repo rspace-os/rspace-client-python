@@ -90,3 +90,12 @@ class GalleryFilesystem(FS):
             self.eln_client.download_file(path_to_id(path), file, chunk_size)
         else:
             self.eln_client.download_file(path_to_id(path), file)
+
+    def upload(self, path: Text, file: BinaryIO, chunk_size: Optional[int] = None, **options: Any) -> None:
+        """
+        :param path: Global Id of a folder in the appropriate gallery section or
+                     else if empty then the upload will be placed in the Api
+                     Imports folder of the relevant gallery section
+        :param file: a binary file object to be uploaded
+        """
+        self.eln_client.upload_file(file, path_to_id(path) if path else None)
