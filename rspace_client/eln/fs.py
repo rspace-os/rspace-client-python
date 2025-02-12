@@ -32,9 +32,9 @@ class GalleryInfo(Info):
 
 class GalleryFilesystem(FS):
 
-    def __init__(self) -> None:
+    def __init__(self, server: str, api_key: str) -> None:
         super(GalleryFilesystem, self).__init__()
-        self.eln_client = eln.ELNClient("http://localhost:8080", "abcdefghijklmnop1")
+        self.eln_client = eln.ELNClient(server, api_key)
         self.gallery_id = next(file['id'] for file in self.eln_client.list_folder_tree()['records'] if file['name'] == 'Gallery')
 
     def getinfo(self, path, namespaces=None) -> Info:
