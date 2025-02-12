@@ -19,6 +19,11 @@ def mock_requests_get(url, *args, **kwargs):
                 {'globalId': 'GL012', 'name': 'File2'}
             ]
         }
+    elif url.endswith('/folders/tree/456'):
+            mock_response.json.return_value = {
+                'records': [
+                ]
+            }
     elif url.endswith('/folders/123'):
         mock_response.json.return_value = {
             'id': '123',
@@ -135,6 +140,16 @@ class ElnFilesystemTest(unittest.TestCase):
             headers=ANY
         )
 
+    @patch('requests.request', side_effect=mock_requests_post)
+    @patch('requests.get', side_effect=mock_requests_get)
+    def test_removedir(self, mock_get, mock_post):
+        self.fs.removedir('GF456')
+        mock_post.assert_called_once_with(
+            'DELETE',
+            'https://example.com/api/v1/folders/456',
+            json=ANY,
+            headers=ANY
+        )
 
 if __name__ == '__main__':
     unittest.main()
