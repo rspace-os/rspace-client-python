@@ -166,5 +166,19 @@ class ElnFilesystemTest(unittest.TestCase):
             headers=ANY
         )
 
+    @patch('requests.post')
+    def test_upload(self, mock_post):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {'id': '456'}
+        mock_post.return_value = mock_response
+        file_obj = BytesIO(b'test file content')
+        self.fs.upload('/GF123', file_obj)
+        mock_post.assert_called_once_with(
+            'https://example.com/api/v1/files',
+            files={'file': file_obj},
+            data={'folderId': 123},
+            headers=ANY
+        )
+
 if __name__ == '__main__':
     unittest.main()
