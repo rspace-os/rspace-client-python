@@ -1,6 +1,7 @@
 from unittest.mock import patch, MagicMock, ANY
 import unittest
 from rspace_client.eln.fs import path_to_id, GalleryFilesystem
+from io import BytesIO
 
 def mock_requests_get(url, *args, **kwargs):
     mock_response = MagicMock()
@@ -148,6 +149,20 @@ class ElnFilesystemTest(unittest.TestCase):
             'DELETE',
             'https://example.com/api/v1/folders/456',
             json=ANY,
+            headers=ANY
+        )
+
+    @patch('requests.get')
+    def test_download(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.iter_content = MagicMock(return_value=[b'chunk1', b'chunk2', b'chunk3'])
+        mock_get.return_value = mock_response
+        file_obj = BytesIO()
+        self.fs.download('/GL123', file_obj)
+        file_obj.seek(0)
+        self.assertEqual(file_obj.read(), b'chunk1chunk2chunk3')
+        mock_get.assert_called_once_with(
+            'https://example.com/api/v1/files/123/file',
             headers=ANY
         )
 
