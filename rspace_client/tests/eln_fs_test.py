@@ -59,3 +59,23 @@ class ElnFilesystemTest(BaseApiTest):
         self.assertEqual("GL123", file_info.raw["basic"]["name"])
         self.assertFalse(file_info.raw["basic"]["is_dir"])
         self.assertEqual(1024, file_info.raw["details"]["size"])
+
+    @patch('rspace_client.eln.eln.ELNClient.list_folder_tree')
+    def test_listdir(self, mock_list_folder_tree):
+        mock_list_folder_tree.return_value = {
+            'records': [
+                {'globalId': 'GF123', 'name': 'Folder1'},
+                {'globalId': 'GL456', 'name': 'File1'},
+                {'globalId': 'GF789', 'name': 'Folder2'},
+                {'globalId': 'GL012', 'name': 'File2'}
+            ]
+        }
+
+        # Test listdir for the root path
+        result = self.fs.listdir('/')
+        expected = ['GF123', 'GL456', 'GF789', 'GL012']
+        self.assertEqual(result, expected)
+
+        # Test listdir for a specific folder path
+        result = self.fs.listdir('GF123')
+        self.assertEqual(result, expected)
