@@ -181,18 +181,25 @@ class ClientBase:
             )
         )
 
-    def download_link_to_file(self, url, filename):
+    def download_link_to_file(self, url, filename, chunk_size=128):
         """
         Downloads a file from the API server.
         :param url: URL of the file to be downloaded
-        :param filename: file path to save the file to
+        :param filename: file path to save the file to or an already opened file object
+        :param chunk_size: size of the chunks to download at a time, default is 128
         """
         headers = {"apiKey": self.api_key, "Accept": "application/octet-stream"}
-        with open(filename, "wb") as fd:
+        if isinstance(filename, str):
+            with open(filename, "wb") as fd:
+                for chunk in requests.get(url, headers=headers).iter_content(
+                    chunk_size=chunk_size
+                ):
+                    fd.write(chunk)
+        else:
             for chunk in requests.get(url, headers=headers).iter_content(
-                chunk_size=128
+                chunk_size=chunk_size
             ):
-                fd.write(chunk)
+                filename.write(chunk)
 
     def link_exists(self, response, link_rel):
         """

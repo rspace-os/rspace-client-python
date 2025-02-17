@@ -24,6 +24,7 @@ exclude = ["examples/*", "rspace_client/tests/*"]
 python = "^3.7.11"
 requests = "^2.25.1"
 beautifulsoup4 = "^4.9.3"
+fs = "^2.4.16"
 
 [tool.poetry.dev-dependencies]
 black = "^21.6b0"
