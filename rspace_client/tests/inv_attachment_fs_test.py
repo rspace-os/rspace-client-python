@@ -1,8 +1,6 @@
 from unittest.mock import patch, MagicMock, ANY
 import unittest
 from io import BytesIO
-
-from rspace_client.inv.attachment_fs import InventoryAttachmentInfo
 from rspace_client.inv.attachment_fs import InventoryAttachmentFilesystem
 
 def mock_requests_get(url, *args, **kwargs):
@@ -73,5 +71,19 @@ class InvAttachmentFilesystemTest(unittest.TestCase):
         self.assertEqual(file_obj.read(), b'chunk1chunk2chunk3')
         mock_get.assert_called_once_with(
             'https://example.com/api/inventory/v1/files/123/file',
+            headers=ANY
+        )
+
+    @patch('requests.post')
+    def test_upload(self, mock_post):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {'id': '456'}
+        mock_post.return_value = mock_response
+        file_obj = BytesIO(b'test file content')
+        self.fs.upload('/IF123', file_obj)
+        mock_post.assert_called_once_with(
+            'https://example.com/api/inventory/v1/files',
+            data={'fileSettings': '{"parentGlobalId": "IF123"}'},
+            files={'file': file_obj},
             headers=ANY
         )

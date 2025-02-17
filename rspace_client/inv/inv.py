@@ -6,6 +6,7 @@ import re
 import sys, io, base64
 import requests
 import pprint
+import requests
 from typing import Optional, Sequence, Union, List, TypedDict, BinaryIO
 
 from rspace_client.client_base import ClientBase, Pagination
@@ -1377,6 +1378,17 @@ class InventoryClient(ClientBase):
         return self.download_link_to_file(
             f"{url_base}/files/{attachment_id}/file", file_path, chunk_size
         )
+
+    def upload_attachment_by_global_id(self, record_global_id: str, file: BinaryIO) -> None:
+        print(record_global_id, json.dumps({"parentGlobalId": record_global_id}))
+        response = requests.post(
+            self._get_api_url() + "/files",
+            data={"fileSettings": json.dumps({"parentGlobalId": record_global_id})},
+            files={"file": file },
+            headers=self._get_headers(),
+        )
+        return self._handle_response(response)
+
     def split_subsample(
         self,
         subsample: Union[int, str, dict],

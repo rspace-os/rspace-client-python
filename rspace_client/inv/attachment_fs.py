@@ -67,4 +67,4 @@ class InventoryAttachmentFilesystem(FS):
             self.inv_client.download_attachment_by_id(path_to_id(path), file)
 
     def upload(self, path: Text, file: BinaryIO, chunk_size: Optional[int] = None, **options: Any) -> None:
-        raise NotImplementedError()
+        self.inv_client.upload_attachment_by_global_id(path.split('/')[-1], file)
