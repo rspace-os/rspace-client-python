@@ -6,7 +6,7 @@ import re
 import sys, io, base64
 import requests
 import pprint
-from typing import Optional, Sequence, Union, List, TypedDict
+from typing import Optional, Sequence, Union, List, TypedDict, BinaryIO
 
 from rspace_client.client_base import ClientBase, Pagination
 from rspace_client.inv import quantity_unit as qu
@@ -1371,6 +1371,12 @@ class InventoryClient(ClientBase):
         None
         """
         self.doDelete("files", attachment_id)
+
+    def download_attachment_by_id(self, attachment_id: Union[str, int], file_path: Union[str, BinaryIO], chunk_size=128) -> None:
+        url_base = self._get_api_url()
+        return self.download_link_to_file(
+            f"{url_base}/files/{attachment_id}/file", file_path, chunk_size
+        )
     def split_subsample(
         self,
         subsample: Union[int, str, dict],

@@ -61,7 +61,10 @@ class InventoryAttachmentFilesystem(FS):
         raise NotImplementedError()
 
     def download(self, path: Text, file: BinaryIO, chunk_size: Optional[int] = None, **options: Any) -> None:
-        raise NotImplementedError()
+        if chunk_size is not None:
+            self.inv_client.download_attachment_by_id(path_to_id(path), file, chunk_size)
+        else:
+            self.inv_client.download_attachment_by_id(path_to_id(path), file)
 
     def upload(self, path: Text, file: BinaryIO, chunk_size: Optional[int] = None, **options: Any) -> None:
         raise NotImplementedError()

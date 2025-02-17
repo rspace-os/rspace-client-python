@@ -61,3 +61,17 @@ class InvAttachmentFilesystemTest(unittest.TestCase):
     def test_remove(self, mock_request):
         self.fs.remove("IF123")
         mock_request.assert_called_with('DELETE', 'https://example.com/api/inventory/v1/files/123', json=None, headers=ANY)
+
+    @patch('requests.get')
+    def test_download(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.iter_content = MagicMock(return_value=[b'chunk1', b'chunk2', b'chunk3'])
+        mock_get.return_value = mock_response
+        file_obj = BytesIO()
+        self.fs.download('/IF123', file_obj)
+        file_obj.seek(0)
+        self.assertEqual(file_obj.read(), b'chunk1chunk2chunk3')
+        mock_get.assert_called_once_with(
+            'https://example.com/api/inventory/v1/files/123/file',
+            headers=ANY
+        )
