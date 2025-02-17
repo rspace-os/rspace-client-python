@@ -99,4 +99,7 @@ class InventoryAttachmentFilesystem(FS):
             self.inv_client.download_attachment_by_id(path_to_id(path), file)
 
     def upload(self, path: Text, file: BinaryIO, chunk_size: Optional[int] = None, **options: Any) -> None:
+        global_id_prefix = path.split('/')[-1][:2]
+        if global_id_prefix not in ["IC", "SS", "SA", "IT"]:
+            raise errors.ResourceNotFound(path)
         self.inv_client.upload_attachment_by_global_id(path.split('/')[-1], file)
