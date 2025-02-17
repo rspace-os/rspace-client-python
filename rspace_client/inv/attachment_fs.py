@@ -9,6 +9,8 @@ from fs.info import Info
 from fs.permissions import Permissions
 from fs.subfs import SubFS
 from fs import errors
+from fs.mode import Mode
+from io import BytesIO
 from ..fs_utils import path_to_id
 
 class InventoryAttachmentInfo(Info):
@@ -46,7 +48,37 @@ class InventoryAttachmentFilesystem(FS):
         raise NotImplementedError()
 
     def openbin(self, path: Text, mode: Text = 'r', buffering: int = -1, **options) -> BinaryIO:
-        raise NotImplementedError()
+        """
+        This method is added for conformance with the FS interface, but in
+        almost all circumstances you probably want to be using upload and
+        download directly as they have more information available e.g. uploaded
+        files will have the same name as the source file when called directly
+        """
+        _mode = Mode(mode)
+        if _mode.reading and _mode.writing:
+            raise errors.Unsupported("read/write mode")
+        if _mode.appending:
+            raise errors.Unsupported("appending mode")
+        if _mode.exclusive:
+            raise errors.Unsupported("exclusive mode")
+        if _mode.truncate:
+            raise errors.Unsupported("truncate mode")
+
+        if _mode.reading:
+            file = BytesIO()
+            self.download(path, file)
+            file.seek(0)
+            return file
+
+        if _mode.writing:
+            file = BytesIO()
+            def upload_callback():
+                file.seek(0)
+                self.upload(path, file)
+            file.close = upload_callback
+            return file
+
+        raise errors.Unsupported("mode {!r}".format(_mode))
 
     def remove(self, path: Text) -> None:
         is_attachment = path.split('/')[-1][:2] == "IF"
