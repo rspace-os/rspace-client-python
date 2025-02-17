@@ -1,0 +1,172 @@
+{
+  "id": 1,
+  "globalId": "IT1",
+  "name": "Sample",
+  "description": null,
+  "created": "2025-02-17T09:33:35.000Z",
+  "createdBy": "user1a",
+  "lastModified": "2025-02-17T09:33:35.608Z",
+  "modifiedBy": "user1a",
+  "modifiedByFullName": "user user",
+  "deleted": false,
+  "deletedDate": null,
+  "iconId": -1,
+  "quantity": {
+    "numericValue": 0,
+    "unitId": 3
+  },
+  "tags": [],
+  "type": "SAMPLE_TEMPLATE",
+  "attachments": [
+    {
+      "id": 32772,
+      "globalId": "IF32772",
+      "name": "test.pdf",
+      "parentGlobalId": "SS4",
+      "mediaFileGlobalId": null,
+      "type": "GENERAL",
+      "contentMimeType": "application/pdf",
+      "extension": "pdf",
+      "size": 3190,
+      "created": "2025-02-17T13:48:28.000Z",
+      "createdBy": "user1a",
+      "deleted": false,
+      "_links": [
+        {
+          "link": "http://localhost:8080/api/inventory/v1/files/32772",
+          "rel": "self"
+        },
+        {
+          "link": "http://localhost:8080/api/inventory/v1/files/32772/file",
+          "rel": "enclosure"
+        }
+      ]
+    }
+  ],
+  "barcodes": [],
+  "identifiers": [],
+  "owner": {
+    "id": -1,
+    "username": "user1a",
+    "email": "user@user.com",
+    "firstName": "user",
+    "lastName": "user",
+    "homeFolderId": 124,
+    "workbenchId": null,
+    "hasPiRole": true,
+    "hasSysAdminRole": false,
+    "_links": []
+  },
+  "permittedActions": ["READ", "UPDATE", "CHANGE_OWNER"],
+  "sharingMode": "OWNER_GROUPS",
+  "sharedWith": [
+    {
+      "group": {
+        "id": 1,
+        "globalId": "GP1",
+        "name": "userGroup",
+        "uniqueName": "userGroupKHqD",
+        "_links": []
+      },
+      "shared": false,
+      "itemOwnerGroup": true
+    }
+  ],
+  "templateId": null,
+  "templateVersion": null,
+  "template": true,
+  "revisionId": null,
+  "version": 1,
+  "historicalVersion": false,
+  "subSampleAlias": {
+    "alias": "aliquot",
+    "plural": "aliquots"
+  },
+  "defaultUnitId": 3,
+  "subSamplesCount": 1,
+  "storageTempMin": null,
+  "storageTempMax": null,
+  "sampleSource": "LAB_CREATED",
+  "expiryDate": null,
+  "fields": [],
+  "extraFields": [],
+  "subSamples": [
+    {
+      "id": 1,
+      "globalId": "SS1",
+      "name": "Sample",
+      "description": null,
+      "created": "2025-02-17T09:33:35.000Z",
+      "createdBy": "user1a",
+      "lastModified": "2025-02-17T09:33:35.608Z",
+      "modifiedBy": "user1a",
+      "modifiedByFullName": null,
+      "deleted": false,
+      "deletedDate": null,
+      "iconId": -1,
+      "tags": [],
+      "attachments": [],
+      "barcodes": [],
+      "identifiers": [],
+      "owner": {
+        "id": -1,
+        "username": "user1a",
+        "email": "user@user.com",
+        "firstName": "user",
+        "lastName": "user",
+        "homeFolderId": 124,
+        "workbenchId": null,
+        "hasPiRole": true,
+        "hasSysAdminRole": false,
+        "_links": []
+      },
+      "permittedActions": [],
+      "sharingMode": "OWNER_GROUPS",
+      "quantity": {
+        "numericValue": 1,
+        "unitId": 3
+      },
+      "type": "SUBSAMPLE",
+      "parentContainers": [],
+      "parentLocation": null,
+      "lastNonWorkbenchParent": null,
+      "lastMoveDate": null,
+      "revisionId": null,
+      "deletedOnSampleDeletion": false,
+      "storedInContainer": false,
+      "_links": [
+        {
+          "link": "http://localhost:8080/api/inventory/v1/subSamples/1",
+          "rel": "self"
+        },
+        {
+          "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/1/icon/-1",
+          "rel": "image"
+        },
+        {
+          "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/1/icon/-1",
+          "rel": "thumbnail"
+        }
+      ]
+    }
+  ],
+  "_links": [
+    {
+      "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/1",
+      "rel": "self"
+    },
+    {
+      "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/1/icon/-1",
+      "rel": "icon"
+    },
+    {
+      "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/1/icon/-1",
+      "rel": "thumbnail"
+    },
+    {
+      "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/1/icon/-1",
+      "rel": "image"
+    }
+  ],
+  "canBeDeleted": true
+}

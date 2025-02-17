@@ -1,0 +1,328 @@
+{
+  "id": 7,
+  "globalId": "SA7",
+  "name": "Basic Sample",
+  "description": null,
+  "created": "2025-02-17T09:33:37.000Z",
+  "createdBy": "user2b",
+  "lastModified": "2025-02-17T09:33:37.277Z",
+  "modifiedBy": "user2b",
+  "modifiedByFullName": "user two",
+  "canBeDeleted": false,
+  "deleted": false,
+  "deletedDate": null,
+  "iconId": -1,
+  "quantity": {
+    "numericValue": 1,
+    "unitId": 3
+  },
+  "tags": [],
+  "type": "SAMPLE",
+  "attachments": [
+    {
+      "id": 32772,
+      "globalId": "IF32772",
+      "name": "test.pdf",
+      "parentGlobalId": "SS4",
+      "mediaFileGlobalId": null,
+      "type": "GENERAL",
+      "contentMimeType": "application/pdf",
+      "extension": "pdf",
+      "size": 3190,
+      "created": "2025-02-17T13:48:28.000Z",
+      "createdBy": "user1a",
+      "deleted": false,
+      "_links": [
+        {
+          "link": "http://localhost:8080/api/inventory/v1/files/32772",
+          "rel": "self"
+        },
+        {
+          "link": "http://localhost:8080/api/inventory/v1/files/32772/file",
+          "rel": "enclosure"
+        }
+      ]
+    }
+  ],
+  "barcodes": [],
+  "identifiers": [],
+  "owner": {
+    "id": -3,
+    "username": "user2b",
+    "email": "u2@researchspace.com",
+    "firstName": "user",
+    "lastName": "two",
+    "homeFolderId": 165,
+    "workbenchId": null,
+    "hasPiRole": false,
+    "hasSysAdminRole": false,
+    "_links": []
+  },
+  "permittedActions": ["READ", "UPDATE", "CHANGE_OWNER"],
+  "sharingMode": "OWNER_GROUPS",
+  "templateId": null,
+  "templateVersion": null,
+  "template": false,
+  "revisionId": null,
+  "version": 1,
+  "historicalVersion": false,
+  "subSampleAlias": {
+    "alias": "aliquot",
+    "plural": "aliquots"
+  },
+  "subSamplesCount": 1,
+  "storageTempMin": null,
+  "storageTempMax": null,
+  "sampleSource": "LAB_CREATED",
+  "expiryDate": null,
+  "sharedWith": [
+    {
+      "group": {
+        "id": 1,
+        "globalId": "GP1",
+        "name": "userGroup",
+        "uniqueName": "userGroupKHqD",
+        "_links": []
+      },
+      "shared": false,
+      "itemOwnerGroup": true
+    }
+  ],
+  "fields": [],
+  "extraFields": [],
+  "subSamples": [
+    {
+      "id": 7,
+      "globalId": "SS7",
+      "name": "Basic Sample.01",
+      "description": null,
+      "created": "2025-02-17T09:33:37.000Z",
+      "createdBy": "user2b",
+      "lastModified": "2025-02-17T09:33:37.277Z",
+      "modifiedBy": "user2b",
+      "modifiedByFullName": "user two",
+      "deleted": false,
+      "deletedDate": null,
+      "iconId": -1,
+      "tags": [],
+      "attachments": [],
+      "barcodes": [],
+      "identifiers": [],
+      "owner": {
+        "id": -3,
+        "username": "user2b",
+        "email": "u2@researchspace.com",
+        "firstName": "user",
+        "lastName": "two",
+        "homeFolderId": 165,
+        "workbenchId": null,
+        "hasPiRole": false,
+        "hasSysAdminRole": false,
+        "_links": []
+      },
+      "permittedActions": ["READ", "UPDATE", "CHANGE_OWNER"],
+      "sharingMode": "OWNER_GROUPS",
+      "quantity": {
+        "numericValue": 1,
+        "unitId": 3
+      },
+      "type": "SUBSAMPLE",
+      "parentContainers": [
+        {
+          "id": 12,
+          "globalId": "IC12",
+          "name": "box #1 (list container)",
+          "description": null,
+          "created": "2025-02-17T09:33:37.000Z",
+          "createdBy": "user2b",
+          "lastModified": "2025-02-17T09:33:37.251Z",
+          "modifiedBy": "user2b",
+          "modifiedByFullName": null,
+          "deleted": false,
+          "deletedDate": null,
+          "iconId": -1,
+          "quantity": null,
+          "tags": [],
+          "type": "CONTAINER",
+          "attachments": [],
+          "barcodes": [],
+          "identifiers": [],
+          "owner": {
+            "id": -3,
+            "username": "user2b",
+            "email": "u2@researchspace.com",
+            "firstName": "user",
+            "lastName": "two",
+            "homeFolderId": 165,
+            "workbenchId": null,
+            "hasPiRole": false,
+            "hasSysAdminRole": false,
+            "_links": []
+          },
+          "permittedActions": [],
+          "sharingMode": "OWNER_GROUPS",
+          "parentContainers": [
+            {
+              "id": 11,
+              "globalId": "IC11",
+              "name": "storage shelf #1 (list container)",
+              "description": null,
+              "created": "2025-02-17T09:33:37.000Z",
+              "createdBy": "user2b",
+              "lastModified": "2025-02-17T09:33:37.251Z",
+              "modifiedBy": "user2b",
+              "modifiedByFullName": null,
+              "deleted": false,
+              "deletedDate": null,
+              "iconId": -1,
+              "quantity": null,
+              "tags": [],
+              "type": "CONTAINER",
+              "attachments": [],
+              "barcodes": [],
+              "identifiers": [],
+              "owner": {
+                "id": -3,
+                "username": "user2b",
+                "email": "u2@researchspace.com",
+                "firstName": "user",
+                "lastName": "two",
+                "homeFolderId": 165,
+                "workbenchId": null,
+                "hasPiRole": false,
+                "hasSysAdminRole": false,
+                "_links": []
+              },
+              "permittedActions": [],
+              "sharingMode": "OWNER_GROUPS",
+              "parentContainers": [],
+              "parentLocation": null,
+              "lastNonWorkbenchParent": null,
+              "lastMoveDate": null,
+              "locationsCount": null,
+              "contentSummary": {
+                "totalCount": 3,
+                "subSampleCount": 0,
+                "containerCount": 3
+              },
+              "cType": "LIST",
+              "gridLayout": null,
+              "canStoreSamples": true,
+              "canStoreContainers": true,
+              "_links": []
+            }
+          ],
+          "parentLocation": {
+            "id": 14,
+            "coordX": 1,
+            "coordY": 1
+          },
+          "lastNonWorkbenchParent": null,
+          "lastMoveDate": "2025-02-17T09:33:37.000Z",
+          "locationsCount": null,
+          "contentSummary": {
+            "totalCount": 4,
+            "subSampleCount": 1,
+            "containerCount": 3
+          },
+          "cType": "LIST",
+          "gridLayout": null,
+          "canStoreSamples": true,
+          "canStoreContainers": true,
+          "_links": []
+        },
+        {
+          "id": 11,
+          "globalId": "IC11",
+          "name": "storage shelf #1 (list container)",
+          "description": null,
+          "created": "2025-02-17T09:33:37.000Z",
+          "createdBy": "user2b",
+          "lastModified": "2025-02-17T09:33:37.251Z",
+          "modifiedBy": "user2b",
+          "modifiedByFullName": null,
+          "deleted": false,
+          "deletedDate": null,
+          "iconId": -1,
+          "quantity": null,
+          "tags": [],
+          "type": "CONTAINER",
+          "attachments": [],
+          "barcodes": [],
+          "identifiers": [],
+          "owner": {
+            "id": -3,
+            "username": "user2b",
+            "email": "u2@researchspace.com",
+            "firstName": "user",
+            "lastName": "two",
+            "homeFolderId": 165,
+            "workbenchId": null,
+            "hasPiRole": false,
+            "hasSysAdminRole": false,
+            "_links": []
+          },
+          "permittedActions": [],
+          "sharingMode": "OWNER_GROUPS",
+          "parentContainers": [],
+          "parentLocation": null,
+          "lastNonWorkbenchParent": null,
+          "lastMoveDate": null,
+          "locationsCount": null,
+          "contentSummary": {
+            "totalCount": 3,
+            "subSampleCount": 0,
+            "containerCount": 3
+          },
+          "cType": "LIST",
+          "gridLayout": null,
+          "canStoreSamples": true,
+          "canStoreContainers": true,
+          "_links": []
+        }
+      ],
+      "parentLocation": {
+        "id": 20,
+        "coordX": 4,
+        "coordY": 1
+      },
+      "lastNonWorkbenchParent": null,
+      "lastMoveDate": "2025-02-17T09:33:37.000Z",
+      "revisionId": null,
+      "deletedOnSampleDeletion": false,
+      "storedInContainer": true,
+      "_links": [
+        {
+          "link": "http://localhost:8080/api/inventory/v1/subSamples/7",
+          "rel": "self"
+        },
+        {
+          "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/7/icon/-1",
+          "rel": "image"
+        },
+        {
+          "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/7/icon/-1",
+          "rel": "thumbnail"
+        }
+      ]
+    }
+  ],
+  "_links": [
+    {
+      "link": "http://localhost:8080/api/inventory/v1/samples/7",
+      "rel": "self"
+    },
+    {
+      "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/7/icon/-1",
+      "rel": "icon"
+    },
+    {
+      "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/7/icon/-1",
+      "rel": "thumbnail"
+    },
+    {
+      "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/7/icon/-1",
+      "rel": "image"
+    }
+  ]
+}

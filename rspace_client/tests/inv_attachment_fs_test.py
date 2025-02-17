@@ -2,6 +2,8 @@ from unittest.mock import patch, MagicMock, ANY
 import unittest
 from io import BytesIO
 from rspace_client.inv.attachment_fs import InventoryAttachmentFilesystem
+import json
+from rspace_client.tests import base_test
 
 def mock_requests_get(url, *args, **kwargs):
     mock_response = MagicMock()
@@ -21,15 +23,27 @@ def mock_requests_get(url, *args, **kwargs):
             'deleted': False,
             '_links': [
             {
-                'link': 'http://localhost:8080/api/inventory/v1/files/32768',
+                'link': 'https://example.com/api/inventory/v1/files/32768',
                 'rel': 'self'
             },
             {
-                'link': 'http://localhost:8080/api/inventory/v1/files/32768/file',
+                'link': 'https://example.com/api/inventory/v1/files/32768/file',
                 'rel': 'enclosure'
             }
             ]
         }
+    elif url.endswith('/samples/123'):
+        with open(base_test.get_datafile('sample_by_id.json')) as f:
+            mock_response.json.return_value = json.load(f)
+    elif url.endswith('/containers/123?includeContent=False'):
+        with open(base_test.get_datafile('container_by_id.json')) as f:
+            mock_response.json.return_value = json.load(f)
+    elif url.endswith('/subSamples/123'):
+        with open(base_test.get_datafile('subsample_by_id.json')) as f:
+            mock_response.json.return_value = json.load(f)
+    elif url.endswith('/sampleTemplates/123'):
+        with open(base_test.get_datafile('sample_template_by_id.json')) as f:
+            mock_response.json.return_value = json.load(f)
     else:
         mock_response.json.return_value = {}
     mock_response.headers = {'Content-Type': 'application/json'}
@@ -87,3 +101,23 @@ class InvAttachmentFilesystemTest(unittest.TestCase):
             files={'file': file_obj},
             headers=ANY
         )
+
+    @patch('requests.get', side_effect=mock_requests_get)
+    def test_listdir_container(self, mock_get):
+        result = self.fs.listdir('/IC123')
+        self.assertEqual(result, ['IF32772'])
+
+    @patch('requests.get', side_effect=mock_requests_get)
+    def test_listdir_sample(self, mock_get):
+        result = self.fs.listdir('/SA123')
+        self.assertEqual(result, ['IF32772'])
+
+    @patch('requests.get', side_effect=mock_requests_get)
+    def test_listdir_subsample(self, mock_get):
+        result = self.fs.listdir('/SS123')
+        self.assertEqual(result, ['IF32772'])
+
+    @patch('requests.get', side_effect=mock_requests_get)
+    def test_listdir_sample_template(self, mock_get):
+        result = self.fs.listdir('/IT123')
+        self.assertEqual(result, ['IF32772'])

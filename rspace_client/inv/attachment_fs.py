@@ -42,7 +42,24 @@ class InventoryAttachmentFilesystem(FS):
         })
 
     def listdir(self, path: Text) -> List[Text]:
-        raise NotImplementedError()
+        global_id_prefix = path.split('/')[-1][:2]
+        if global_id_prefix == "IC":
+            dict = self.inv_client.get_container_by_id(path_to_id(path))
+            if 'attachments' in dict:
+                return [attachment['globalId'] for attachment in dict['attachments']]
+        if global_id_prefix == "SA":
+            dict = self.inv_client.get_sample_by_id(path_to_id(path))
+            if 'attachments' in dict:
+                return [attachment['globalId'] for attachment in dict['attachments']]
+        if global_id_prefix == "SS":
+            dict = self.inv_client.get_subsample_by_id(path_to_id(path))
+            if 'attachments' in dict:
+                return [attachment['globalId'] for attachment in dict['attachments']]
+        if global_id_prefix == "IT":
+            dict = self.inv_client.get_sample_template_by_id(path_to_id(path))
+            if 'attachments' in dict:
+                return [attachment['globalId'] for attachment in dict['attachments']]
+        raise errors.ResourceNotFound(path)
 
     def makedir(self, path: Text, permissions: Optional[Permissions] = None, recreate: bool = False) -> SubFS[FS]:
         raise NotImplementedError()
