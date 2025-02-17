@@ -1319,6 +1319,20 @@ class InventoryClient(ClientBase):
             params={"extraFields": toPut},
         )
 
+    def get_attachment_by_id(self, attachment_id: Union[str, int]) -> dict:
+        """
+        Parameters
+        ----------
+        attachment_id : Union[str, int]
+            The id of the file to retrieve
+
+        Returns
+        -------
+        dict
+            The file metadata
+        """
+        return self.retrieve_api_results(f"/files/{attachment_id}")
+
     def upload_attachment(self, inventory_item: Union[str, dict], file) -> dict:
         """
         Uploads an attachment file to a sample, subsample or container.

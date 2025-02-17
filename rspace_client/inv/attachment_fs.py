@@ -2,11 +2,13 @@
 # Inventory records -- containers, samples, subsamples, etc -- are modelled as
 # directories, with each containing a set of attachments: the files.
 
-import fs.base as FS
+from fs.base import FS
 from rspace_client.inv import inv
 from typing import Optional, List, Text, BinaryIO, Mapping, Any
 from fs.info import Info
 from fs.permissions import Permissions
+from fs.subfs import SubFS
+from fs import errors
 from ..fs_utils import path_to_id
 
 class InventoryAttachmentInfo(Info):
@@ -21,7 +23,21 @@ class InventoryAttachmentFilesystem(FS):
         self.inv_client = inv.InventoryClient(server, api_key)
 
     def getinfo(self, path, namespaces=None) -> Info:
-        raise NotImplementedError()
+        is_attachment = path.split('/')[-1][:2] == "IF"
+        if not is_attachment:
+            raise errors.ResourceNotFound(path)
+        info = self.inv_client.get_attachment_by_id(path_to_id(path))
+        return InventoryAttachmentInfo({
+            "basic": {
+                "name": path,
+                "is_dir": False,
+            },
+            "details": {
+                "size": info.get('size', 0),
+                "type": "2",
+            },
+            "rspace": info,
+        })
 
     def listdir(self, path: Text) -> List[Text]:
         raise NotImplementedError()
