@@ -7,18 +7,7 @@ from fs.subfs import SubFS
 from fs import errors
 from fs.mode import Mode
 from io import BytesIO
-
-def path_to_id(path):
-    """
-        A path is a slash-delimited string of Global Ids. The last element is
-        the global id of the file or folder. This function extract just the id
-        of the file or folder, which will be a string-encoding of a number.
-    """
-    global_id = path
-    if '/' in path:
-        global_id = path.split('/')[-1]
-    return global_id[2:]
-
+from ..fs_utils import path_to_id
 
 def is_folder(path):
     return path.split('/')[-1][:2] == "GF"
