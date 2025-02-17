@@ -93,6 +93,9 @@ class InventoryAttachmentFilesystem(FS):
         raise NotImplementedError()
 
     def download(self, path: Text, file: BinaryIO, chunk_size: Optional[int] = None, **options: Any) -> None:
+        is_attachment = path.split('/')[-1][:2] == "IF"
+        if not is_attachment:
+            raise errors.ResourceNotFound(path)
         if chunk_size is not None:
             self.inv_client.download_attachment_by_id(path_to_id(path), file, chunk_size)
         else:
