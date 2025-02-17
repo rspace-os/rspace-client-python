@@ -37,7 +37,7 @@ def mock_requests_get(url, *args, **kwargs):
     mock_response.headers = {'Content-Type': 'application/json'}
     return mock_response
 
-def mock_requests_post(url, *args, **kwargs):
+def mock_requests(url, *args, **kwargs):
     mock_response = MagicMock()
     mock_response.json.return_value = {}
     mock_response.headers = {'Content-Type': 'application/json'}
@@ -56,3 +56,8 @@ class InvAttachmentFilesystemTest(unittest.TestCase):
         self.assertEqual("IF123", folder_info.raw["basic"]["name"])
         self.assertFalse(folder_info.raw["basic"]["is_dir"])
         self.assertEqual(40721, folder_info.raw["details"]["size"])
+
+    @patch('requests.request', side_effect=mock_requests)
+    def test_remove(self, mock_request):
+        self.fs.remove("IF123")
+        mock_request.assert_called_with('DELETE', 'https://example.com/api/inventory/v1/files/123', json=None, headers=ANY)

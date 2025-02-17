@@ -49,7 +49,10 @@ class InventoryAttachmentFilesystem(FS):
         raise NotImplementedError()
 
     def remove(self, path: Text) -> None:
-        raise NotImplementedError()
+        is_attachment = path.split('/')[-1][:2] == "IF"
+        if not is_attachment:
+            raise errors.ResourceNotFound(path)
+        self.inv_client.delete_attachment_by_id(path_to_id(path))
 
     def removedir(self, path: Text) -> None:
         raise NotImplementedError()

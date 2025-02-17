@@ -1359,6 +1359,18 @@ class InventoryClient(ClientBase):
         )
         return self._handle_response(response)
 
+    def delete_attachment_by_id(self, attachment_id: Union[str, int]) -> None:
+        """
+        Parameters
+        ----------
+        attachment_id : Union[str, int]
+            The id of the file to delete
+
+        Returns
+        -------
+        None
+        """
+        self.doDelete("files", attachment_id)
     def split_subsample(
         self,
         subsample: Union[int, str, dict],
