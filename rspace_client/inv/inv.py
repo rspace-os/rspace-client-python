@@ -6,7 +6,8 @@ import re
 import sys, io, base64
 import requests
 import pprint
-from typing import Optional, Sequence, Union, List, TypedDict
+import requests
+from typing import Optional, Sequence, Union, List, TypedDict, BinaryIO
 
 from rspace_client.client_base import ClientBase, Pagination
 from rspace_client.inv import quantity_unit as qu
@@ -1319,6 +1320,20 @@ class InventoryClient(ClientBase):
             params={"extraFields": toPut},
         )
 
+    def get_attachment_by_id(self, attachment_id: Union[str, int]) -> dict:
+        """
+        Parameters
+        ----------
+        attachment_id : Union[str, int]
+            The id of the file to retrieve
+
+        Returns
+        -------
+        dict
+            The file metadata
+        """
+        return self.retrieve_api_results(f"/files/{attachment_id}")
+
     def upload_attachment(self, inventory_item: Union[str, dict], file) -> dict:
         """
         Uploads an attachment file to a sample, subsample or container.
@@ -1342,6 +1357,35 @@ class InventoryClient(ClientBase):
             self._get_api_url() + "/files",
             files={"file": file, "fileSettings": (None, fsStr, "application/json")},
             headers=headers,
+        )
+        return self._handle_response(response)
+
+    def delete_attachment_by_id(self, attachment_id: Union[str, int]) -> None:
+        """
+        Parameters
+        ----------
+        attachment_id : Union[str, int]
+            The id of the file to delete
+
+        Returns
+        -------
+        None
+        """
+        self.doDelete("files", attachment_id)
+
+    def download_attachment_by_id(self, attachment_id: Union[str, int], file_path: Union[str, BinaryIO], chunk_size=128) -> None:
+        url_base = self._get_api_url()
+        return self.download_link_to_file(
+            f"{url_base}/files/{attachment_id}/file", file_path, chunk_size
+        )
+
+    def upload_attachment_by_global_id(self, record_global_id: str, file: BinaryIO) -> None:
+        print(record_global_id, json.dumps({"parentGlobalId": record_global_id}))
+        response = requests.post(
+            self._get_api_url() + "/files",
+            data={"fileSettings": json.dumps({"parentGlobalId": record_global_id})},
+            files={"file": file },
+            headers=self._get_headers(),
         )
         return self._handle_response(response)
 

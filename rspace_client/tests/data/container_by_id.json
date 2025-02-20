@@ -25,10 +25,7 @@
     "workbenchId": null,
     "_links": []
   },
-  "permittedActions": [
-    "UPDATE",
-    "CHANGE_OWNER"
-  ],
+  "permittedActions": ["UPDATE", "CHANGE_OWNER"],
   "locationsCount": 21,
   "cType": "GRID",
   "gridLayout": {
@@ -123,10 +120,7 @@
           "workbenchId": null,
           "_links": []
         },
-        "permittedActions": [
-          "UPDATE",
-          "CHANGE_OWNER"
-        ],
+        "permittedActions": ["UPDATE", "CHANGE_OWNER"],
         "iconId": -1,
         "quantity": {
           "numericValue": 10,
@@ -397,10 +391,7 @@
           "workbenchId": null,
           "_links": []
         },
-        "permittedActions": [
-          "UPDATE",
-          "CHANGE_OWNER"
-        ],
+        "permittedActions": ["UPDATE", "CHANGE_OWNER"],
         "iconId": -1,
         "quantity": {
           "numericValue": 10,
@@ -671,10 +662,7 @@
           "workbenchId": null,
           "_links": []
         },
-        "permittedActions": [
-          "UPDATE",
-          "CHANGE_OWNER"
-        ],
+        "permittedActions": ["UPDATE", "CHANGE_OWNER"],
         "iconId": -1,
         "quantity": {
           "numericValue": 10,
@@ -945,10 +933,7 @@
           "workbenchId": null,
           "_links": []
         },
-        "permittedActions": [
-          "UPDATE",
-          "CHANGE_OWNER"
-        ],
+        "permittedActions": ["UPDATE", "CHANGE_OWNER"],
         "iconId": -1,
         "quantity": {
           "numericValue": 10,
@@ -1219,10 +1204,7 @@
           "workbenchId": null,
           "_links": []
         },
-        "permittedActions": [
-          "UPDATE",
-          "CHANGE_OWNER"
-        ],
+        "permittedActions": ["UPDATE", "CHANGE_OWNER"],
         "iconId": -1,
         "quantity": {
           "numericValue": 10,
@@ -1493,10 +1475,7 @@
           "workbenchId": null,
           "_links": []
         },
-        "permittedActions": [
-          "UPDATE",
-          "CHANGE_OWNER"
-        ],
+        "permittedActions": ["UPDATE", "CHANGE_OWNER"],
         "iconId": -1,
         "quantity": {
           "numericValue": 10,
@@ -1767,10 +1746,7 @@
           "workbenchId": null,
           "_links": []
         },
-        "permittedActions": [
-          "UPDATE",
-          "CHANGE_OWNER"
-        ],
+        "permittedActions": ["UPDATE", "CHANGE_OWNER"],
         "iconId": -1,
         "quantity": {
           "numericValue": 10,
@@ -2041,10 +2017,7 @@
           "workbenchId": null,
           "_links": []
         },
-        "permittedActions": [
-          "UPDATE",
-          "CHANGE_OWNER"
-        ],
+        "permittedActions": ["UPDATE", "CHANGE_OWNER"],
         "iconId": -1,
         "quantity": {
           "numericValue": 10,
@@ -2315,10 +2288,7 @@
           "workbenchId": null,
           "_links": []
         },
-        "permittedActions": [
-          "UPDATE",
-          "CHANGE_OWNER"
-        ],
+        "permittedActions": ["UPDATE", "CHANGE_OWNER"],
         "iconId": -1,
         "quantity": {
           "numericValue": 10,
@@ -2589,10 +2559,7 @@
           "workbenchId": null,
           "_links": []
         },
-        "permittedActions": [
-          "UPDATE",
-          "CHANGE_OWNER"
-        ],
+        "permittedActions": ["UPDATE", "CHANGE_OWNER"],
         "iconId": -1,
         "quantity": {
           "numericValue": 10,
@@ -2836,7 +2803,32 @@
       }
     }
   ],
-  "attachments": [],
+  "attachments": [
+    {
+      "id": 32772,
+      "globalId": "IF32772",
+      "name": "test.pdf",
+      "parentGlobalId": "SS4",
+      "mediaFileGlobalId": null,
+      "type": "GENERAL",
+      "contentMimeType": "application/pdf",
+      "extension": "pdf",
+      "size": 3190,
+      "created": "2025-02-17T13:48:28.000Z",
+      "createdBy": "user1a",
+      "deleted": false,
+      "_links": [
+        {
+          "link": "http://localhost:8080/api/inventory/v1/files/32772",
+          "rel": "self"
+        },
+        {
+          "link": "http://localhost:8080/api/inventory/v1/files/32772/file",
+          "rel": "enclosure"
+        }
+      ]
+    }
+  ],
   "_links": [
     {
       "link": "http://localhost:8080/api/inventory/v1/containers/131085",

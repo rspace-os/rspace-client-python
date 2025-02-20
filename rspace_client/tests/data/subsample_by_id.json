@@ -1,0 +1,445 @@
+{
+  "id": 4,
+  "globalId": "SS4",
+  "name": "Complex Sample #1.01",
+  "description": null,
+  "created": "2025-02-17T09:33:36.000Z",
+  "createdBy": "user1a",
+  "lastModified": "2025-02-17T13:35:02.730Z",
+  "modifiedBy": "user1a",
+  "modifiedByFullName": "user user",
+  "deleted": false,
+  "deletedDate": null,
+  "iconId": -1,
+  "quantity": {
+    "numericValue": 1,
+    "unitId": 3
+  },
+  "tags": [],
+  "type": "SUBSAMPLE",
+  "attachments": [
+    {
+      "id": 32772,
+      "globalId": "IF32772",
+      "name": "test.pdf",
+      "parentGlobalId": "SS4",
+      "mediaFileGlobalId": null,
+      "type": "GENERAL",
+      "contentMimeType": "application/pdf",
+      "extension": "pdf",
+      "size": 3190,
+      "created": "2025-02-17T13:48:28.000Z",
+      "createdBy": "user1a",
+      "deleted": false,
+      "_links": [
+        {
+          "link": "http://localhost:8080/api/inventory/v1/files/32772",
+          "rel": "self"
+        },
+        {
+          "link": "http://localhost:8080/api/inventory/v1/files/32772/file",
+          "rel": "enclosure"
+        }
+      ]
+    }
+  ],
+  "barcodes": [
+    {
+      "id": 1,
+      "data": "test",
+      "format": null,
+      "description": "Scanned Unknown: test",
+      "created": "2025-02-17T13:35:02.000Z",
+      "createdBy": "user1a",
+      "_links": [
+        {
+          "link": "http://localhost:8080/api/inventory/v1/barcodes%3Fcontent=test&barcodeType=QR",
+          "rel": "enclosure"
+        }
+      ]
+    }
+  ],
+  "identifiers": [],
+  "owner": {
+    "id": -1,
+    "username": "user1a",
+    "email": "user@user.com",
+    "firstName": "user",
+    "lastName": "user",
+    "homeFolderId": 124,
+    "workbenchId": null,
+    "hasPiRole": true,
+    "hasSysAdminRole": false,
+    "_links": []
+  },
+  "permittedActions": ["READ", "UPDATE", "CHANGE_OWNER"],
+  "sharingMode": "OWNER_GROUPS",
+  "parentContainers": [
+    {
+      "id": 1,
+      "globalId": "BE1",
+      "name": "WB user1a",
+      "description": null,
+      "created": "2025-02-17T09:33:36.000Z",
+      "createdBy": "user1a",
+      "lastModified": "2025-02-17T09:33:36.543Z",
+      "modifiedBy": "user1a",
+      "modifiedByFullName": null,
+      "deleted": false,
+      "deletedDate": null,
+      "iconId": -1,
+      "quantity": null,
+      "tags": [],
+      "type": "CONTAINER",
+      "attachments": [],
+      "barcodes": [],
+      "identifiers": [],
+      "owner": {
+        "id": -1,
+        "username": "user1a",
+        "email": "user@user.com",
+        "firstName": "user",
+        "lastName": "user",
+        "homeFolderId": 124,
+        "workbenchId": null,
+        "hasPiRole": true,
+        "hasSysAdminRole": false,
+        "_links": []
+      },
+      "permittedActions": [],
+      "sharingMode": "OWNER_GROUPS",
+      "parentContainers": [],
+      "parentLocation": null,
+      "lastNonWorkbenchParent": null,
+      "lastMoveDate": null,
+      "locationsCount": null,
+      "contentSummary": {
+        "totalCount": 1,
+        "subSampleCount": 1,
+        "containerCount": 0
+      },
+      "cType": "WORKBENCH",
+      "gridLayout": null,
+      "canStoreSamples": true,
+      "canStoreContainers": true,
+      "_links": []
+    }
+  ],
+  "parentLocation": {
+    "id": 1,
+    "coordX": 1,
+    "coordY": 1
+  },
+  "lastNonWorkbenchParent": null,
+  "lastMoveDate": null,
+  "deletedOnSampleDeletion": false,
+  "revisionId": null,
+  "sample": {
+    "id": 4,
+    "globalId": "SA4",
+    "name": "Complex Sample #1",
+    "description": null,
+    "created": "2025-02-17T09:33:36.000Z",
+    "createdBy": "user1a",
+    "lastModified": "2025-02-17T09:33:36.540Z",
+    "modifiedBy": "user1a",
+    "modifiedByFullName": null,
+    "deleted": false,
+    "deletedDate": null,
+    "iconId": 3,
+    "quantity": {
+      "numericValue": 1,
+      "unitId": 3
+    },
+    "tags": [],
+    "type": "SAMPLE",
+    "attachments": [],
+    "barcodes": [],
+    "identifiers": [],
+    "owner": {
+      "id": -1,
+      "username": "user1a",
+      "email": "user@user.com",
+      "firstName": "user",
+      "lastName": "user",
+      "homeFolderId": 124,
+      "workbenchId": null,
+      "hasPiRole": true,
+      "hasSysAdminRole": false,
+      "_links": []
+    },
+    "permittedActions": [],
+    "sharingMode": "OWNER_GROUPS",
+    "templateId": 2,
+    "templateVersion": 1,
+    "template": false,
+    "revisionId": null,
+    "version": 1,
+    "historicalVersion": false,
+    "subSampleAlias": {
+      "alias": "aliquot",
+      "plural": "aliquots"
+    },
+    "subSamplesCount": 1,
+    "storageTempMin": {
+      "numericValue": 3,
+      "unitId": 8
+    },
+    "storageTempMax": {
+      "numericValue": 10,
+      "unitId": 8
+    },
+    "sampleSource": "LAB_CREATED",
+    "expiryDate": null,
+    "sharedWith": [],
+    "fields": [
+      {
+        "id": 21,
+        "globalId": "SF21",
+        "name": "MyNumber",
+        "type": "number",
+        "mandatory": true,
+        "content": "23",
+        "lastModified": "2025-02-17T09:33:36.540Z",
+        "columnIndex": 1,
+        "definition": null,
+        "selectedOptions": null,
+        "attachment": null,
+        "_links": []
+      },
+      {
+        "id": 22,
+        "globalId": "SF22",
+        "name": "MyDate",
+        "type": "date",
+        "mandatory": false,
+        "content": "2020-10-01",
+        "lastModified": "2025-02-17T09:33:36.540Z",
+        "columnIndex": 2,
+        "definition": null,
+        "selectedOptions": null,
+        "attachment": null,
+        "_links": []
+      },
+      {
+        "id": 23,
+        "globalId": "SF23",
+        "name": "MyString",
+        "type": "string",
+        "mandatory": false,
+        "content": "Default string value",
+        "lastModified": "2025-02-17T09:33:36.540Z",
+        "columnIndex": 3,
+        "definition": null,
+        "selectedOptions": null,
+        "attachment": null,
+        "_links": []
+      },
+      {
+        "id": 24,
+        "globalId": "SF24",
+        "name": "MyText",
+        "type": "text",
+        "mandatory": false,
+        "content": "Default text value",
+        "lastModified": "2025-02-17T09:33:36.540Z",
+        "columnIndex": 4,
+        "definition": null,
+        "selectedOptions": null,
+        "attachment": null,
+        "_links": []
+      },
+      {
+        "id": 25,
+        "globalId": "SF25",
+        "name": "MyURL",
+        "type": "uri",
+        "mandatory": false,
+        "content": "https://www.google.com",
+        "lastModified": "2025-02-17T09:33:36.540Z",
+        "columnIndex": 5,
+        "definition": null,
+        "selectedOptions": null,
+        "attachment": null,
+        "_links": []
+      },
+      {
+        "id": 26,
+        "globalId": "SF26",
+        "name": "My reference",
+        "type": "reference",
+        "mandatory": false,
+        "content": null,
+        "lastModified": "2025-02-17T09:33:36.540Z",
+        "columnIndex": 6,
+        "definition": null,
+        "selectedOptions": null,
+        "attachment": null,
+        "_links": []
+      },
+      {
+        "id": 27,
+        "globalId": "SF27",
+        "name": "MyAttachment",
+        "type": "attachment",
+        "mandatory": false,
+        "content": null,
+        "lastModified": "2025-02-17T09:33:36.540Z",
+        "columnIndex": 7,
+        "definition": null,
+        "selectedOptions": null,
+        "attachment": {
+          "id": 1,
+          "globalId": "IF1",
+          "name": "loremIpsem20para.txt",
+          "parentGlobalId": "SF27",
+          "mediaFileGlobalId": null,
+          "type": "GENERAL",
+          "contentMimeType": "text/plain",
+          "extension": "txt",
+          "size": 10295,
+          "created": "2025-02-17T09:33:36.000Z",
+          "createdBy": "user1a",
+          "deleted": false,
+          "_links": [
+            {
+              "link": "http://localhost:8080/api/inventory/v1/files/1",
+              "rel": "self"
+            },
+            {
+              "link": "http://localhost:8080/api/inventory/v1/files/1/file",
+              "rel": "enclosure"
+            }
+          ]
+        },
+        "_links": []
+      },
+      {
+        "id": 28,
+        "globalId": "SF28",
+        "name": "MyTime",
+        "type": "time",
+        "mandatory": false,
+        "content": "00:00",
+        "lastModified": "2025-02-17T09:33:36.540Z",
+        "columnIndex": 8,
+        "definition": null,
+        "selectedOptions": null,
+        "attachment": null,
+        "_links": []
+      },
+      {
+        "id": 29,
+        "globalId": "SF29",
+        "name": "radioField",
+        "type": "radio",
+        "mandatory": false,
+        "content": null,
+        "lastModified": "2025-02-17T09:33:36.540Z",
+        "columnIndex": 9,
+        "definition": {
+          "options": ["option1", "option2"],
+          "multiple": false
+        },
+        "selectedOptions": [],
+        "attachment": null,
+        "_links": []
+      },
+      {
+        "id": 30,
+        "globalId": "SF30",
+        "name": "choiceField",
+        "type": "choice",
+        "mandatory": false,
+        "content": null,
+        "lastModified": "2025-02-17T09:33:36.540Z",
+        "columnIndex": 10,
+        "definition": {
+          "options": ["optionA", "optionB"],
+          "multiple": false
+        },
+        "selectedOptions": [],
+        "attachment": null,
+        "_links": []
+      }
+    ],
+    "extraFields": [
+      {
+        "id": 1,
+        "globalId": "EF1",
+        "name": "My extra text",
+        "lastModified": "2025-02-17T09:33:36.540Z",
+        "modifiedBy": "user1a",
+        "type": "text",
+        "content": "Lorem ipsum dolor sit amet...",
+        "parentGlobalId": "SA4",
+        "_links": [],
+        "deleted": false
+      }
+    ],
+    "_links": [
+      {
+        "link": "http://localhost:8080/api/inventory/v1/files/image/6f2904706397452a3c3772fadd2ca6e1fbcc084f68abc6535f4f26c5e953471d",
+        "rel": "image"
+      },
+      {
+        "link": "http://localhost:8080/api/inventory/v1/files/image/3c4b7a3d823a128ea5325e8228324d6a5740af6977acb45861b47e8e23fc109d",
+        "rel": "thumbnail"
+      },
+      {
+        "link": "http://localhost:8080/api/inventory/v1/samples/4",
+        "rel": "self"
+      },
+      {
+        "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/4/icon/3",
+        "rel": "icon"
+      },
+      {
+        "link": "http://localhost:8080/api/inventory/v1/files/image/6f2904706397452a3c3772fadd2ca6e1fbcc084f68abc6535f4f26c5e953471d",
+        "rel": "image"
+      },
+      {
+        "link": "http://localhost:8080/api/inventory/v1/files/image/3c4b7a3d823a128ea5325e8228324d6a5740af6977acb45861b47e8e23fc109d",
+        "rel": "thumbnail"
+      },
+      {
+        "link": "http://localhost:8080/api/inventory/v1/samples/4",
+        "rel": "self"
+      },
+      {
+        "link": "http://localhost:8080/api/inventory/v1/sampleTemplates/4/icon/3",
+        "rel": "icon"
+      }
+    ]
+  },
+  "extraFields": [
+    {
+      "id": 2,
+      "globalId": "EF2",
+      "name": "My extra number",
+      "lastModified": "2025-02-17T09:33:36.540Z",
+      "modifiedBy": "user1a",
+      "type": "number",
+      "content": "3.141592",
+      "parentGlobalId": "SS4",
+      "_links": [],
+      "deleted": false
+    }
+  ],
+  "notes": [],
+  "_links": [
+    {
+      "link": "http://localhost:8080/api/inventory/v1/subSamples/4",
+      "rel": "self"
+    },
+    {
+      "link": "http://localhost:8080/api/inventory/v1/files/image/6f2904706397452a3c3772fadd2ca6e1fbcc084f68abc6535f4f26c5e953471d",
+      "rel": "image"
+    },
+    {
+      "link": "http://localhost:8080/api/inventory/v1/files/image/3c4b7a3d823a128ea5325e8228324d6a5740af6977acb45861b47e8e23fc109d",
+      "rel": "thumbnail"
+    }
+  ],
+  "storedInContainer": false
+}
