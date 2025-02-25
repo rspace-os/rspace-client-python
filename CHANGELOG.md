@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file
  - replace naming of classes and methods using 'Workbench' to 'Bench'
  - replace create_sample, create_container long argument lists with new XXXPost objects
 
+## 2.6.0  2025-02-25
+
+- implementing pyfilesystem API methods for browsing RSpace Gallery and RSpace Inventory 
+
 ## 2.5.0  2022-06-12
 
 - Deprecated method `download_export()`. Use `export_and_download()` instead.

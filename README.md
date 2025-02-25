@@ -47,7 +47,7 @@ The simplest way to read in the URL and API key is from environment variables, e
 
 On Linux/MacOS shell
 ```
-bash> export RSPACE_URL=https:/myrspace.com
+bash> export RSPACE_URL=https://myrspace.com
 bash> export RSPACE_API_KEY=abcdefgh...
 ```
 

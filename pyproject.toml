@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "rspace-client"
-version = "2.5.0"
+version = "2.6.0"
 description = "A client for calling RSpace ELN and Inventory APIs"
 license = "Apache-2.0"
-authors = ["Research Innovations Ltd <richard@researchspace.com>"]
+authors = ["Research Innovations Ltd <support@researchspace.com>"]
 maintainers = [
-  "Richard Adams <richard@researchspace.com>",
-  "Juozas Norkus <juozas@researchspace.com>"
+  "Matthias Kowalski <matthias@researchspace.com>",
+  "Robert Lamacraft <robert.lamacraft@researchspace.com>"
 ]
 readme = "README.md"
 repository = "https://github.com/rspace-os/rspace-client-python"
