@@ -6,7 +6,7 @@ This client is easy to use in Jupyter notebooks - watch this [video](https://res
 
 To begin with, you'll need an account on an RSpace server and an API key which you can get from your [profile page](https://researchspace.helpdocs.io/article/v0dxtfvj7u-rspace-api-introduction
 ).
-You can sign up for a free RSpace account at https://community.researchspace.com. Alternatively, you can run [RSpace locally in Docker](https://researchspace.helpdocs.io/article/aj63kmb3uh-running-rspace-on-docker).
+You can sign up for a free RSpace account at https://community.researchspace.com. Alternatively, you can run [RSpace locally in Docker](https://github.com/rspace-os/rspace-docker).
 
 In these examples we'll be using the rspace_client package (code is in rspace_client folder) which provides an abstraction over lower-level libraries. 
 It's compatible with Python 3.7 onwards, based on analysis by [vermin](https://pypi.org/project/vermin/vermin) 
@@ -23,7 +23,7 @@ See [DEVELOPING.md](DEVELOPING.md) for details of running tests.
 To install rspace-client and its dependencies, run
 
 ```bash
-pip install rspace-client==2.5.0
+pip install rspace-client==2.6.1
 ```
 
 ### Compatibility with RSpace server versions
@@ -66,6 +66,31 @@ print (f"There are {samples['totalHits']} samples")
 
 print(eln_cli.get_status())
 ```
+
+### Using the rspace_client library as PyFilesystem implementation
+
+Starting with rspace-client 2.6.0 rspace-client the library partially implements 
+[PyFilesystem](https://docs.pyfilesystem.org/en/latest/index.html) API for accessing 
+RSpace Gallery files.
+
+To start, export the URL and API key into environment variables (as explained before), 
+then construct `GalleryFilesystem` object.
+
+```
+from rspace_client.eln import fs
+
+# create rspace_fs object which supports generic fs methods (listdir, getinfo etc.)
+rspace_fs = fs.GalleryFilesystem(os.getenv("RSPACE_URL"), os.getenv("RSPACE_API_KEY"))
+
+content = rspace_fs.listdir("/")
+print(content)
+for globalId in content:
+  print(rspace_fs.getinfo(globalId).raw)
+```
+
+
+
+
 
 ## Example usage
 
