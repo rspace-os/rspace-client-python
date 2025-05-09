@@ -71,25 +71,43 @@ print(eln_cli.get_status())
 
 Starting with rspace-client 2.6.0 rspace-client the library partially implements 
 [PyFilesystem](https://docs.pyfilesystem.org/en/latest/index.html) API for accessing 
-RSpace Gallery files.
+RSpace Gallery files and RSpace Inventory attachments.
 
-To start, export the URL and API key into environment variables (as explained before), 
-then construct `GalleryFilesystem` object.
+To start, export the URL and API key into environment variables (as explained before).
 
+To access the Gallery files construct a `GalleryFilesystem` object.
 ```
 from rspace_client.eln import fs
 
 # create rspace_fs object which supports generic fs methods (listdir, getinfo etc.)
-rspace_fs = fs.GalleryFilesystem(os.getenv("RSPACE_URL"), os.getenv("RSPACE_API_KEY"))
+rspace_gallery_fs = fs.GalleryFilesystem(os.getenv("RSPACE_URL"), os.getenv("RSPACE_API_KEY"))
 
-content = rspace_fs.listdir("/")
+content = rspace_gallery_fs.listdir("/")
 print(content)
 for globalId in content:
-  print(rspace_fs.getinfo(globalId).raw)
+  print(rspace_gallery_fs.getinfo(globalId).raw)
 ```
 
+To access Inventory attachments construct a `InventoryAttachmentFilesystem` object.
+```
+from rspace_client.inv import fs
 
+rspace_inv_fs = fs.InventoryAttachmentFilesystem(os.getenv("RSPACE_URL"), os.getenv("RSPACE_API_KEY"))
 
+// list the attachments that an existing record has, in this case a subsample
+rspace_inv_fs.listdir('/SS123')
+
+// get the metadata for a particular attachment
+rspace_inv_fs.getinfo("IF123")
+
+// or download it
+file_obj = BytesIO()
+rspace_inv_fs.download('/IF123', file_obj)
+
+// or attach a new file
+file_obj_2 = BytesIO(b'test file content')
+rspace_inv_fs.upload('/SS123', file_obj_2)
+```
 
 
 ## Example usage
