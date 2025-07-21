@@ -18,6 +18,8 @@ print(
 )
 
 
+print("Creating a sample with barcodes")
+
 barcodes = [
     Barcode(
         data="https://researchspace.com",
