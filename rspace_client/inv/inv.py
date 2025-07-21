@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import Enum
 import datetime, math
 
@@ -19,9 +20,9 @@ class DeletedItemFilter(Enum):
     DELETED_ONLY = 3
 
 
-class Barcode(Enum):
-    BARCODE = 1
-    QR = 2
+class BarcodeFormat(str, Enum):
+    BARCODE = "BARCODE"
+    QR = "QR"
 
 
 class Tag(TypedDict):
@@ -29,6 +30,22 @@ class Tag(TypedDict):
   uri: str
   ontologyName: str
   ontologyVersion: str
+
+@dataclass
+class Barcode:
+    data: str
+    format: BarcodeFormat
+    description: str = ""
+    newBarcodeRequest: bool = True
+    id: Optional[str] = ""
+
+    def to_dict(self):
+        return{
+            "data": self.data,
+            "format": self.format.value,
+            "description": self.description,
+            "newBarcodeRequest": self.newBarcodeRequest
+        }
 
 
 class FillingStrategy(Enum):
@@ -792,6 +809,7 @@ class SamplePost(ItemPost):
         subsample_count: int = None,
         total_quantity: Quantity = None,
         attachments=None,
+        barcodes: Optional[List[Barcode]] = None
     ):
         super().__init__(name, "SAMPLE", tags, description, extra_fields)
         ## converts arguments into JSON POST syntax
@@ -814,6 +832,8 @@ class SamplePost(ItemPost):
         if attachments is not None:
             if not isinstance(attachments, list):
                 raise ValueError("attachments must be a list of open files")
+        if barcodes is not None:
+            self.data["barcodes"] = [barcode.to_dict() for barcode in barcodes]
 
 
 class TargetLocation:
@@ -1111,6 +1131,7 @@ class InventoryClient(ClientBase):
         subsample_count: int = None,
         total_quantity: Quantity = None,
         attachments=None,
+        barcodes: Optional[List[Barcode]] = None,
     ) -> dict:
         """
         Creates a new sample with a mandatory name, optional attributes
@@ -1133,6 +1154,7 @@ class InventoryClient(ClientBase):
             subsample_count,
             total_quantity,
             attachments,
+            barcodes
         )
 
         sample = self.retrieve_api_results(
@@ -2203,7 +2225,7 @@ class InventoryClient(ClientBase):
         self,
         global_id: Union[str, dict],
         outfile: str = None,
-        barcode_type: Barcode = Barcode.BARCODE,
+        barcode_type: BarcodeFormat = BarcodeFormat.BARCODE,
     ) -> bytes:
         """
         Generates a QR code or barcode image, optionally saving to file if filepath supplied.
