@@ -92,6 +92,7 @@ ENV/
 # Rope project settings
 .ropeproject
 .idea/
+.vscode/
 #*.log
 examples/deletedUserslog.txt
 .spyproject/
