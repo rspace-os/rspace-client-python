@@ -1073,66 +1073,6 @@ class GridContainerPost(ContainerPost):
 
 
 class InventoryClient(ClientBase):
-    def update_datacite_settings(self, server_url: str, username: str, password: str, repository_prefix: str, enabled: str):
-        """
-        Updates the DataCite settings.
-
-        Parameters
-        ----------
-        server_url : str
-            DataCite server URL
-        username : str
-            DataCite username
-        password : str
-            DataCite password
-        repository_prefix : str
-            DataCite repository prefix
-        enabled : str
-            Whether DataCite is enabled
-
-        Returns
-        -------
-        dict
-            The updated settings
-        """
-        settings = {
-            "datacite": {
-                "serverUrl": server_url,
-                "username": username,
-                "password": password,
-                "repositoryPrefix": repository_prefix,
-                "enabled": enabled
-            }
-        }
-        return self.retrieve_api_results(
-            "/system/settings",
-            request_type="PUT",
-            params=settings
-        )
-    
-    def test_datacite_connection(self) -> bool:
-        """
-        Tests the connection to the configured DataCite server.
-        
-        This method calls the DataCite test connection endpoint to verify that:
-        - DataCite client is properly configured and initialized
-        - The connection to the DataCite API server can be established
-        - The stored credentials are valid
-
-        Returns
-        -------
-        bool
-            True if the connection test passes, False otherwise
-            
-        Raises
-        ------
-        Exception
-            If DataCite is not configured or if there's a connection error
-        """
-        return self.retrieve_api_results(
-            "/identifiers/testDataCiteConnection",
-            request_type="GET"
-        )
     """
     Wrapper around RSpace Inventory API.
     Enables creation, searching, altering and deleting containers, samples,
@@ -2314,6 +2254,66 @@ class InventoryClient(ClientBase):
                 fd.write(content)
         return content
 
+    def update_datacite_settings(self, server_url: str, username: str, password: str, repository_prefix: str, enabled: bool) -> dict:
+        """
+        Updates the DataCite settings.
+
+        Parameters
+        ----------
+        server_url : str
+            DataCite server URL
+        username : str
+            DataCite username
+        password : str
+            DataCite password
+        repository_prefix : str
+            DataCite repository prefix
+        enabled : bool
+            Whether DataCite is enabled (True or False)
+
+        Returns
+        -------
+        dict
+            The updated settings
+        """
+        settings = {
+            "datacite": {
+                "serverUrl": server_url,
+                "username": username,
+                "password": password,
+                "repositoryPrefix": repository_prefix,
+                "enabled": str(enabled).lower()
+            }
+        }
+        return self.retrieve_api_results(
+            "/system/settings",
+            request_type="PUT",
+            params=settings
+        )
+
+    def test_datacite_connection(self) -> bool:
+        """
+        Tests the connection to the configured DataCite server.
+
+        This method calls the DataCite test connection endpoint to verify that:
+        - DataCite client is properly configured and initialized
+        - The connection to the DataCite API server can be established
+        - The stored credentials are valid
+
+        Returns
+        -------
+        bool
+            True if the connection test passes, False otherwise
+        """
+
+        url = self._get_api_url() + "/identifiers/testDataCiteConnection"
+        headers = self._get_headers("application/json")
+
+        try:
+            response = requests.get(url, headers=headers)
+            return response.status_code == 200
+        except requests.exceptions.RequestException:
+            return False
 
 def _calculate_start_index(
     col_start, row_start, total_columns, total_rows, filling_strategy
