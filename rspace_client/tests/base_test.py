@@ -12,6 +12,9 @@ import string
 import random
 import pytest
 
+from dotenv import load_dotenv 
+load_dotenv() 
+
 RSPACE_URL_ENV = "RSPACE_URL"
 RSPACE_APIKEY_ENV = "RSPACE_API_KEY"
 
