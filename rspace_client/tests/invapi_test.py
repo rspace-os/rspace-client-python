@@ -835,3 +835,169 @@ class InventoryApiTest(base.BaseApiTest):
         data_file = base.get_any_datafile()
         with open(data_file, "rb") as f:
             self.invapi.upload_attachment(created_sample["fields"][0]["globalId"], f)
+
+    def test_update_datacite_settings_enabled(self):
+        """
+        Test updating DataCite settings when enabling DataCite
+        """
+        # Get original settings to restore later
+        original_settings = self.invapi.get_datacite_settings()
+
+        try:
+            # Test with enabled DataCite settings
+            server_url = "https://api.test.datacite.org"
+            username = "test_user"
+            password = "test_password"
+            repository_prefix = "10.12345"
+
+            result = self.invapi.update_datacite_settings(
+                enabled=True,
+                server_url=server_url,
+                username=username,
+                password=password,
+                repository_prefix=repository_prefix
+            )
+
+            # Verify the response structure
+            self.assertIsInstance(result, dict)
+            self.assertIn("datacite", result)
+            datacite_settings = result["datacite"]
+            self.assertEqual(datacite_settings["serverUrl"], server_url)
+            self.assertEqual(datacite_settings["username"], username)
+            self.assertEqual(datacite_settings["password"], password)
+            self.assertEqual(datacite_settings["repositoryPrefix"], repository_prefix)
+            self.assertEqual(datacite_settings["enabled"], "true")
+
+        finally:
+            # Restore original settings
+            if "datacite" in original_settings:
+                orig_datacite = original_settings["datacite"]
+                if orig_datacite.get("enabled") == "true":
+                    self.invapi.update_datacite_settings(
+                        enabled=True,
+                        server_url=orig_datacite.get("serverUrl", ""),
+                        username=orig_datacite.get("username", ""),
+                        password=orig_datacite.get("password", ""),
+                        repository_prefix=orig_datacite.get("repositoryPrefix", "")
+                    )
+                else:
+                    self.invapi.update_datacite_settings(enabled=False)
+
+    def test_update_datacite_settings_disabled(self):
+        """
+        Test updating DataCite settings when disabling DataCite
+        """
+        # Get original settings to restore later
+        original_settings = self.invapi.get_datacite_settings()
+
+        try:
+            # Test with disabled DataCite settings - only enabled parameter needed
+            result = self.invapi.update_datacite_settings(enabled=False)
+
+            self.assertIsInstance(result, dict)
+            self.assertIn("datacite", result)
+            self.assertEqual(result["datacite"]["enabled"], "false")
+
+        finally:
+            # Restore original settings
+            if "datacite" in original_settings:
+                orig_datacite = original_settings["datacite"]
+                if orig_datacite.get("enabled") == "true":
+                    self.invapi.update_datacite_settings(
+                        enabled=True,
+                        server_url=orig_datacite.get("serverUrl", ""),
+                        username=orig_datacite.get("username", ""),
+                        password=orig_datacite.get("password", ""),
+                        repository_prefix=orig_datacite.get("repositoryPrefix", "")
+                    )
+                else:
+                    self.invapi.update_datacite_settings(enabled=False)
+
+    def test_datacite_connection_with_valid_settings(self):
+        """
+        Test the DataCite connection test functionality with properly configured settings
+        """
+        # Get original settings to restore later
+        original_settings = self.invapi.get_datacite_settings()
+
+        try:
+            # Configure DataCite with valid test settings
+            self.invapi.update_datacite_settings(
+                enabled=True,
+                server_url="https://api.test.datacite.org",
+                username="test_user",
+                password="test_password",
+                repository_prefix="10.12345"
+            )
+
+            # Test the connection - this should return a boolean
+            result = self.invapi.test_datacite_connection()
+
+            # Verify the result is a boolean
+            self.assertIsInstance(result, bool)
+            # Note: The actual result (True/False) depends on the server configuration
+            # and whether the test credentials are valid, so we can't assert a specific value
+
+        finally:
+            # Restore original settings
+            if "datacite" in original_settings:
+                orig_datacite = original_settings["datacite"]
+                if orig_datacite.get("enabled") == "true":
+                    self.invapi.update_datacite_settings(
+                        enabled=True,
+                        server_url=orig_datacite.get("serverUrl", ""),
+                        username=orig_datacite.get("username", ""),
+                        password=orig_datacite.get("password", ""),
+                        repository_prefix=orig_datacite.get("repositoryPrefix", "")
+                    )
+                else:
+                    self.invapi.update_datacite_settings(enabled=False)
+
+    def test_datacite_connection_with_invalid_settings(self):
+        """
+        Test that DataCite connection test returns False with obviously wrong settings
+        """
+        # Get original settings to restore later
+        original_settings = self.invapi.get_datacite_settings()
+
+        try:
+            # Configure DataCite with obviously invalid settings
+            self.invapi.update_datacite_settings(
+                enabled=True,
+                server_url="https://invalid-nonexistent-datacite-server-12345.com",
+                username="definitely_invalid_user",
+                password="definitely_invalid_password",
+                repository_prefix="99.99999"
+            )
+
+            # Test the connection with invalid settings
+            result = self.invapi.test_datacite_connection()
+
+            # Should return False when connection fails due to invalid settings
+            self.assertFalse(result)
+
+        finally:
+            # Restore original settings
+            if "datacite" in original_settings:
+                orig_datacite = original_settings["datacite"]
+                if orig_datacite.get("enabled") == "true":
+                    self.invapi.update_datacite_settings(
+                        enabled=True,
+                        server_url=orig_datacite.get("serverUrl", ""),
+                        username=orig_datacite.get("username", ""),
+                        password=orig_datacite.get("password", ""),
+                        repository_prefix=orig_datacite.get("repositoryPrefix", "")
+                    )
+                else:
+                    self.invapi.update_datacite_settings(enabled=False)
+
+    def test_get_datacite_settings(self):
+        """
+        Test that get_datacite_settings returns a valid response
+        """
+        result = self.invapi.get_datacite_settings()
+
+        # Should return a dictionary
+        self.assertIsInstance(result, dict)
+        # Should contain datacite section (even if empty/default)
+        self.assertIn("datacite", result)

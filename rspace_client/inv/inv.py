@@ -2254,37 +2254,60 @@ class InventoryClient(ClientBase):
                 fd.write(content)
         return content
 
-    def update_datacite_settings(self, server_url: str, username: str, password: str, repository_prefix: str, enabled: bool) -> dict:
+    def get_datacite_settings(self) -> dict:
+        """
+        Gets the current DataCite settings.
+
+        Returns
+        -------
+        dict
+            The current DataCite settings
+        """
+        return self.retrieve_api_results(
+            "/system/settings",
+            request_type="GET"
+        )
+
+    def update_datacite_settings(self, enabled: bool, server_url: str = None, username: str = None, password: str = None, repository_prefix: str = None) -> dict:
         """
         Updates the DataCite settings.
 
         Parameters
         ----------
-        server_url : str
-            DataCite server URL
-        username : str
-            DataCite username
-        password : str
-            DataCite password
-        repository_prefix : str
-            DataCite repository prefix
         enabled : bool
             Whether DataCite is enabled (True or False)
+        server_url : str, optional
+            DataCite server URL. Required when enabled=True
+        username : str, optional
+            DataCite username. Required when enabled=True
+        password : str, optional
+            DataCite password. Required when enabled=True
+        repository_prefix : str, optional
+            DataCite repository prefix. Required when enabled=True
 
         Returns
         -------
         dict
             The updated settings
         """
+        if enabled and (server_url is None or username is None or password is None or repository_prefix is None):
+            raise ValueError("server_url, username, password, and repository_prefix are required when enabled=True")
+        
         settings = {
             "datacite": {
-                "serverUrl": server_url,
-                "username": username,
-                "password": password,
-                "repositoryPrefix": repository_prefix,
                 "enabled": str(enabled).lower()
             }
         }
+        
+        # Only include other settings if enabling DataCite
+        if enabled:
+            settings["datacite"].update({
+                "serverUrl": server_url,
+                "username": username,
+                "password": password,
+                "repositoryPrefix": repository_prefix
+            })
+        
         return self.retrieve_api_results(
             "/system/settings",
             request_type="PUT",
