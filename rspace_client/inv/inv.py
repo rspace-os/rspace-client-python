@@ -2254,6 +2254,89 @@ class InventoryClient(ClientBase):
                 fd.write(content)
         return content
 
+    def get_datacite_settings(self) -> dict:
+        """
+        Gets the current DataCite settings.
+
+        Returns
+        -------
+        dict
+            The current DataCite settings
+        """
+        return self.retrieve_api_results(
+            "/system/settings",
+            request_type="GET"
+        )
+
+    def update_datacite_settings(self, enabled: bool, server_url: str = None, username: str = None, password: str = None, repository_prefix: str = None) -> dict:
+        """
+        Updates the DataCite settings.
+
+        Parameters
+        ----------
+        enabled : bool
+            Whether DataCite is enabled (True or False)
+        server_url : str, optional
+            DataCite server URL. Required when enabled=True
+        username : str, optional
+            DataCite username. Required when enabled=True
+        password : str, optional
+            DataCite password. Required when enabled=True
+        repository_prefix : str, optional
+            DataCite repository prefix. Required when enabled=True
+
+        Returns
+        -------
+        dict
+            The updated settings
+        """
+        if enabled and (server_url is None or username is None or password is None or repository_prefix is None):
+            raise ValueError("server_url, username, password, and repository_prefix are required when enabled=True")
+        
+        settings = {
+            "datacite": {
+                "enabled": str(enabled).lower()
+            }
+        }
+        
+        # Only include other settings if enabling DataCite
+        if enabled:
+            settings["datacite"].update({
+                "serverUrl": server_url,
+                "username": username,
+                "password": password,
+                "repositoryPrefix": repository_prefix
+            })
+        
+        return self.retrieve_api_results(
+            "/system/settings",
+            request_type="PUT",
+            params=settings
+        )
+
+    def test_datacite_connection(self) -> bool:
+        """
+        Tests the connection to the configured DataCite server.
+
+        This method calls the DataCite test connection endpoint to verify that:
+        - DataCite client is properly configured and initialized
+        - The connection to the DataCite API server can be established
+        - The stored credentials are valid
+
+        Returns
+        -------
+        bool
+            True if the connection test passes, False otherwise
+        """
+
+        url = self._get_api_url() + "/identifiers/testDataCiteConnection"
+        headers = self._get_headers("application/json")
+
+        try:
+            response = requests.get(url, headers=headers)
+            return response.status_code == 200
+        except requests.exceptions.RequestException:
+            return False
 
 def _calculate_start_index(
     col_start, row_start, total_columns, total_rows, filling_strategy
