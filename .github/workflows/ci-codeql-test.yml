@@ -1,4 +1,4 @@
-name: CodeQL, and unit Test
+name: CodeQL and Unit Test
 
 on:
   pull_request:
