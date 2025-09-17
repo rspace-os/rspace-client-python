@@ -1,0 +1,155 @@
+import json
+%pip install -q rspace-client==2.6.1
+%pip install -q pickleshare
+from rspace_client.eln import eln
+import os
+import hashlib
+import json
+
+rspace_client = None
+
+def get_rspace_client():
+    """
+    Returns rspace ELN API client
+    """
+    try:
+        import getpass
+        retrieved_password = getpass.getpass("Please enter your RSpace Api key: ")
+        URL='https://researchspace2.eu.ngrok.io/'
+        global rspace_client
+        if rspace_client is None:
+            rspace_client = eln.ELNClient(URL, retrieved_password)
+            print(rspace_client.get_status())
+        return rspace_client
+    except Exception as e:
+        print(f"Error connecting to RSpace: {e}")
+        return None
+
+
+def get_notebook_as_dict():
+    """
+    Saves notebook using ipylab and then writes notebook to Rspace document as
+    an attachment
+    """
+    # %pip install -q ipylab
+    # from ipylab import JupyterFrontEnd
+    # from ipywidgets import Output
+    # app = JupyterFrontEnd()
+    # app.commands.execute('docmanager:save')
+    # %history
+    # print(%dirs)
+    # print(app)
+    # print(app.sessions)
+    # print(app.sessions.running())
+    # print(app.sessions.current_session)
+    # print(globals()['__session__'])
+    # print(os.environ)
+    # %pip install -q ipynbname
+    # import ipynbname
+    # nb_fname = ipynbname.name()
+    # nb_path = ipynbname.path()
+    # print(f"{nb_fname=}")
+    # print(f"{nb_path=}")
+    try:
+        import glob
+
+        notebook_files = glob.glob("*.ipynb")
+        if notebook_files:
+            raw_notebook_file_id = 477
+            # gallery_file_id = None
+            attachment_file_id = 476
+            # raw_notebook_file_id = 444
+            gallery_file_id = 443
+            # FIXME - Uses the most recently modified notebook which might not be this notebook
+            # latest_notebook = max(notebook_files, key=os.path.getmtime)
+            latest_notebook = 'RSpaceDemoCopyData.ipynb'
+            attachedData = "spectroscopy_data.csv"
+            attachments = None
+            updateDocAttachments = False
+            if raw_notebook_file_id:
+                print(f"A document with attachement to this notebook saved previously with RSpaceID {raw_notebook_file_id}" )
+            else:
+                print("NO document with attachement to this notebook saved previously in RSpace")
+            if gallery_file_id:
+                print(f"This notebook saved previously to Gallery with RSpaceID {gallery_file_id}" )
+            else:
+                print("Notebook not previously saved to RSpace Gallery")
+            # with open(latest_notebook) as f:
+            #     d = json.load(f)
+            #     print(d)
+            with open(attachedData, 'r', encoding='utf-8') as attch:
+                client = get_rspace_client()
+                if attachment_file_id is None:
+                    print('start upload attachments')
+                    attachment_file = client.upload_file(attch)['id']
+                    print(f"Attachment file ID is: {attachment_file}")
+                    print('done upload attachments')
+                else:
+                    print('start update attachments')
+                    attachment_file = client.update_file(attch,attachment_file_id)['id']
+                    print(f"Attachment file ID is: {attachment_file}")
+                    print('done update attachments')
+            attachment_file_id = attachment_file
+            with open(latest_notebook, 'r', encoding='utf-8') as f:
+                client = get_rspace_client()
+                if gallery_file_id is None:
+                    print('start upload to gallery')
+                    gallery_file_id = client.upload_file(f)['id']
+                    print(f"Gallery file ID is: {gallery_file_id}")
+                    print('done upload to gallery')
+                else:
+                    print('start update to gallery')
+                    gallery_file_id = client.update_file(f,gallery_file_id)['id']
+                    print('end update to gallery')
+                    print(f"Gallery file ID is: {gallery_file_id}")
+                location = os.getcwd()
+                if raw_notebook_file_id is None:
+                    new_doc = client.create_document(name="DocumentFor_"+latest_notebook)
+                    content = f"""
+                    <p>A link to jupyter notebook inserted into gallery.
+                    Notebook located at :{location} on server
+                    data: <fileId={gallery_file_id}>
+                    <p>
+                     <p>A link to data used by this notebook.
+                    data: <fileId={attachment_file_id}>
+                    <p>
+                    """
+
+                    updated_doc = client.append_content(new_doc['id'], content)
+                    print(f"Document with this notebook as attachement has ID: {new_doc['id']}")
+                elif updateDocAttachments:
+                    updated_doc = client.append_content(raw_notebook_file_id, newContent)
+                    print(f"Updated document with this notebook as attachement has ID: {new_doc['id']}")
+            # with open(latest_notebook, 'r', encoding='utf-8') as f:
+            #     notebook_dict = json.load(f)
+            #     docName = f.name
+            #     client = get_rspace_client()
+            #     if(raw_notebook_file_id):
+            #         print('start doc update')
+            #         raw_data_file = client.update_document(
+            #             raw_notebook_file_id,
+            #             name = docName,
+            #             tags = ["Python", "API", "example"],
+            #             fields = [{"content": json.dumps(notebook_dict)}],
+            #         )
+            #         print(f"Updated notebook: {latest_notebook}")
+            #     else:
+            #         raw_data_file = client.create_document(
+            #             name = docName,
+            #             tags = ["Python", "API", "example"],
+            #             fields = [{"content": json.dumps(notebook_dict)}],
+            #         )
+            #         print(json.dumps(notebook_dict))
+            #         print(f"Created notebook: {latest_notebook}")
+            # raw_notebook_file_id = raw_data_file['id']
+            # print(raw_notebook_file_id)
+        else:
+            print("No .ipynb files found in current directory")
+            return None
+
+    except Exception as e:
+        print(f"Error reading notebook file: {e}")
+        return None
+
+notebook_dict = get_notebook_as_dict()
+
