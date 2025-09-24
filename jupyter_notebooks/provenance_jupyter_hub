@@ -19,11 +19,15 @@ from ipylab import JupyterFrontEnd
 import traceback
 %pip install -q lxml
 from bs4 import BeautifulSoup
+import nbformat
+import asyncio
 
-rspace_client = None
 RSPACE_DOC_FOR_NOTEBOOK = 'rspace_doc_for_notebook'
 ATTACHMENTS_FOR_NOTEBOOK = 'attachments_for_notebook'
 GALLERY_FILE_FOR_NOTEBOOK = 'gallery_file_for_notebook'
+
+rspace_client = None
+app = JupyterFrontEnd()
 
 
 def get_notebook_name():
@@ -101,11 +105,35 @@ def load_data():
         print(f"State file '{state_filename}' not found. No variables loaded.")
     return loaded_state
 
-def save_notebook():
-    app = JupyterFrontEnd()
+async def save_notebook():
     app.commands.execute('docmanager:save')
+    await asyncio.sleep(1)
 
-def make_content(gallery_file_id,attachment_file_id, location):
+async def reload_notebook():
+    app.commands.execute('docmanager:reload')
+    await asyncio.sleep(1)
+
+async def add_to_notebook_metadata(fname, text):
+    await save_notebook()
+    with open(fname, 'r') as original:
+        nb = nbformat.read(original, nbformat.NO_CONVERT)
+        meta_data_cell = nbformat.v4.new_raw_cell(text)
+        meta_data_cell['metadata'] = {"rspace_metadata": {"documentFor": "docid","notebook_file":"docid", "attachments": []} }
+        nb["cells"].extend([meta_data_cell])
+        # for i, cell in enumerate(nb['cells']):
+        #     print(f"Cell {i+1}:")
+        #     print(cell['metadata'])
+        # data = json.load(original)
+        # print(data['metadata'])
+        # data['metadata']['rspace'] = text;
+        # print(data['metadata'])
+    # with open(fname, 'w') as modified:
+    #     modified.write(data);
+    with open(fname, 'w', encoding='utf-8') as modified:
+        nbformat.write(nb, modified)
+    await reload_notebook()
+
+def make_content(gallery_file_id,attachment_file_id):
     content = f"""
                 <fileId={gallery_file_id}>
                 <fileId={attachment_file_id}>
@@ -121,13 +149,12 @@ def remove_jupyter_attachment_divs(content, gallery_file_id, attachment_file_id)
         gallery_link = '/Streamfile/' + str(gallery_file_id)
         # print(f"attachment_link content: {attachment_link}")
         # print(f"href_tag content: {href_tag['href']}")
-        # print(f"541 in this div:{'541' in  href_tag['href']}")
         # print(attachment_link in href_tag['href'] or gallery_link in href_tag['href'])
-        if attachment_link in href_tag['href'] or gallery_link in href_tag['href']:
+        if attachment_link == href_tag['href'] or gallery_link == href_tag['href']:
             attachment_div.decompose()
     return soup.prettify()
 
-def get_notebook():
+async def get_notebook():
     raw_notebook_file_id = None
     attachment_file_id = None
     gallery_file_id = None
@@ -135,7 +162,7 @@ def get_notebook():
     Saves notebook using ipylab and then writes notebook to Rspace document as
     an attachment
     """
-    save_notebook()
+    await save_notebook()
     try:
         loaded_state = load_data()
         raw_notebook_file_id = loaded_state.get(RSPACE_DOC_FOR_NOTEBOOK)
@@ -143,7 +170,9 @@ def get_notebook():
         gallery_file_id = loaded_state.get(GALLERY_FILE_FOR_NOTEBOOK)
 
         current_notebook = get_notebook_name()['name']
-        attachedData = "spectroscopy_data.csv"
+        location = os.getcwd()
+        await add_to_notebook_metadata(current_notebook, location)
+        attachedData = "spectroscopy_data.csv"  # FIXME
         attachments = None
         updateDocAttachments = False
         if raw_notebook_file_id is not None:
@@ -180,19 +209,18 @@ def get_notebook():
                 print('end update to gallery')
                 print(f"Gallery file ID is: {gallery_file}")
             gallery_file_id = gallery_file
-            location = os.getcwd()
             if raw_notebook_file_id is None:
                 new_doc = client.create_document(name="DocumentFor_"+current_notebook,tags = ["Python", "API", "Jupyter"] )
                 raw_notebook_file_id = new_doc['id']
-                content = make_content(gallery_file_id,attachment_file_id, location)
+                content = make_content(gallery_file_id,attachment_file_id)
                 client.append_content(new_doc['id'], content)
                 print(f"New document with this notebook as attachement has ID: {new_doc['id']}")
             else:
                 previous_content = client.get_document(raw_notebook_file_id)['fields'][0]['content']
-                print(f"previous content BEFORE metadata removed : {previous_content}")
+                # print(f"previous content BEFORE metadata removed : {previous_content}")
                 previous_content = remove_jupyter_attachment_divs(previous_content, gallery_file_id, attachment_file_id)
-                print(f"previous content after metadata removed : {previous_content}")
-                new_content = previous_content + make_content(gallery_file_id,attachment_file_id, location)
+                # print(f"previous content after metadata removed : {previous_content}")
+                new_content = previous_content + make_content(gallery_file_id,attachment_file_id)
                 updated_doc = client.update_document(raw_notebook_file_id,tags = ['Python', 'API', 'Jupyter'], fields = [{"content": new_content}])
                 # client.append_content(updated_doc['id'], content)
                 raw_notebook_file_id = updated_doc['id']
@@ -227,5 +255,5 @@ def get_notebook():
         print(f"Error reading notebook file: {e}")
         return None
 
-notebook_dict = get_notebook()
+await get_notebook()
 
