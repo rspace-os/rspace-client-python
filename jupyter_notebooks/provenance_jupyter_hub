@@ -26,6 +26,9 @@ RSPACE_DOC_FOR_NOTEBOOK = 'rspace_doc_for_notebook'
 ATTACHMENTS_FOR_NOTEBOOK = 'attachments_for_notebook'
 GALLERY_FILE_FOR_NOTEBOOK = 'gallery_file_for_notebook'
 
+# TODO - Your RSpace instance goes here
+RSPACE_URL='https://researchspace2.eu.ngrok.io/'
+
 rspace_client = None
 app = JupyterFrontEnd()
 
@@ -67,12 +70,10 @@ def get_rspace_client():
     Returns rspace ELN API client
     """
     try:
-        # TODO - Your RSpace instance goes here
-        URL='https://researchspace2.eu.ngrok.io/'
         global rspace_client
         if rspace_client is None:
             retrieved_password = get_password()
-            rspace_client = eln.ELNClient(URL, retrieved_password)
+            rspace_client = eln.ELNClient(RSPACE_URL, retrieved_password)
             print(rspace_client.get_status())
         return rspace_client
     except Exception as e:
@@ -107,28 +108,40 @@ def load_data():
 
 async def save_notebook():
     app.commands.execute('docmanager:save')
+    # 'docmanager:save' does not hook into any callback when the document is actually saved
     await asyncio.sleep(1)
 
 async def reload_notebook():
     app.commands.execute('docmanager:reload')
+    # 'docmanager:reload' does not hook into any callback when the document is actually reloaded
     await asyncio.sleep(1)
+
+def make_metadata_cell(text):
+    loaded_state = load_data()
+    raw_notebook_file_id = loaded_state.get(RSPACE_DOC_FOR_NOTEBOOK)
+    attachment_file_id = loaded_state.get(ATTACHMENTS_FOR_NOTEBOOK)
+    gallery_file_id = loaded_state.get(GALLERY_FILE_FOR_NOTEBOOK)
+
+    meta_data_cell = nbformat.v4.new_raw_cell(text)
+    galery_doc_link = f'"<a href="{RSPACE_URL}gallery/item/{gallery_file_id}" target="_blank">This Notebook in RSpace</a>'
+    meta_data_cell['source'] = text + ' ' + galery_doc_link
+    meta_data_cell['metadata'] = {"rspace_metadata": {"documentFor": "docid","notebook_file":"docid", "attachments": ["attch1","attach2"]} }
+    return meta_data_cell
 
 async def add_to_notebook_metadata(fname, text):
     await save_notebook()
     with open(fname, 'r') as original:
         nb = nbformat.read(original, nbformat.NO_CONVERT)
-        meta_data_cell = nbformat.v4.new_raw_cell(text)
-        meta_data_cell['metadata'] = {"rspace_metadata": {"documentFor": "docid","notebook_file":"docid", "attachments": []} }
-        nb["cells"].extend([meta_data_cell])
-        # for i, cell in enumerate(nb['cells']):
-        #     print(f"Cell {i+1}:")
-        #     print(cell['metadata'])
-        # data = json.load(original)
-        # print(data['metadata'])
-        # data['metadata']['rspace'] = text;
-        # print(data['metadata'])
-    # with open(fname, 'w') as modified:
-    #     modified.write(data);
+        meta_data_cell = make_metadata_cell(text)
+        replaced = False
+        for i, cell in enumerate(nb['cells']):
+            # print(f"Cell {i+1}:")
+            # print(cell['metadata'])
+            if 'rspace_metadata' in cell['metadata']:
+                nb["cells"][i] = meta_data_cell
+                replaced = True
+        if replaced is False:
+            nb["cells"].extend([meta_data_cell])
     with open(fname, 'w', encoding='utf-8') as modified:
         nbformat.write(nb, modified)
     await reload_notebook()
@@ -147,9 +160,6 @@ def remove_jupyter_attachment_divs(content, gallery_file_id, attachment_file_id)
         href_tag = attachment_div.find('a')
         attachment_link = '/Streamfile/' + str(attachment_file_id)
         gallery_link = '/Streamfile/' + str(gallery_file_id)
-        # print(f"attachment_link content: {attachment_link}")
-        # print(f"href_tag content: {href_tag['href']}")
-        # print(attachment_link in href_tag['href'] or gallery_link in href_tag['href'])
         if attachment_link == href_tag['href'] or gallery_link == href_tag['href']:
             attachment_div.decompose()
     return soup.prettify()
@@ -171,7 +181,6 @@ async def get_notebook():
 
         current_notebook = get_notebook_name()['name']
         location = os.getcwd()
-        await add_to_notebook_metadata(current_notebook, location)
         attachedData = "spectroscopy_data.csv"  # FIXME
         attachments = None
         updateDocAttachments = False
@@ -226,6 +235,7 @@ async def get_notebook():
                 raw_notebook_file_id = updated_doc['id']
                 print(f"Updated document with this notebook as attachement has ID: {updated_doc['id']}")
             save_rspace_data_ids(raw_notebook_file_id, attachment_file_id, gallery_file_id)
+            await add_to_notebook_metadata(current_notebook, location)
             # with open(current_notebook, 'r', encoding='utf-8') as f:
             #     notebook_dict = json.load(f)
             #     docName = f.name
