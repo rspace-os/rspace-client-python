@@ -122,13 +122,14 @@ def make_metadata_cell(text):
     attachment_file_id = loaded_state.get(ATTACHMENTS_FOR_NOTEBOOK)
     gallery_file_id = loaded_state.get(GALLERY_FILE_FOR_NOTEBOOK)
 
-    meta_data_cell = nbformat.v4.new_raw_cell(text)
+    meta_data_cell = nbformat.v4.new_markdown_cell()
     galery_doc_link = f'"<a href="{RSPACE_URL}gallery/item/{gallery_file_id}" target="_blank">This Notebook in RSpace</a>'
-    meta_data_cell['source'] = text + ' ' + galery_doc_link
+    galery_doc_markdown = f'[This Notebook in RSpace]({RSPACE_URL}gallery/item/{gallery_file_id})'
+    meta_data_cell['source'] = galery_doc_markdown
     meta_data_cell['metadata'] = {"rspace_metadata": {"documentFor": "docid","notebook_file":"docid", "attachments": ["attch1","attach2"]} }
     return meta_data_cell
 
-async def add_to_notebook_metadata(fname, text):
+async def add_rspace_details_to_notebook_metadata(fname, text):
     await save_notebook()
     with open(fname, 'r') as original:
         nb = nbformat.read(original, nbformat.NO_CONVERT)
@@ -181,7 +182,8 @@ async def get_notebook():
 
         current_notebook = get_notebook_name()['name']
         location = os.getcwd()
-        attachedData = "spectroscopy_data.csv"  # FIXME
+        # attachedData = "spectroscopy_data.csv,data/spectroscopy_data2.csv,data/spectroscopy_data3.csv"
+        attachedData = "spectroscopy_data.csv"
         attachments = None
         updateDocAttachments = False
         if raw_notebook_file_id is not None:
@@ -235,7 +237,7 @@ async def get_notebook():
                 raw_notebook_file_id = updated_doc['id']
                 print(f"Updated document with this notebook as attachement has ID: {updated_doc['id']}")
             save_rspace_data_ids(raw_notebook_file_id, attachment_file_id, gallery_file_id)
-            await add_to_notebook_metadata(current_notebook, location)
+            await add_rspace_details_to_notebook_metadata(current_notebook, location)
             # with open(current_notebook, 'r', encoding='utf-8') as f:
             #     notebook_dict = json.load(f)
             #     docName = f.name
