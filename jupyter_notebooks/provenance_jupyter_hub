@@ -45,17 +45,52 @@ RSPACE_URL="https://researchspace2.eu.ngrok.io/"
 """
 attached_data_files = "spectroscopy_data.csv,data/spectroscopy_data2.csv,data/spectroscopy_data3.csv"
 get_new_password = False
+"""
+This must be set to a value if exceptions are thrown trying to determine the notebook name
+"""
+notebook_name = None
+"""
+This must be set to a value if exceptions are thrown trying to determine the server url
+"""
+server_url = None
+
+"""
+Set this to a value if server_url is calculated correctly except for the port (which will happen, for example
+if the port is being mapped inside a docker container to an external port
+"""
+server_port = 10000
 
 rspace_client = None
 app = JupyterFrontEnd()
 
+def get_server_urls():
+    all_urls = []
+    if(server_url is not None):
+        all_urls.append(server_url)
+    else:
+        for srv in ipynbname._list_maybe_running_servers():
+            try:
+                srv, path = ipynbname._find_nb_path()
+                if server_port is not None:
+                    srv_url = srv['url']
+                    print(f"srv_url{srv_url}")
+                    part_url = srv_url[:srv_url.rfind(':')+1]
+                    print(f"part_url{part_url}")
+                    all_urls.append(part_url+str(server_port)+'/lab/tree/'+str(path))
+                else:
+                    all_urls.append(srv['url']+'lab/tree/'+str(path))
+            except Exception:
+                pass  # Code may fail if server has a password/doesnt use token auth - see ipynbname README
+    return all_urls
 
 def get_notebook_name():
+    if notebook_name is not None:
+        return {'name':notebook_name, 'part_name':notebook_name[:notebook_name.rfind('.')]}
     nb_fname = ipynbname.name()
     nb_path = str(ipynbname.path())
     ext_pos=(''+nb_path).rfind('.')
     ext=nb_path[ext_pos:]
-    return {'name':nb_fname+ext, 'part_name':nb_fname,'path':nb_path}
+    return {'name':nb_fname+ext, 'part_name':nb_fname}
 
 def get_password():
     """
@@ -130,7 +165,6 @@ def make_metadata_cell(nb_gallery_file, attachment_files,rspace_document_file_id
     nb_gallery_file_version = int(nb_gallery_file['version']) +1
     nb_gallery_file_name = nb_gallery_file['name']
     meta_data_cell = nbformat.v4.new_markdown_cell()
-    galery_doc_link = f'"<a href="{RSPACE_URL}gallery/item/{nb_gallery_file_id}" target="_blank">This Notebook in RSpace</a>'
     rspace_doc_for_markdown = f'[The RSpace Document describing this notebook]({RSPACE_URL}workspace/editor/structuredDocument/{rspace_document_file_id})'
     gallery_doc_markdown = f'[This Notebook in RSpace Gallery: {nb_gallery_file_name} version: {nb_gallery_file_version}]({RSPACE_URL}gallery/item/{nb_gallery_file_id})'
     meta_data_cell['source'] = rspace_doc_for_markdown + "<br>" + gallery_doc_markdown
@@ -139,6 +173,8 @@ def make_metadata_cell(nb_gallery_file, attachment_files,rspace_document_file_id
         attachment_file_id = attachment_files.get(attached_data, {}).get('id')
         attachment_version = attachment_files.get(attached_data, {}).get('version')
         meta_data_cell['source'] +=f'<br>[Attached Data {attached_data} version: {attachment_version} ]({RSPACE_URL}gallery/item/{attachment_file_id})'
+    for url in get_server_urls():
+        meta_data_cell['source'] += f'<br>[This notebook on the jupyter server]({url})'
     meta_data_cell['metadata'] = {"rspace_metadata": {"documentFor": "docid","notebook_file":"docid", "attachments": [""]} }
     return meta_data_cell
 
@@ -222,7 +258,7 @@ def upload_attached_data(attachment_files):
                     attachment_files[attached_data] = attachment_file_data
                 else:
                     print(f"File {attached_data} not changed so no update")
-    print(f"attached files: {attachment_files}")
+    # print(f"attached files: {attachment_files}")
 
 async def upload_notebook_to_gallery(current_notebook, nb_gallery_file, attachment_files, rspace_document_file_id):
     """
@@ -235,11 +271,11 @@ async def upload_notebook_to_gallery(current_notebook, nb_gallery_file, attachme
     with open(current_notebook, 'r', encoding='utf-8') as nb_file:
         client = get_rspace_client()
         nb_gallery_file = upload_file_to_gallery(nb_gallery_file.get('id'), nb_file, client)
-        print(f"gallery file for nb: {nb_gallery_file}")
+        # print(f"gallery file for nb: {nb_gallery_file}")
         if nb_gallery_file.get('version') == 1:
             await add_rspace_details_to_notebook_metadata(current_notebook, nb_gallery_file, attachment_files, rspace_document_file_id)
             nb_gallery_file = upload_file_to_gallery(nb_gallery_file.get('id'), nb_file, client)
-            print(f"nb_gallery_file was uploaded a second time and was : {nb_gallery_file}")
+            # print(f"nb_gallery_file was uploaded a second time and was : {nb_gallery_file}")
     await reload_notebook()
     return nb_gallery_file
 
