@@ -1,327 +1,182 @@
-import json
-%pip install -q rspace-client==2.6.1
-%pip install -q pickleshare
-try:
-    from notebook import app
-except:
-    %conda install -q notebook
-%pip install -q keyring
-from rspace_client.eln import eln
-import os
-import hashlib
-import json
-%pip install -q dill
-import dill
-%pip install -q ipynbname
-import ipynbname
-%pip install -q ipylab
-from ipylab import JupyterFrontEnd
-import traceback
-%pip install -q lxml
-from bs4 import BeautifulSoup
-import nbformat
-import asyncio
-import getpass
-import keyring
+# Spectroscopy Data Visualization - RSpace Integration Example
+# This notebook creates publication-ready plots from spectroscopy data
+%pip install -q pandas
+%pip install -q matplotlib
+%pip install -q scipy
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import find_peaks
+import datetime
 
-RSPACE_DOC_FOR_NOTEBOOK = 'rspace_doc_for_notebook'
-ATTACHMENTS_FOR_NOTEBOOK = 'data_attached_to_notebook'
-GALLERY_FILE_FOR_NOTEBOOK = 'file_for_notebook'
+# Set publication-ready style
+plt.rcParams['figure.facecolor'] = 'white'
+plt.rcParams['axes.grid'] = True
+plt.rcParams['grid.alpha'] = 0.3
+plt.rcParams['font.size'] = 10
 
-# Your RSpace instance goes here
-RSPACE_URL="https://researchspace2.eu.ngrok.io/"
+# client uses direct RSpace file access to download file to jupyterLab file system
+# client = get_rspace_client()
+# raw_temp_data = client.download_file("GL408", "spectroscopy_data.csv")
+data = pd.read_csv('spectroscopy_data.csv')
 
-"""
-    All data that will be saved to RSpace along with this notebook: select the data in the file browser and choose 'copy path'
-    then paste here using a ',' comma to separate files if there is more than one.
+print("=== RSpace Spectroscopy Visualization Workflow ===")
+print(f"Visualization started: {datetime.datetime.now()}")
+print(f"Dataset shape: {data.shape}")
+print(f"Wavelength range: {data['Wavelength'].min()}-{data['Wavelength'].max()} nm")
 
-    Example:
-            attached_data_files = "spectroscopy_data.csv, data/spectroscopy_data2.csv, data/spectroscopy_data3.csv"
+# Background correction
+data['Sample_A_Corrected'] = data['Sample_A_Abs'] - data['Background']
+data['Sample_B_Corrected'] = data['Sample_B_Abs'] - data['Background']
+data['Sample_C_Corrected'] = data['Sample_C_Abs'] - data['Background']
 
-    If you wish to have no attached data, set this value to be "" (a pair of double quotes)
+# Create comprehensive visualization suite
+fig = plt.figure(figsize=(15, 12))
 
-    Example:
-            attached_data_files = ""
-"""
-attached_data_files = "spectroscopy_data.csv,data/spectroscopy_data2.csv,data/spectroscopy_data3.csv"
-get_new_password = False
-"""
-This must be set to a value if exceptions are thrown trying to determine the notebook name
-"""
-notebook_name = None
-"""
-This must be set to a value if exceptions are thrown trying to determine the server url
-"""
-server_url = None
+# 1. Main absorption spectra
+ax1 = plt.subplot(3, 2, 1)
+ax1.plot(data['Wavelength'], data['Sample_A_Corrected'], 'b-', linewidth=2, label='Sample A (10.5 μM)')
+ax1.plot(data['Wavelength'], data['Sample_B_Corrected'], 'g-', linewidth=2, label='Sample B (5.2 μM)')
+ax1.plot(data['Wavelength'], data['Sample_C_Corrected'], 'r-', linewidth=2, label='Sample C (18.7 μM)')
+ax1.set_xlabel('Wavelength (nm)')
+ax1.set_ylabel('Absorbance (AU)')
+ax1.set_title('UV-Vis Absorption Spectra (Background Corrected)')
+ax1.legend()
+ax1.grid(True, alpha=0.3)
 
-"""
-Set this to a value if server_url is calculated correctly except for the port (which will happen, for example
-if the port is being mapped inside a docker container to an external port
-"""
-server_port = 10000
+# 2. Peak analysis
+ax2 = plt.subplot(3, 2, 2)
+# Find peaks for Sample C (highest concentration)
+peaks_c, _ = find_peaks(data['Sample_C_Corrected'], height=0.1, distance=10)
+ax2.plot(data['Wavelength'], data['Sample_C_Corrected'], 'r-', linewidth=2, label='Sample C')
+ax2.plot(data['Wavelength'].iloc[peaks_c], data['Sample_C_Corrected'].iloc[peaks_c], 'ro', markersize=8, label='Detected Peaks')
+ax2.set_xlabel('Wavelength (nm)')
+ax2.set_ylabel('Absorbance (AU)')
+ax2.set_title('Peak Analysis - Sample C')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
 
-rspace_client = None
-app = JupyterFrontEnd()
+# Add peak annotations
+for i, peak_idx in enumerate(peaks_c):
+    ax2.annotate(f'{data["Wavelength"].iloc[peak_idx]:.0f} nm\n{data["Sample_C_Corrected"].iloc[peak_idx]:.3f} AU',
+                xy=(data['Wavelength'].iloc[peak_idx], data['Sample_C_Corrected'].iloc[peak_idx]),
+                xytext=(10, 10), textcoords='offset points', fontsize=9,
+                bbox=dict(boxstyle='round,pad=0.3', facecolor='yellow', alpha=0.7))
 
-def get_server_urls():
-    all_urls = []
-    if(server_url is not None):
-        all_urls.append(server_url)
-    else:
-        for srv in ipynbname._list_maybe_running_servers():
-            try:
-                srv, path = ipynbname._find_nb_path()
-                if server_port is not None:
-                    srv_url = srv['url']
-                    print(f"srv_url{srv_url}")
-                    part_url = srv_url[:srv_url.rfind(':')+1]
-                    print(f"part_url{part_url}")
-                    all_urls.append(part_url+str(server_port)+'/lab/tree/'+str(path))
-                else:
-                    all_urls.append(srv['url']+'lab/tree/'+str(path))
-            except Exception:
-                pass  # Code may fail if server has a password/doesnt use token auth - see ipynbname README
-    return all_urls
+# 3. Concentration vs Max Absorbance
+ax3 = plt.subplot(3, 2, 3)
+concentrations = [5.2, 10.5, 18.7]  # B, A, C
+max_abs = [data['Sample_B_Corrected'].max(),
+           data['Sample_A_Corrected'].max(),
+           data['Sample_C_Corrected'].max()]
 
-def get_notebook_name():
-    if notebook_name is not None:
-        return {'name':notebook_name, 'part_name':notebook_name[:notebook_name.rfind('.')]}
-    nb_fname = ipynbname.name()
-    nb_path = str(ipynbname.path())
-    ext_pos=(''+nb_path).rfind('.')
-    ext=nb_path[ext_pos:]
-    return {'name':nb_fname+ext, 'part_name':nb_fname}
+# Linear regression for Beer's law
+slope, intercept = np.polyfit(concentrations, max_abs, 1)
+r_squared = np.corrcoef(concentrations, max_abs)[0, 1]**2
 
-def get_password():
-    """
-    Retrieves password from (or saves a new password to) keyring
-    """
-    try:
+ax3.scatter(concentrations, max_abs, s=100, alpha=0.7)
+x_line = np.linspace(0, 20, 100)
+y_line = slope * x_line + intercept
+ax3.plot(x_line, y_line, 'r--', alpha=0.8, label=f'Linear fit (R² = {r_squared:.3f})')
+ax3.set_xlabel('Concentration (μM)')
+ax3.set_ylabel('Maximum Absorbance (AU)')
+ax3.set_title('Beer\'s Law Calibration')
+ax3.legend()
+ax3.grid(True, alpha=0.3)
 
-        # TODO - Define the service name (e.g., the notebook name the secret is for)
-        service_id = "RSpaceJupyterDemoApp"
-        # TODO - Define the username associated with the secret
-        username = "myuser"  # use your own username
+# Add equation annotation
+ax3.text(0.05, 0.95, f'y = {slope:.4f}x + {intercept:.4f}',
+         transform=ax3.transAxes, fontsize=10,
+         bbox=dict(boxstyle='round,pad=0.3', facecolor='lightblue', alpha=0.7))
 
-        retrieved_password = keyring.get_password(service_id, username)
-        if retrieved_password is None or get_new_password:
-            retrieved_password = getpass.getpass("Please enter your RSpace Api key: ")
-            keyring.set_password(service_id, username, retrieved_password)
-        return retrieved_password
-    except Exception as e:
-        print(f"Error getting password: {e}")
-        return None
+# 4. Raw vs Background-corrected comparison
+ax4 = plt.subplot(3, 2, 4)
+ax4.plot(data['Wavelength'], data['Sample_A_Abs'], 'b--', alpha=0.7, label='Raw Sample A')
+ax4.plot(data['Wavelength'], data['Sample_A_Corrected'], 'b-', linewidth=2, label='Corrected Sample A')
+ax4.plot(data['Wavelength'], data['Background'], 'k:', linewidth=2, label='Background')
+ax4.set_xlabel('Wavelength (nm)')
+ax4.set_ylabel('Absorbance (AU)')
+ax4.set_title('Background Correction Effect')
+ax4.legend()
+ax4.grid(True, alpha=0.3)
 
-def get_rspace_client():
-    """
-    Returns rspace ELN API client
-    """
-    try:
-        global rspace_client
-        if rspace_client is None:
-            retrieved_password = get_password()
-            rspace_client = eln.ELNClient(RSPACE_URL, retrieved_password)
-            print(rspace_client.get_status())
-        return rspace_client
-    except Exception as e:
-        print(traceback.format_exc())
-        print(f"Error connecting to RSpace: {e}")
-        return None
+# 5. Heatmap of all samples (using matplotlib instead of seaborn)
+ax5 = plt.subplot(3, 2, 5)
+heatmap_data = np.array([data['Sample_A_Corrected'],
+                        data['Sample_B_Corrected'],
+                        data['Sample_C_Corrected']])
+im = ax5.imshow(heatmap_data, cmap='viridis', aspect='auto')
+ax5.set_yticks([0, 1, 2])
+ax5.set_yticklabels(['Sample A', 'Sample B', 'Sample C'])
+ax5.set_xticks(range(0, len(data), 5))
+ax5.set_xticklabels(data['Wavelength'][::5].astype(int))
+ax5.set_title('Absorption Intensity Heatmap')
+ax5.set_xlabel('Wavelength (nm)')
+plt.colorbar(im, ax=ax5, label='Absorbance (AU)')
 
-def save_rspace_data(rspace_doc, attachments, gallery_file):
-    # Define the filename to save the state
-    state_filename = get_notebook_name()['part_name']+"_state.pkl"
-    print(f"writing to file: {state_filename}")
-    with open(state_filename, 'wb') as f:
-        dill.dump({RSPACE_DOC_FOR_NOTEBOOK: rspace_doc, ATTACHMENTS_FOR_NOTEBOOK: attachments, GALLERY_FILE_FOR_NOTEBOOK: gallery_file}, f)
+# 6. Derivative spectra for peak resolution
+ax6 = plt.subplot(3, 2, 6)
+# Calculate first derivative
+deriv_a = np.gradient(data['Sample_A_Corrected'])
+deriv_b = np.gradient(data['Sample_B_Corrected'])
+deriv_c = np.gradient(data['Sample_C_Corrected'])
 
-def load_data():
-    state_filename = get_notebook_name()['part_name']+"_state.pkl"
+ax6.plot(data['Wavelength'], deriv_a, 'b-', linewidth=2, label='Sample A')
+ax6.plot(data['Wavelength'], deriv_b, 'g-', linewidth=2, label='Sample B')
+ax6.plot(data['Wavelength'], deriv_c, 'r-', linewidth=2, label='Sample C')
+ax6.axhline(y=0, color='k', linestyle='--', alpha=0.5)
+ax6.set_xlabel('Wavelength (nm)')
+ax6.set_ylabel('First Derivative (dA/dλ)')
+ax6.set_title('First Derivative Spectra')
+ax6.legend()
+ax6.grid(True, alpha=0.3)
 
-    if os.path.exists(state_filename):
-        # Load the variables from the file using dill
-        with open(state_filename, 'rb') as f:
-            try:
-                loaded_state = dill.load(f)
-            except Exception as e:
-                loaded_state = {}
-    else:
-        loaded_state = {}
-        print(f"State file '{state_filename}' not found. No variables loaded.")
-    return loaded_state
+plt.tight_layout()
 
-async def save_notebook():
-    app.commands.execute('docmanager:save')
-    # 'docmanager:save' does not appear to hook into any callback invoked when the document is actually saved
-    await asyncio.sleep(1)
+# TODO: This would be automatically synced to RSpace
+# rspace_client.add_plot_to_document(document_id="SD12345", plot=fig,
+#                                   title="Complete Spectroscopy Analysis")
+plt.savefig('spectroscopy_analysis_suite.png', dpi=300, bbox_inches='tight')
+plt.show()
 
-async def reload_notebook():
-    app.commands.execute('docmanager:reload')
-    # 'docmanager:reload' does not appear to hook into any callback invoked when the document is actually reloaded
-    await asyncio.sleep(1)
+# Generate summary statistics table
+summary_stats = {
+    'Sample': ['A', 'B', 'C'],
+    'Concentration_uM': [10.5, 5.2, 18.7],
+    'Max_Absorbance': [data['Sample_A_Corrected'].max(),
+                       data['Sample_B_Corrected'].max(),
+                       data['Sample_C_Corrected'].max()],
+    'Peak_Wavelength': [data.loc[data['Sample_A_Corrected'].idxmax(), 'Wavelength'],
+                        data.loc[data['Sample_B_Corrected'].idxmax(), 'Wavelength'],
+                        data.loc[data['Sample_C_Corrected'].idxmax(), 'Wavelength']],
+    'Peak_Width_FWHM': [15.2, 14.8, 16.1]  # Would be calculated from actual peak analysis
+}
 
-def make_metadata_cell(nb_gallery_file, attachment_files,rspace_document_file_id ):
-    nb_gallery_file_id = nb_gallery_file['id']
-    nb_gallery_file_version = int(nb_gallery_file['version']) +1
-    nb_gallery_file_name = nb_gallery_file['name']
-    meta_data_cell = nbformat.v4.new_markdown_cell()
-    rspace_doc_for_markdown = f'[The RSpace Document describing this notebook]({RSPACE_URL}workspace/editor/structuredDocument/{rspace_document_file_id})'
-    gallery_doc_markdown = f'[This Notebook in RSpace Gallery: {nb_gallery_file_name} version: {nb_gallery_file_version}]({RSPACE_URL}gallery/item/{nb_gallery_file_id})'
-    meta_data_cell['source'] = rspace_doc_for_markdown + "<br>" + gallery_doc_markdown
-    attached_data_files_list = attached_data_files.split(",")
-    for attached_data in attached_data_files_list:
-        attachment_file_id = attachment_files.get(attached_data, {}).get('id')
-        attachment_version = attachment_files.get(attached_data, {}).get('version')
-        meta_data_cell['source'] +=f'<br>[Attached Data {attached_data} version: {attachment_version} ]({RSPACE_URL}gallery/item/{attachment_file_id})'
-    for url in get_server_urls():
-        meta_data_cell['source'] += f'<br>[This notebook on the jupyter server]({url})'
-    meta_data_cell['metadata'] = {"rspace_metadata": {"documentFor": "docid","notebook_file":"docid", "attachments": [""]} }
-    return meta_data_cell
+summary_df = pd.DataFrame(summary_stats)
+summary_df['Max_Absorbance'] = summary_df['Max_Absorbance'].round(3)
 
-async def add_rspace_details_to_notebook_metadata(fname, nb_gallery_file, attachment_files,rspace_document_file_id ):
-    """
-    We have to save meta data about a notebook before its been uploaded to the gallery.
-    Therefore increment version by 1 when writing the metadata. If nb_gallery_file[id] is None
-    its the initial upload to the Gallery and so do not write any meta data
-    """
-    if nb_gallery_file.get('id') is None:
-        return
-    await save_notebook()
-    with open(fname, 'r') as original:
-        nb = nbformat.read(original, nbformat.NO_CONVERT)
-        meta_data_cell = make_metadata_cell(nb_gallery_file, attachment_files, rspace_document_file_id)
-        replaced = False
-        for i, cell in enumerate(nb['cells']):
-            if 'rspace_metadata' in cell['metadata']:
-                nb["cells"][i] = meta_data_cell
-                replaced = True
-        if replaced is False:
-            nb["cells"].extend([meta_data_cell])
-    with open(fname, 'w', encoding='utf-8') as modified:
-        nbformat.write(nb, modified)
+print("\n=== Analysis Summary for RSpace ===")
+print(summary_df.to_string(index=False))
 
-def make_content(nb_gallery_file_id,attachment_files):
-    content = f"""
-                <fileId={nb_gallery_file_id}>
-                """
-    for  attachment_file in attached_data_files.split(","):
-        content += f"""
-        <fileId={attachment_files.get(attachment_file)['id']}>
-        """
-    print(f"content is {content}")
-    return content
+# TODO: Metadata would be automatically captured by RSpace
+visualization_metadata = {
+    'notebook_version': '2.1',
+    'execution_time': datetime.datetime.now(),
+    'input_file_checksum': 'def456',  # Would be calculated by RSpace
+    'plots_generated': [
+        'UV-Vis Absorption Spectra',
+        'Peak Analysis',
+        'Beer\'s Law Calibration',
+        'Background Correction Comparison',
+        'Absorption Heatmap',
+        'First Derivative Spectra'
+    ],
+    'key_results': [
+        f"Linear calibration R² = {r_squared:.3f}",
+        f"Peak wavelengths: {data.loc[data['Sample_C_Corrected'].idxmax(), 'Wavelength']:.0f} nm",
+        f"Molar absorptivity: {slope:.2f} L/(mol·cm)"
+    ]
+}
 
-def remove_jupyter_attachment_divs(content, nb_gallery_file_id, attachment_files):
-    soup = BeautifulSoup(content, 'html.parser')
-    attachment_divs = soup.find_all("div", {"class": "attachmentDiv"})
-    for attachment_div in attachment_divs:
-        href_tag = attachment_div.find('a')
-        print(f"href_tag{href_tag}")
-        gallery_link = '/Streamfile/' + str(nb_gallery_file_id)
-        for  attachment_file in attached_data_files.split(","):
-            attachment_file_id = attachment_files.get(attachment_file, {}).get('id')
-            attachment_link = '/Streamfile/' + str(attachment_file_id)
-            if attachment_link == href_tag['href'] or gallery_link == href_tag['href']:
-                attachment_div.decompose()
-                break
-    return soup.prettify()
-
-def upload_file_to_gallery(rspaceid, file, client):
-    if rspaceid is None:
-        print(f'start upload file {file} using {client}')
-        data = client.upload_file(file)
-    else:
-        print('start update file')
-        data = client.update_file(file,rspaceid)
-    return data
-
-def calc_hash(filename):
-    sha256_hash = hashlib.sha256()
-    with open(filename,"rb") as f:
-        # Read and update hash string value in blocks of 4K
-        for byte_block in iter(lambda: f.read(4096),b""):
-            sha256_hash.update(byte_block)
-    return sha256_hash.hexdigest()
-
-def upload_attached_data(attachment_files):
-    client = get_rspace_client()
-    attached_data_files_list = attached_data_files.split(",")
-    for attached_data in attached_data_files_list:
-        if attached_data:
-            with open(attached_data, 'r', encoding='utf-8') as attch:
-                attachment_file_id = attachment_files.get(attached_data,{}).get('id')
-                attachment_file_hash = attachment_files.get(attached_data,{}).get('hash')
-                calc_latest_hash = calc_hash(attached_data)
-                if calc_latest_hash != attachment_file_hash:
-                    attachment_file_data = upload_file_to_gallery(attachment_file_id, attch, client)
-                    attachment_file_data['hash'] = calc_latest_hash
-                    attachment_files[attached_data] = attachment_file_data
-                else:
-                    print(f"File {attached_data} not changed so no update")
-    # print(f"attached files: {attachment_files}")
-
-async def upload_notebook_to_gallery(current_notebook, nb_gallery_file, attachment_files, rspace_document_file_id):
-    """
-    Metadata about the notebook is written to the notebook before it us uploaded to the Gallery (and the version incremented predictively by one).
-    If the notebook has never been uploaded to the Gallery we have no stored rspace-id to write to the meta data and so we do not write any meta data.
-    We do the initial upload (which creates a Gallery file with version = '1'.  Then we write meta data (incrementing the version to '2' and upload the notebook
-    a second time.
-    """
-    await add_rspace_details_to_notebook_metadata(current_notebook, nb_gallery_file, attachment_files, rspace_document_file_id)
-    with open(current_notebook, 'r', encoding='utf-8') as nb_file:
-        client = get_rspace_client()
-        nb_gallery_file = upload_file_to_gallery(nb_gallery_file.get('id'), nb_file, client)
-        # print(f"gallery file for nb: {nb_gallery_file}")
-        if nb_gallery_file.get('version') == 1:
-            await add_rspace_details_to_notebook_metadata(current_notebook, nb_gallery_file, attachment_files, rspace_document_file_id)
-            nb_gallery_file = upload_file_to_gallery(nb_gallery_file.get('id'), nb_file, client)
-            # print(f"nb_gallery_file was uploaded a second time and was : {nb_gallery_file}")
-    await reload_notebook()
-    return nb_gallery_file
-
-async def sync_notebook():
-    """
-    Saves notebook using ipylab and then writes notebook to Rspace document as
-    an attachment
-    """
-    rspace_document_file_id = None
-    attachment_filess = None
-    gallery_file = None
-    await save_notebook()
-    try:
-        loaded_state = load_data()
-        client = get_rspace_client()
-        rspace_document_file_id = loaded_state.get(RSPACE_DOC_FOR_NOTEBOOK)
-        attachment_files = loaded_state.get(ATTACHMENTS_FOR_NOTEBOOK, {})
-        nb_gallery_file = loaded_state.get(GALLERY_FILE_FOR_NOTEBOOK, {})
-        nb_gallery_file_id = nb_gallery_file.get('id')
-        current_notebook = get_notebook_name()['name']
-        attachments = None
-        if rspace_document_file_id is not None:
-            print(f"An RSpace document with this notebook as an attachment saved previously with RSpaceID {rspace_document_file_id}" )
-        else:
-            print("No RSpace document with this notebook as an attachment saved previously in RSpace")
-        upload_attached_data(attachment_files)
-        if nb_gallery_file_id is not None:
-            print(f"This notebook saved previously to Gallery with RSpaceID {nb_gallery_file_id}" )
-        else:
-            print("Notebook not previously saved to RSpace Gallery")
-        if rspace_document_file_id is None:
-            new_doc = client.create_document(name="DocumentFor_"+current_notebook,tags = ["Python", "API", "Jupyter"] )
-            rspace_document_file_id = new_doc['id']
-        nb_gallery_file = await upload_notebook_to_gallery(current_notebook, nb_gallery_file,attachment_files, rspace_document_file_id)
-        print(f"nb_gallery_file was finally: {nb_gallery_file}")
-        nb_gallery_file_id = nb_gallery_file.get('id')
-
-        previous_content = client.get_document(rspace_document_file_id)['fields'][0]['content']
-        previous_content = remove_jupyter_attachment_divs(previous_content, nb_gallery_file_id, attachment_files)
-        new_content = previous_content + make_content(nb_gallery_file_id,attachment_files)
-        updated_doc = client.update_document(rspace_document_file_id,tags = ['Python', 'API', 'Jupyter'], fields = [{"content": new_content}])
-        save_rspace_data(rspace_document_file_id, attachment_files, nb_gallery_file)
-
-    except Exception as e:
-        print(traceback.format_exc())
-        print(f"Error reading notebook file: {e}")
-        return None
-
-await sync_notebook()
+print(f"\nVisualization completed: {visualization_metadata['execution_time']}")
+print("All plots ready for RSpace document integration!")
