@@ -263,17 +263,19 @@ async def add_rspace_details_to_notebook_metadata(fname, notebook, nb_gallery_fi
 def get_notebook_execution_count(notebook):
     """
     return the sum of all execution counts for code cells
+    note that this code cell does not contribute to the count:
+    it is always saved before its execution_count gets updated
+    and so the value of execution_count for this cell is always 'None'
     """
     new_executed_count = 0
     for i, cell in enumerate(notebook['cells']):
         if cell['cell_type'] == 'code':
-
-            print(f"cell id: {cell['id']} and execution_count {cell['execution_count']} ")
+            # print(f"cell id: {cell['id']} and execution_count {cell['execution_count']} ")
             cell_count = cell['execution_count']
             if cell_count is None:
                 cell_count = 0
             new_executed_count += cell_count
-            print(f"new executed count {new_executed_count}")
+            # print(f"new executed count {new_executed_count}")
     return new_executed_count
 
 
@@ -285,7 +287,7 @@ def make_content(nb_gallery_file_id, attachment_files):
         content += f"""
         <fileId={attachment_files.get(attachment_file)['id']}>
         """
-    print(f"content is {content}")
+    # print(f"content is {content}")
     return content
 
 
@@ -294,7 +296,7 @@ def remove_jupyter_attachment_divs(content, nb_gallery_file_id, attachment_files
     attachment_divs = soup.find_all("div", {"class": "attachmentDiv"})
     for attachment_div in attachment_divs:
         href_tag = attachment_div.find('a')
-        print(f"href_tag{href_tag}")
+        # print(f"href_tag{href_tag}")
         gallery_link = '/Streamfile/' + str(nb_gallery_file_id)
         for attachment_file in attached_data_files.split(","):
             attachment_file_id = attachment_files.get(attachment_file, {}).get('id')
@@ -374,7 +376,10 @@ async def upload_notebook_to_gallery(current_notebook, notebook, nb_gallery_file
 async def sync_notebook():
     """
     Saves notebook using ipylab and then writes notebook to Rspace document as
-    an attachment
+    an attachment if the execution_count of the notebook has changed since the last time
+    this cell was run. Attached data is also written to RSpace if its hash_sum has changed
+    since the last time this cell was run. The notebook and attached data will always be written
+    to RSpace at least once (on the first time this cell is run).
     """
     rspace_document_file_id = None
     attachment_filess = None
