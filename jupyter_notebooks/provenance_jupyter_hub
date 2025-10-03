@@ -27,9 +27,10 @@ import keyring
 RSPACE_DOC_FOR_NOTEBOOK = 'rspace_doc_for_notebook'
 ATTACHMENTS_FOR_NOTEBOOK = 'data_attached_to_notebook'
 GALLERY_FILE_FOR_NOTEBOOK = 'file_for_notebook'
+EXECUTION_COUNT_FOR_NOTEBOOK = 'execution_count_for_notebook'
 
 # Your RSpace instance goes here
-RSPACE_URL="https://researchspace2.eu.ngrok.io/"
+RSPACE_URL = "https://researchspace2.eu.ngrok.io/"
 
 """
     All data that will be saved to RSpace along with this notebook: select the data in the file browser and choose 'copy path'
@@ -71,10 +72,11 @@ server_port = 10000
 rspace_client = None
 app = JupyterFrontEnd()
 
+
 def get_server_urls():
     global server_url
     all_urls = []
-    if(server_url is not None):
+    if (server_url is not None):
         all_urls.append(server_url + '/lab/tree/' + notebook_name)
     else:
         try:
@@ -85,15 +87,16 @@ def get_server_urls():
                     # print(f"srv_url: {srv_url}")
                     # print(f"root_dir: {srv['root_dir']}")
                     # print(f"path: {str(path)}")
-                    part_url = srv_url[:srv_url.rfind(':')+1]
+                    part_url = srv_url[:srv_url.rfind(':') + 1]
                     # print(f"part_url: {part_url}")
-                    all_urls.append(part_url+str(server_port)+'/lab/tree/'+str(path))
+                    all_urls.append(part_url + str(server_port) + '/lab/tree/' + str(path))
                 else:
-                    all_urls.append(srv['url']+'lab/tree/'+str(path))
+                    all_urls.append(srv['url'] + 'lab/tree/' + str(path))
         except Exception:
             print(f"Error determining server urls, please manually set a value for 'server_url'")
             raise  # Code may fail if server has a password/doesnt use token auth - see ipynbname README
     return all_urls
+
 
 def get_server_roots():
     """
@@ -111,29 +114,32 @@ def get_server_roots():
         raise  # Code may fail if server has a password/doesnt use token auth - see ipynbname README
     return all_roots
 
+
 def get_notebook_name():
     global notebook_name
     try:
         if notebook_name is not None:
             if '/' in notebook_name:
-                notebook_name_alone = notebook_name[notebook_name.rfind('/')+1:]
+                notebook_name_alone = notebook_name[notebook_name.rfind('/') + 1:]
             else:
                 notebook_name_alone = notebook_name
-            return {'name':notebook_name_alone, 'root_name':notebook_name_alone[:notebook_name_alone.rfind('.')], 'name_path':notebook_name}
+            return {'name': notebook_name_alone, 'root_name': notebook_name_alone[:notebook_name_alone.rfind('.')],
+                    'name_path': notebook_name}
         nb_fname = ipynbname.name()
         nb_path = str(ipynbname.path())
         for srv_root in get_server_roots():
             if not srv_root.endswith("/"):
                 srv_root = srv_root + "/"
             if srv_root in nb_path:
-                nb_path = nb_path.replace(srv_root,'')
+                nb_path = nb_path.replace(srv_root, '')
         print(f"nb_path: {nb_path}")
-        ext_pos=(''+nb_path).rfind('.')
-        ext=nb_path[ext_pos:]
-        return {'name':nb_fname+ext, 'root_name':nb_fname,'name_path': nb_path}
+        ext_pos = ('' + nb_path).rfind('.')
+        ext = nb_path[ext_pos:]
+        return {'name': nb_fname + ext, 'root_name': nb_fname, 'name_path': nb_path}
     except Exception as e:
         print(f"Error getting notebook name, please manually set a value for 'notebook_name'")
-        raise 
+        raise
+
 
 def get_password():
     """
@@ -146,7 +152,7 @@ def get_password():
         service_id = "RSpaceJupyterDemoApp"
         # TODO - Define the username associated with the secret
         username = "myuser"  # use your own username
-        
+
         retrieved_password = keyring.get_password(service_id, username)
         if retrieved_password is None or get_new_password:
             retrieved_password = getpass.getpass("Please enter your RSpace Api key: ")
@@ -155,6 +161,7 @@ def get_password():
     except Exception as e:
         print(f"Error getting password: {e}")
         return None
+
 
 def get_rspace_client():
     """
@@ -172,15 +179,18 @@ def get_rspace_client():
         print(f"Error connecting to RSpace: {e}")
         return None
 
-def save_rspace_data(rspace_doc, attachments, gallery_file):
+
+def save_rspace_data(rspace_doc, attachments, gallery_file, execution_count):
     # Define the filename to save the state
-    state_filename = get_notebook_name()['root_name']+"_state.pkl"
+    state_filename = get_notebook_name()['root_name'] + "_state.pkl"
     print(f"writing to file: {state_filename}")
     with open(state_filename, 'wb') as f:
-        dill.dump({RSPACE_DOC_FOR_NOTEBOOK: rspace_doc, ATTACHMENTS_FOR_NOTEBOOK: attachments, GALLERY_FILE_FOR_NOTEBOOK: gallery_file}, f)
+        dill.dump({RSPACE_DOC_FOR_NOTEBOOK: rspace_doc, ATTACHMENTS_FOR_NOTEBOOK: attachments,
+                   GALLERY_FILE_FOR_NOTEBOOK: gallery_file, EXECUTION_COUNT_FOR_NOTEBOOK: execution_count}, f)
+
 
 def load_data():
-    state_filename = get_notebook_name()['root_name']+"_state.pkl"
+    state_filename = get_notebook_name()['root_name'] + "_state.pkl"
 
     if os.path.exists(state_filename):
         # Load the variables from the file using dill
@@ -194,19 +204,22 @@ def load_data():
         print(f"State file '{state_filename}' not found. No variables loaded.")
     return loaded_state
 
+
 async def save_notebook():
     app.commands.execute('docmanager:save')
     # 'docmanager:save' does not appear to hook into any callback invoked when the document is actually saved
     await asyncio.sleep(1)
+
 
 async def reload_notebook():
     app.commands.execute('docmanager:reload')
     # 'docmanager:reload' does not appear to hook into any callback invoked when the document is actually reloaded
     await asyncio.sleep(1)
 
-def make_metadata_cell(nb_gallery_file, attachment_files,rspace_document_file_id ):
+
+def make_metadata_cell(nb_gallery_file, attachment_files, rspace_document_file_id):
     nb_gallery_file_id = nb_gallery_file['id']
-    nb_gallery_file_version = int(nb_gallery_file['version']) +1
+    nb_gallery_file_version = int(nb_gallery_file['version']) + 1
     nb_gallery_file_name = nb_gallery_file['name']
     meta_data_cell = nbformat.v4.new_markdown_cell()
     rspace_doc_for_markdown = f'[The RSpace Document describing this notebook]({RSPACE_URL}workspace/editor/structuredDocument/{rspace_document_file_id})'
@@ -216,13 +229,17 @@ def make_metadata_cell(nb_gallery_file, attachment_files,rspace_document_file_id
     for attached_data in attached_data_files_list:
         attachment_file_id = attachment_files.get(attached_data, {}).get('id')
         attachment_version = attachment_files.get(attached_data, {}).get('version')
-        meta_data_cell['source'] +=f'<br>[Attached Data {attached_data} version: {attachment_version} ]({RSPACE_URL}gallery/item/{attachment_file_id})'
+        meta_data_cell[
+            'source'] += f'<br>[Attached Data {attached_data} version: {attachment_version} ]({RSPACE_URL}gallery/item/{attachment_file_id})'
     for url in get_server_urls():
         meta_data_cell['source'] += f'<br>[This notebook on the jupyter server]({url})'
-    meta_data_cell['metadata'] = {"rspace_metadata": {"documentFor": "docid","notebook_file":"docid", "attachments": [""]} }
+    meta_data_cell['metadata'] = {
+        "rspace_metadata": {"documentFor": "docid", "notebook_file": "docid", "attachments": [""]}}
     return meta_data_cell
 
-async def add_rspace_details_to_notebook_metadata(fname, nb_gallery_file, attachment_files,rspace_document_file_id ):
+
+async def add_rspace_details_to_notebook_metadata(fname, notebook, nb_gallery_file, attachment_files,
+                                                  rspace_document_file_id):
     """
     We have to save meta data about a notebook before its been uploaded to the gallery.
     Therefore increment version by 1 when writing the metadata. If nb_gallery_file[id] is None
@@ -231,29 +248,46 @@ async def add_rspace_details_to_notebook_metadata(fname, nb_gallery_file, attach
     if nb_gallery_file.get('id') is None:
         return
     await save_notebook()
-    with open(fname, 'r') as original:
-        nb = nbformat.read(original, nbformat.NO_CONVERT)
-        meta_data_cell = make_metadata_cell(nb_gallery_file, attachment_files, rspace_document_file_id)
-        replaced = False
-        for i, cell in enumerate(nb['cells']):
-            if 'rspace_metadata' in cell['metadata']:
-                nb["cells"][i] = meta_data_cell
-                replaced = True
-        if replaced is False:
-            nb["cells"].extend([meta_data_cell])
+    meta_data_cell = make_metadata_cell(nb_gallery_file, attachment_files, rspace_document_file_id)
+    replaced = False
+    for i, cell in enumerate(notebook['cells']):
+        if 'rspace_metadata' in cell['metadata']:
+            notebook["cells"][i] = meta_data_cell
+            replaced = True
+    if replaced is False:
+        notebook["cells"].extend([meta_data_cell])
     with open(fname, 'w', encoding='utf-8') as modified:
-        nbformat.write(nb, modified)
+        nbformat.write(notebook, modified)
 
-def make_content(nb_gallery_file_id,attachment_files):
+
+def get_notebook_execution_count(notebook):
+    """
+    return the sum of all execution counts for code cells
+    """
+    new_executed_count = 0
+    for i, cell in enumerate(notebook['cells']):
+        if cell['cell_type'] == 'code':
+
+            print(f"cell id: {cell['id']} and execution_count {cell['execution_count']} ")
+            cell_count = cell['execution_count']
+            if cell_count is None:
+                cell_count = 0
+            new_executed_count += cell_count
+            print(f"new executed count {new_executed_count}")
+    return new_executed_count
+
+
+def make_content(nb_gallery_file_id, attachment_files):
     content = f"""
                 <fileId={nb_gallery_file_id}>
                 """
-    for  attachment_file in attached_data_files.split(","):
+    for attachment_file in attached_data_files.split(","):
         content += f"""
         <fileId={attachment_files.get(attachment_file)['id']}>
         """
     print(f"content is {content}")
     return content
+
 
 def remove_jupyter_attachment_divs(content, nb_gallery_file_id, attachment_files):
     soup = BeautifulSoup(content, 'html.parser')
@@ -262,7 +296,7 @@ def remove_jupyter_attachment_divs(content, nb_gallery_file_id, attachment_files
         href_tag = attachment_div.find('a')
         print(f"href_tag{href_tag}")
         gallery_link = '/Streamfile/' + str(nb_gallery_file_id)
-        for  attachment_file in attached_data_files.split(","):
+        for attachment_file in attached_data_files.split(","):
             attachment_file_id = attachment_files.get(attachment_file, {}).get('id')
             attachment_link = '/Streamfile/' + str(attachment_file_id)
             if attachment_link == href_tag['href'] or gallery_link == href_tag['href']:
@@ -270,37 +304,40 @@ def remove_jupyter_attachment_divs(content, nb_gallery_file_id, attachment_files
                 break
     return soup.prettify()
 
+
 def upload_file_to_gallery(rspaceid, file, client):
     if rspaceid is None:
         print(f'start upload file {file} using {client}')
         data = client.upload_file(file)
     else:
         print('start update file')
-        data = client.update_file(file,rspaceid)
+        data = client.update_file(file, rspaceid)
     return data
-    
+
+
 def calc_hash(filename):
     sha256_hash = hashlib.sha256()
-    with open(filename,"rb") as f:
+    with open(filename, "rb") as f:
         # Read and update hash string value in blocks of 4K
-        for byte_block in iter(lambda: f.read(4096),b""):
+        for byte_block in iter(lambda: f.read(4096), b""):
             sha256_hash.update(byte_block)
     return sha256_hash.hexdigest()
-    
+
+
 def upload_attached_data(attachment_files):
     client = get_rspace_client()
     attached_data_files_list = attached_data_files.split(",")
     for attached_data in attached_data_files_list:
         if attached_data:
             # make file paths to data relative to the location of this notebook
-            nested_dir_pos=get_notebook_name()['name_path'].count('/')
-            relative_attached_data =attached_data
+            nested_dir_pos = get_notebook_name()['name_path'].count('/')
+            relative_attached_data = attached_data
             for i in range(nested_dir_pos):
                 relative_attached_data = "../" + relative_attached_data
             print(f"relative_attached_data: {relative_attached_data}")
             with open(relative_attached_data, 'r', encoding='utf-8') as attch:
-                attachment_file_id = attachment_files.get(attached_data,{}).get('id')
-                attachment_file_hash = attachment_files.get(attached_data,{}).get('hash')
+                attachment_file_id = attachment_files.get(attached_data, {}).get('id')
+                attachment_file_hash = attachment_files.get(attached_data, {}).get('hash')
                 calc_latest_hash = calc_hash(relative_attached_data)
                 if calc_latest_hash != attachment_file_hash:
                     attachment_file_data = upload_file_to_gallery(attachment_file_id, attch, client)
@@ -309,26 +346,31 @@ def upload_attached_data(attachment_files):
                 else:
                     print(f"File {attached_data} not changed so no update")
     # print(f"attached files: {attachment_files}")
-    
-async def upload_notebook_to_gallery(current_notebook, nb_gallery_file, attachment_files, rspace_document_file_id):
+
+
+async def upload_notebook_to_gallery(current_notebook, notebook, nb_gallery_file, attachment_files,
+                                     rspace_document_file_id):
     """
     Metadata about the notebook is written to the notebook before it us uploaded to the Gallery (and the version incremented predictively by one).
     If the notebook has never been uploaded to the Gallery we have no stored rspace-id to write to the meta data and so we do not write any meta data.
-    We do the initial upload (which creates a Gallery file with version = '1'.  Then we write meta data (incrementing the version to '2' and upload the notebook 
+    We do the initial upload (which creates a Gallery file with version = '1'.  Then we write meta data (incrementing the version to '2' and upload the notebook
     a second time.
     """
-    await add_rspace_details_to_notebook_metadata(current_notebook, nb_gallery_file, attachment_files, rspace_document_file_id)
+    await add_rspace_details_to_notebook_metadata(current_notebook, notebook, nb_gallery_file, attachment_files,
+                                                  rspace_document_file_id)
     with open(current_notebook, 'r', encoding='utf-8') as nb_file:
         client = get_rspace_client()
         nb_gallery_file = upload_file_to_gallery(nb_gallery_file.get('id'), nb_file, client)
         # print(f"gallery file for nb: {nb_gallery_file}")
         if nb_gallery_file.get('version') == 1:
-            await add_rspace_details_to_notebook_metadata(current_notebook, nb_gallery_file, attachment_files, rspace_document_file_id)
+            await add_rspace_details_to_notebook_metadata(current_notebook, notebook, nb_gallery_file, attachment_files,
+                                                          rspace_document_file_id)
             nb_gallery_file = upload_file_to_gallery(nb_gallery_file.get('id'), nb_file, client)
             # print(f"nb_gallery_file was uploaded a second time and was : {nb_gallery_file}")
     await reload_notebook()
     return nb_gallery_file
-    
+
+
 async def sync_notebook():
     """
     Saves notebook using ipylab and then writes notebook to Rspace document as
@@ -340,8 +382,23 @@ async def sync_notebook():
     await save_notebook()
     get_server_urls()
     print(f"notebook name: {get_notebook_name()}")
+    current_notebook = get_notebook_name()['name']
+    with open(current_notebook, 'r') as notebook:
+        notebook_node = nbformat.read(notebook, nbformat.NO_CONVERT)
+    new_hash = calc_hash(current_notebook)
+    print(f" new hash {new_hash}")
     try:
         loaded_state = load_data()
+        execution_count = loaded_state.get(EXECUTION_COUNT_FOR_NOTEBOOK)
+        new_execution_count = get_notebook_execution_count(notebook_node)
+
+        print(f"New execution count {new_execution_count}")
+        print(f"Previous execution count {execution_count}")
+
+        if execution_count == new_execution_count:
+            print("No execution since last sync: no data updated in RSpace")
+            await save_notebook()
+            return
         client = get_rspace_client()
         rspace_document_file_id = loaded_state.get(RSPACE_DOC_FOR_NOTEBOOK)
         attachment_files = loaded_state.get(ATTACHMENTS_FOR_NOTEBOOK, {})
@@ -350,30 +407,32 @@ async def sync_notebook():
         current_notebook = get_notebook_name()['name']
         attachments = None
         if rspace_document_file_id is not None:
-            print(f"An RSpace document with this notebook as an attachment saved previously with RSpaceID {rspace_document_file_id}" )
+            print(
+                f"An RSpace document with this notebook as an attachment saved previously with RSpaceID {rspace_document_file_id}")
         else:
             print("No RSpace document with this notebook as an attachment saved previously in RSpace")
         upload_attached_data(attachment_files)
         if nb_gallery_file_id is not None:
-            print(f"This notebook saved previously to Gallery with RSpaceID {nb_gallery_file_id}" )
+            print(f"This notebook saved previously to Gallery with RSpaceID {nb_gallery_file_id}")
         else:
             print("Notebook not previously saved to RSpace Gallery")
         if rspace_document_file_id is None:
-            new_doc = client.create_document(name="DocumentFor_"+current_notebook,tags = ["Python", "API", "Jupyter"] )
+            new_doc = client.create_document(name="DocumentFor_" + current_notebook, tags=["Python", "API", "Jupyter"])
             rspace_document_file_id = new_doc['id']
-        nb_gallery_file = await upload_notebook_to_gallery(current_notebook, nb_gallery_file,attachment_files, rspace_document_file_id)
+        nb_gallery_file = await upload_notebook_to_gallery(current_notebook,notebook_node, nb_gallery_file,attachment_files, rspace_document_file_id)
         print(f"nb_gallery_file was finally: {nb_gallery_file}")
         nb_gallery_file_id = nb_gallery_file.get('id')
-        
+
         previous_content = client.get_document(rspace_document_file_id)['fields'][0]['content']
         previous_content = remove_jupyter_attachment_divs(previous_content, nb_gallery_file_id, attachment_files)
-        new_content = previous_content + make_content(nb_gallery_file_id,attachment_files)
-        updated_doc = client.update_document(rspace_document_file_id,tags = ['Python', 'API', 'Jupyter'], fields = [{"content": new_content}])
-        save_rspace_data(rspace_document_file_id, attachment_files, nb_gallery_file)
-
+        new_content = previous_content + make_content(nb_gallery_file_id, attachment_files)
+        updated_doc = client.update_document(rspace_document_file_id, tags=['Python', 'API', 'Jupyter'],
+                                             fields=[{"content": new_content}])
+        save_rspace_data(rspace_document_file_id, attachment_files, nb_gallery_file, new_execution_count)
     except Exception as e:
         print(traceback.format_exc())
         print(f"Error reading notebook file: {e}")
         return None
+
 
 await sync_notebook()
