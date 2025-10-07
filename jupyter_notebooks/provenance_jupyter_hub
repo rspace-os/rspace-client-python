@@ -221,12 +221,13 @@ async def reload_notebook():
 
 def make_metadata_cell(nb_gallery_file, attachment_files, rspace_doc, history_data):
     rspace_document_file_id =str(rspace_doc['id'])
-    # new content plus new attachment data increments the documentversion by two
+    # new content plus new attachment data increments the document version by two
     rspace_document_version = 2 if rspace_doc['version'] == 1 else rspace_doc['version'] + 2
     rspace_document_name = rspace_doc['name']
     rspace_document_globalId = rspace_doc['globalId']+'v'+str(rspace_document_version)
     nb_gallery_file_id = nb_gallery_file['id']
-    nb_gallery_file_version = int(nb_gallery_file['version']) + 1
+    nb_gallery_file_version = int(nb_gallery_file['version'])
+    nb_gallery_file_version = 1 if nb_gallery_file_version == 1 else nb_gallery_file_version + 1
     nb_gallery_file_name = nb_gallery_file['name']
     meta_data_cell = nbformat.v4.new_markdown_cell()
     rspace_doc_for_markdown = f'[The RSpace Document describing this notebook, version: {rspace_document_version}]({RSPACE_URL}{RSPACE_DOC_URL}{rspace_document_file_id})'
@@ -272,6 +273,7 @@ async def add_rspace_details_to_notebook_metadata(fname, notebook, nb_gallery_fi
     if replaced is False:
         notebook["cells"].extend([meta_data_cell])
     with open(fname, 'w', encoding='utf-8') as modified:
+        print(f"updated notebook: {notebook}")
         nbformat.write(notebook, modified)
 
 
@@ -379,10 +381,13 @@ async def upload_notebook_to_gallery(current_notebook, notebook, nb_gallery_file
         client = get_rspace_client()
         nb_gallery_file = upload_file_to_gallery(nb_gallery_file.get('id'), nb_file, client)
         # print(f"gallery file for nb: {nb_gallery_file}")
-        if nb_gallery_file.get('version') == 1:
-            await add_rspace_details_to_notebook_metadata(current_notebook, notebook, nb_gallery_file, attachment_files,
-                                                          rspace_doc, history_data)
-            nb_gallery_file = upload_file_to_gallery(nb_gallery_file.get('id'), nb_file, client)
+    if nb_gallery_file.get('version') == 1:
+        await asyncio.sleep(1)
+        await add_rspace_details_to_notebook_metadata(current_notebook, notebook, nb_gallery_file, attachment_files,
+                                                      rspace_doc, history_data)
+    with open(current_notebook, 'r', encoding='utf-8') as nb_file:
+        nb_gallery_file = upload_file_to_gallery(nb_gallery_file.get('id'), nb_file, client)
+        await asyncio.sleep(1)
             # print(f"nb_gallery_file was uploaded a second time and was : {nb_gallery_file}")
     await reload_notebook()
     return nb_gallery_file
