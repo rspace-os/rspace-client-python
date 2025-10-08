@@ -40,16 +40,16 @@ new document.
 Setting RSPACE_PREEXISITING_DOCUMENT_ID to a value other than None will attach this jupyter notebook to the RSpace document
 with the given ID instead of creating a new RSpace document.
 """
-# RSPACE_PREEXISITING_DOCUMENT_ID = None
-RSPACE_PREEXISITING_DOCUMENT_ID = 155
+RSPACE_PREEXISITING_DOCUMENT_ID = None
+# RSPACE_PREEXISITING_DOCUMENT_ID = 155
 """
 Default behaviour writes links to this notebook into the 'first' field in a document (field '0'). Set this to a value
 if a different field should be used.
 
 If this is set to a value other than None, RSPACE_PREEXISITING_DOCUMENT_ID must be set to a value other than None.
 """
-# RSPACE_DOCUMENT_TARGET_FIELD_ID = None
-RSPACE_DOCUMENT_TARGET_FIELD_ID = 34
+RSPACE_DOCUMENT_TARGET_FIELD_ID = None
+# RSPACE_DOCUMENT_TARGET_FIELD_ID = 34
 """
     All data that will be saved to RSpace along with this notebook: select the data in the file browser and choose 'copy path'
     then paste here using a ',' comma to separate files if there is more than one.
@@ -164,6 +164,8 @@ def get_password():
     Retrieves password from (or saves a new password to) keyring
     """
     global get_new_password
+    from keyring import get_keyring
+    print("Keyring method: " + str(get_keyring()))
     try:
 
         # TODO - Define the service name (e.g., the notebook name the secret is for)
@@ -189,6 +191,9 @@ def get_rspace_client():
         global rspace_client
         if rspace_client is None:
             retrieved_password = get_password()
+            if retrieved_password is None:
+                %pip install keyrings.alt
+                retrieved_password = get_password()
             rspace_client = eln.ELNClient(RSPACE_URL, retrieved_password)
             print(rspace_client.get_status())
         return rspace_client
@@ -243,7 +248,8 @@ def make_metadata_cell(nb_gallery_file, attachment_files, rspace_doc, history_da
     rspace_document_globalId = rspace_doc['globalId']+'v'+str(rspace_document_version)
     nb_gallery_file_id = nb_gallery_file['id']
     nb_gallery_file_version = int(nb_gallery_file['version'])
-    nb_gallery_file_version = 1 if nb_gallery_file_version == 1 else nb_gallery_file_version + 1
+    # nb_gallery_file_version = 1 if nb_gallery_file_version == 1 else nb_gallery_file_version + 1
+    nb_gallery_file_version = nb_gallery_file_version + 1
     nb_gallery_file_name = nb_gallery_file['name']
     meta_data_cell = nbformat.v4.new_markdown_cell()
     rspace_doc_for_markdown = f'[The RSpace Document describing this notebook, version: {rspace_document_version}]({RSPACE_URL}{RSPACE_DOC_URL}{rspace_document_file_id})'
@@ -253,8 +259,7 @@ def make_metadata_cell(nb_gallery_file, attachment_files, rspace_doc, history_da
     for attached_data in attached_data_files_list:
         attachment_file_id = attachment_files.get(attached_data, {}).get('id')
         attachment_version = attachment_files.get(attached_data, {}).get('version')
-        meta_data_cell[
-            'source'] += f'<br>[Attached Data {attached_data} version: {attachment_version} ]({RSPACE_URL}gallery/item/{attachment_file_id})'
+        meta_data_cell['source'] += f'<br>[Attached Data {attached_data} version: {attachment_version} ]({RSPACE_URL}gallery/item/{attachment_file_id})'
     for url in get_server_urls():
         meta_data_cell['source'] += f'<br>[This notebook on the jupyter server]({url})'
     new_history = f'<br>RSpace doc [<strong>{rspace_document_name}</strong> version {rspace_document_version}]({RSPACE_URL}{RSPACE_DOC_VERSION_URL_START}{rspace_document_globalId}) contains this Notebook, version {nb_gallery_file_version}, executed with: '
@@ -264,8 +269,7 @@ def make_metadata_cell(nb_gallery_file, attachment_files, rspace_doc, history_da
         new_history += f'Data <strong>{attached_data}</strong> version: {attachment_version} '
     # print(f'history_data: {history_data}')
     history_data['text'] = new_history + history_data['text']
-    meta_data_cell[
-            'source'] += f'<br> {history_data['text']}'
+    meta_data_cell['source'] += f"<br> {history_data['text']}"
     meta_data_cell['metadata'] = {
         "rspace_metadata": {"documentFor": "docid", "notebook_file": "docid", "attachments": [""]}}
     return meta_data_cell
@@ -324,6 +328,10 @@ def make_content(nb_gallery_file_id, attachment_files):
 
 
 def remove_jupyter_attachment_divs(content, nb_gallery_file_id, attachment_files):
+    """
+    Iterate all attachments in the document field and if any have ids matching the stored ids for this notebook
+    then remove them
+    """
     soup = BeautifulSoup(content, 'html.parser')
     attachment_divs = soup.find_all("div", {"class": "attachmentDiv"})
     for attachment_div in attachment_divs:
@@ -400,9 +408,9 @@ async def upload_notebook_to_gallery(current_notebook, notebook, nb_gallery_file
         await asyncio.sleep(1)
         await add_rspace_details_to_notebook_metadata(current_notebook, notebook, nb_gallery_file, attachment_files,
                                                       rspace_doc, history_data)
-    with open(current_notebook, 'r', encoding='utf-8') as nb_file:
-        nb_gallery_file = upload_file_to_gallery(nb_gallery_file.get('id'), nb_file, client)
-        await asyncio.sleep(1)
+        with open(current_notebook, 'r', encoding='utf-8') as nb_file:
+            nb_gallery_file = upload_file_to_gallery(nb_gallery_file.get('id'), nb_file, client)
+            await asyncio.sleep(1)
             # print(f"nb_gallery_file was uploaded a second time and was : {nb_gallery_file}")
     await reload_notebook()
     return nb_gallery_file
@@ -453,7 +461,6 @@ async def sync_notebook():
 
         print(f"New execution count {new_execution_count}")
         print(f"Previous execution count {execution_count}")
-
         # FIXME
         # if execution_count == new_execution_count:
         #     print("No execution since last sync: no data updated in RSpace")
