@@ -33,7 +33,23 @@ RSPACE_DOC_URL = 'workspace/editor/structuredDocument/'
 RSPACE_DOC_VERSION_URL_START = 'workspace/editor/structuredDocument/audit/view?globalId='
 # Your RSpace instance goes here
 RSPACE_URL = "https://researchspace2.eu.ngrok.io/"
+"""
+Default behaviour creates a new RSpace document when this cell is executed and attached this jupyter notebook to the
+new document.
 
+Setting RSPACE_PREEXISITING_DOCUMENT_ID to a value other than None will attach this jupyter notebook to the RSpace document
+with the given ID instead of creating a new RSpace document.
+"""
+# RSPACE_PREEXISITING_DOCUMENT_ID = None
+RSPACE_PREEXISITING_DOCUMENT_ID = 155
+"""
+Default behaviour writes links to this notebook into the 'first' field in a document (field '0'). Set this to a value
+if a different field should be used.
+
+If this is set to a value other than None, RSPACE_PREEXISITING_DOCUMENT_ID must be set to a value other than None.
+"""
+# RSPACE_DOCUMENT_TARGET_FIELD_ID = None
+RSPACE_DOCUMENT_TARGET_FIELD_ID = 34
 """
     All data that will be saved to RSpace along with this notebook: select the data in the file browser and choose 'copy path'
     then paste here using a ',' comma to separate files if there is more than one.
@@ -54,6 +70,7 @@ get_new_password = False
 """
 This must be set to a the value of the PATH to the notebook (select the notebook in the file browser and choose 'copy path'),
 if exceptions are thrown trying to determine the notebook name.
+
 If this value is set server_url MUST also be set.
 """
 notebook_name = None
@@ -73,7 +90,6 @@ server_port = 10000
 
 rspace_client = None
 app = JupyterFrontEnd()
-
 
 def get_server_urls():
     global server_url
@@ -273,7 +289,6 @@ async def add_rspace_details_to_notebook_metadata(fname, notebook, nb_gallery_fi
     if replaced is False:
         notebook["cells"].extend([meta_data_cell])
     with open(fname, 'w', encoding='utf-8') as modified:
-        print(f"updated notebook: {notebook}")
         nbformat.write(notebook, modified)
 
 
@@ -392,6 +407,21 @@ async def upload_notebook_to_gallery(current_notebook, notebook, nb_gallery_file
     await reload_notebook()
     return nb_gallery_file
 
+def get_field_content(rspace_doc):
+    if RSPACE_DOCUMENT_TARGET_FIELD_ID is None:
+        return rspace_doc['fields'][0]['content']
+    else:
+        for field in rspace_doc['fields']:
+            if field['id'] == RSPACE_DOCUMENT_TARGET_FIELD_ID:
+                return field['content']
+    return None
+
+def assert_invariants():
+    if RSPACE_DOCUMENT_TARGET_FIELD_ID is not None and RSPACE_PREEXISITING_DOCUMENT_ID is None:
+        raise Exception("If RSPACE_DOCUMENT_TARGET_FIELD_ID has a value RSPACE_PREEXISITING_DOCUMENT_ID must also.")
+
+    if server_url is not None and notebook_name is None or notebook_name is not None and server_url is None:
+        raise Exception("Both server_url and notebook_name must be either None or have a value")
 
 async def sync_notebook():
     """
@@ -404,6 +434,7 @@ async def sync_notebook():
 
     The notebook and attached data will always be written to RSpace at least once (on the first time this cell is run).
     """
+    assert_invariants()
     rspace_doc = None
     attachment_filess = None
     gallery_file = None
@@ -424,10 +455,10 @@ async def sync_notebook():
         print(f"Previous execution count {execution_count}")
 
         # FIXME
-        if execution_count == new_execution_count:
-            print("No execution since last sync: no data updated in RSpace")
-            await save_notebook()
-            return
+        # if execution_count == new_execution_count:
+        #     print("No execution since last sync: no data updated in RSpace")
+        #     await save_notebook()
+        #     return
         client = get_rspace_client()
         rspace_doc = loaded_state.get(RSPACE_DOC_FOR_NOTEBOOK)
         attachment_files = loaded_state.get(ATTACHMENTS_FOR_NOTEBOOK, {})
@@ -446,18 +477,22 @@ async def sync_notebook():
             print(f"This notebook saved previously to Gallery with RSpaceID {nb_gallery_file_id}")
         else:
             print("Notebook not previously saved to RSpace Gallery")
-        if rspace_doc is None:
+        if rspace_doc is None and RSPACE_PREEXISITING_DOCUMENT_ID is None:
             rspace_doc = client.create_document(name="DocumentFor_" + current_notebook, tags=["Python", "API", "Jupyter"])
-        rspace_document_file_id = str(rspace_doc['id'])
+        rspace_document_file_id = str(rspace_doc['id']) if RSPACE_PREEXISITING_DOCUMENT_ID is None else RSPACE_PREEXISITING_DOCUMENT_ID
         rspace_doc = client.get_document(rspace_document_file_id)
         nb_gallery_file = await upload_notebook_to_gallery(current_notebook,notebook_node, nb_gallery_file,attachment_files, rspace_doc, history_data)
         # print(f"nb_gallery_file was finally: {nb_gallery_file}")
         nb_gallery_file_id = nb_gallery_file.get('id')
 
-        previous_content = rspace_doc['fields'][0]['content']
+        previous_content = get_field_content(rspace_doc)
         previous_content = remove_jupyter_attachment_divs(previous_content, nb_gallery_file_id, attachment_files)
         new_content = previous_content + make_content(nb_gallery_file_id, attachment_files)
-        rspace_doc = client.update_document(rspace_document_file_id, tags=['Python', 'API', 'Jupyter'],
+        if RSPACE_DOCUMENT_TARGET_FIELD_ID is not None:
+            rspace_doc = client.update_document(rspace_document_file_id, tags=['Python', 'API', 'Jupyter'],
+                                             fields=[{'id': RSPACE_DOCUMENT_TARGET_FIELD_ID,"content": new_content}])
+        else:
+            rspace_doc = client.update_document(rspace_document_file_id, tags=['Python', 'API', 'Jupyter'],
                                              fields=[{"content": new_content}])
         save_rspace_data(rspace_doc, attachment_files, nb_gallery_file, new_execution_count, history_data)
     except Exception as e:
