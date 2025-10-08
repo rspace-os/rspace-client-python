@@ -239,7 +239,6 @@ async def reload_notebook():
     # 'docmanager:reload' does not appear to hook into any callback invoked when the document is actually reloaded
     await asyncio.sleep(1)
 
-
 def make_metadata_cell(nb_gallery_file, attachment_files, rspace_doc, history_data):
     rspace_document_file_id =str(rspace_doc['id'])
     # new content plus new attachment data increments the document version by two
@@ -255,18 +254,22 @@ def make_metadata_cell(nb_gallery_file, attachment_files, rspace_doc, history_da
     rspace_doc_for_markdown = f'[The RSpace Document describing this notebook, version: {rspace_document_version}]({RSPACE_URL}{RSPACE_DOC_URL}{rspace_document_file_id})'
     gallery_doc_markdown = f'[This Notebook in RSpace Gallery: {nb_gallery_file_name} version: {nb_gallery_file_version}]({RSPACE_URL}gallery/item/{nb_gallery_file_id})'
     meta_data_cell['source'] = rspace_doc_for_markdown + "<br>" + gallery_doc_markdown
-    attached_data_files_list = attached_data_files.split(",")
-    for attached_data in attached_data_files_list:
-        attachment_file_id = attachment_files.get(attached_data, {}).get('id')
-        attachment_version = attachment_files.get(attached_data, {}).get('version')
-        meta_data_cell['source'] += f'<br>[Attached Data {attached_data} version: {attachment_version} ]({RSPACE_URL}gallery/item/{attachment_file_id})'
+    if len(attached_data_files) != 0:
+        attached_data_files_list = attached_data_files.split(",")
+        for attached_data in attached_data_files_list:
+            attachment_file_id = attachment_files.get(attached_data, {}).get('id')
+            attachment_version = attachment_files.get(attached_data, {}).get('version')
+            meta_data_cell['source'] += f'<br>[Attached Data {attached_data} version: {attachment_version} ]({RSPACE_URL}gallery/item/{attachment_file_id})'
+    else:
+            meta_data_cell['source'] += f'<br> No Attached Data'
     for url in get_server_urls():
         meta_data_cell['source'] += f'<br>[This notebook on the jupyter server]({url})'
     new_history = f'<br>RSpace doc [<strong>{rspace_document_name}</strong> version {rspace_document_version}]({RSPACE_URL}{RSPACE_DOC_VERSION_URL_START}{rspace_document_globalId}) contains this Notebook, version {nb_gallery_file_version}, executed with: '
-    for attached_data in attached_data_files_list:
-        attachment_file_id = attachment_files.get(attached_data, {}).get('id')
-        attachment_version = attachment_files.get(attached_data, {}).get('version')
-        new_history += f'Data <strong>{attached_data}</strong> version: {attachment_version} '
+    if len(attached_data_files) != 0:
+        for attached_data in attached_data_files.split(","):
+            attachment_file_id = attachment_files.get(attached_data, {}).get('id')
+            attachment_version = attachment_files.get(attached_data, {}).get('version')
+            new_history += f'Data <strong>{attached_data}</strong> version: {attachment_version} '
     # print(f'history_data: {history_data}')
     history_data['text'] = new_history + history_data['text']
     meta_data_cell['source'] += f"<br> {history_data['text']}"
@@ -319,13 +322,33 @@ def make_content(nb_gallery_file_id, attachment_files):
     content = f"""
                 <fileId={nb_gallery_file_id}>
                 """
-    for attachment_file in attached_data_files.split(","):
-        content += f"""
-        <fileId={attachment_files.get(attachment_file)['id']}>
-        """
+    if len(attached_data_files) != 0:
+        for attachment_file in attached_data_files.split(","):
+            content += f"""
+            <fileId={attachment_files.get(attachment_file)['id']}>
+            """
     # print(f"content is {content}")
     return content
 
+
+# def remove_jupyter_attachment_divs(content, nb_gallery_file_id, attachment_files):
+#     """
+#     Iterate all attachments in the document field and if any have ids matching the stored ids for this notebook
+#     then remove them
+#     """
+#     soup = BeautifulSoup(content, 'html.parser')
+#     attachment_divs = soup.find_all("div", {"class": "attachmentDiv"})
+#     for attachment_div in attachment_divs:
+#         href_tag = attachment_div.find('a')
+#         # print(f"href_tag{href_tag}")
+#         gallery_link = '/Streamfile/' + str(nb_gallery_file_id)
+#         for attachment_file in attached_data_files.split(","):
+#             attachment_file_id = attachment_files.get(attachment_file, {}).get('id')
+#             attachment_link = '/Streamfile/' + str(attachment_file_id)
+#             if attachment_link == href_tag['href'] or gallery_link == href_tag['href']:
+#                 attachment_div.decompose()
+#                 break
+#     return soup.prettify()
 
 def remove_jupyter_attachment_divs(content, nb_gallery_file_id, attachment_files):
     """
@@ -338,12 +361,16 @@ def remove_jupyter_attachment_divs(content, nb_gallery_file_id, attachment_files
         href_tag = attachment_div.find('a')
         # print(f"href_tag{href_tag}")
         gallery_link = '/Streamfile/' + str(nb_gallery_file_id)
-        for attachment_file in attached_data_files.split(","):
-            attachment_file_id = attachment_files.get(attachment_file, {}).get('id')
-            attachment_link = '/Streamfile/' + str(attachment_file_id)
-            if attachment_link == href_tag['href'] or gallery_link == href_tag['href']:
-                attachment_div.decompose()
-                break
+        if gallery_link == href_tag['href']:
+            attachment_div.decompose()
+            continue
+        if len(attached_data_files) != 0:
+            for attachment_file in attached_data_files.split(","):
+                attachment_file_id = attachment_files.get(attachment_file, {}).get('id')
+                attachment_link = '/Streamfile/' + str(attachment_file_id)
+                if attachment_link == href_tag['href']:
+                    attachment_div.decompose()
+                    break
     return soup.prettify()
 
 
@@ -368,25 +395,26 @@ def calc_hash(filename):
 
 def upload_attached_data(attachment_files):
     client = get_rspace_client()
-    attached_data_files_list = attached_data_files.split(",")
-    for attached_data in attached_data_files_list:
-        if attached_data:
-            # make file paths to data relative to the location of this notebook
-            nested_dir_pos = get_notebook_name()['name_path'].count('/')
-            relative_attached_data = attached_data
-            for i in range(nested_dir_pos):
-                relative_attached_data = "../" + relative_attached_data
-            # print(f"relative_attached_data: {relative_attached_data}")
-            with open(relative_attached_data, 'r', encoding='utf-8') as attch:
-                attachment_file_id = attachment_files.get(attached_data, {}).get('id')
-                attachment_file_hash = attachment_files.get(attached_data, {}).get('hash')
-                calc_latest_hash = calc_hash(relative_attached_data)
-                if calc_latest_hash != attachment_file_hash:
-                    attachment_file_data = upload_file_to_gallery(attachment_file_id, attch, client)
-                    attachment_file_data['hash'] = calc_latest_hash
-                    attachment_files[attached_data] = attachment_file_data
-                else:
-                    print(f"File {attached_data} not changed so no update")
+    if len(attached_data_files) != 0:
+        attached_data_files_list = attached_data_files.split(",")
+        for attached_data in attached_data_files_list:
+            if attached_data:
+                # make file paths to data relative to the location of this notebook
+                nested_dir_pos = get_notebook_name()['name_path'].count('/')
+                relative_attached_data = attached_data
+                for i in range(nested_dir_pos):
+                    relative_attached_data = "../" + relative_attached_data
+                # print(f"relative_attached_data: {relative_attached_data}")
+                with open(relative_attached_data, 'r', encoding='utf-8') as attch:
+                    attachment_file_id = attachment_files.get(attached_data, {}).get('id')
+                    attachment_file_hash = attachment_files.get(attached_data, {}).get('hash')
+                    calc_latest_hash = calc_hash(relative_attached_data)
+                    if calc_latest_hash != attachment_file_hash:
+                        attachment_file_data = upload_file_to_gallery(attachment_file_id, attch, client)
+                        attachment_file_data['hash'] = calc_latest_hash
+                        attachment_files[attached_data] = attachment_file_data
+                    else:
+                        print(f"File {attached_data} not changed so no update")
     # print(f"attached files: {attachment_files}")
 
 
