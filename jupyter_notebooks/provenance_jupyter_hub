@@ -4,7 +4,7 @@ import json
 try:
     from notebook import app
 except:
-    %conda install -q notebook
+    %pip install -q notebook
 %pip install -q keyring
 from rspace_client.eln import eln
 import os
@@ -56,6 +56,8 @@ RSPACE_DOCUMENT_TARGET_FIELD_ID = None
 
     Example:
             attached_data_files = "spectroscopy_data.csv, data/spectroscopy_data2.csv, data/spectroscopy_data3.csv"
+    The code in this cell will calculate paths to the data relative to the location of this notebook. Therefore do
+    not change the 'paths' to the data, regardless of whether this notebook is in the top directory or in a sub directory.
 
     If you wish to have no attached data, set this value to be "" (a pair of double quotes)
 
@@ -157,7 +159,6 @@ def get_notebook_name():
     except Exception as e:
         print(f"Error getting notebook name, please manually set a value for 'notebook_name'")
         raise
-
 
 def get_password():
     """
