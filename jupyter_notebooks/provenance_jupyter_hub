@@ -1,28 +1,50 @@
 import json
-%pip install -q rspace-client==2.6.1
+try:
+    from rspace_client.eln import eln
+except:
+    %pip install -q rspace-client==2.6.1
+
 %pip install -q pickleshare
 try:
     from notebook import app
 except:
     %pip install -q notebook
-%pip install -q keyring
-from rspace_client.eln import eln
+try:
+    import keyring
+except:
+    %pip install -q keyring
 import os
 import hashlib
 import json
-%pip install -q dill
+try:
+    import dill
+except:
+    %pip install -q dill
 import dill
-%pip install -q ipynbname
-import ipynbname
-%pip install -q ipylab
-from ipylab import JupyterFrontEnd
+try:
+    import ipynbname
+except:
+    %pip install -q ipynbname
+try:
+    from ipylab import JupyterFrontEnd
+except:
+    %pip install -q ipylab
 import traceback
 %pip install -q lxml
 from bs4 import BeautifulSoup
 import nbformat
 import asyncio
 import getpass
-import keyring
+
+try:
+  import google.colab
+  IN_COLAB = True
+except:
+  IN_COLAB = False
+
+if IN_COLAB == True:
+    from google.colab import drive
+    drive.mount('/content/drive')
 
 RSPACE_DOC_FOR_NOTEBOOK = 'rspace_doc_for_notebook'
 ATTACHMENTS_FOR_NOTEBOOK = 'data_attached_to_notebook'
@@ -56,8 +78,6 @@ RSPACE_DOCUMENT_TARGET_FIELD_ID = None
 
     Example:
             attached_data_files = "spectroscopy_data.csv, data/spectroscopy_data2.csv, data/spectroscopy_data3.csv"
-    The code in this cell will calculate paths to the data relative to the location of this notebook. Therefore do
-    not change the 'paths' to the data, regardless of whether this notebook is in the top directory or in a sub directory.
 
     If you wish to have no attached data, set this value to be "" (a pair of double quotes)
 
@@ -65,6 +85,7 @@ RSPACE_DOCUMENT_TARGET_FIELD_ID = None
             attached_data_files = ""
 """
 attached_data_files = "spectroscopy_data.csv,data/spectroscopy_data2.csv,data/spectroscopy_data3.csv"
+# attached_data_files = "/content/drive/My Drive/Colab Notebooks/spectroscopy_data3.csv,/content/drive/MyDrive/Jupyter_data/spectroscopy_data.csv,/content/drive/MyDrive/Jupyter_data/spectroscopy_data1.csv"
 """
 Set this to true to manually enter a new password
 """
@@ -76,6 +97,7 @@ if exceptions are thrown trying to determine the notebook name.
 If this value is set server_url MUST also be set.
 """
 notebook_name = None
+# notebook_name = '/content/drive/My Drive/Colab Notebooks/Untitled1.ipynb'
 """
 This must be set to a value if exceptions are thrown or the calculated value is incorrect when trying to determine the server url. Give the url
 of the server including the port: eg http://localhost:10000 (no trailing '/')
@@ -83,6 +105,7 @@ of the server including the port: eg http://localhost:10000 (no trailing '/')
 If this value is set, notebook_name MUST also be set.
 """
 server_url = None
+# server_url = 'https://colab.research.google.com/drive/1dXm1-rw31_Nu-VF23OPyxxRPV19s4G5i'
 
 """
 Set this to a value if server_url is calculated correctly except for the port (which will happen, for example
@@ -159,6 +182,7 @@ def get_notebook_name():
     except Exception as e:
         print(f"Error getting notebook name, please manually set a value for 'notebook_name'")
         raise
+
 
 def get_password():
     """
@@ -332,25 +356,6 @@ def make_content(nb_gallery_file_id, attachment_files):
     return content
 
 
-# def remove_jupyter_attachment_divs(content, nb_gallery_file_id, attachment_files):
-#     """
-#     Iterate all attachments in the document field and if any have ids matching the stored ids for this notebook
-#     then remove them
-#     """
-#     soup = BeautifulSoup(content, 'html.parser')
-#     attachment_divs = soup.find_all("div", {"class": "attachmentDiv"})
-#     for attachment_div in attachment_divs:
-#         href_tag = attachment_div.find('a')
-#         # print(f"href_tag{href_tag}")
-#         gallery_link = '/Streamfile/' + str(nb_gallery_file_id)
-#         for attachment_file in attached_data_files.split(","):
-#             attachment_file_id = attachment_files.get(attachment_file, {}).get('id')
-#             attachment_link = '/Streamfile/' + str(attachment_file_id)
-#             if attachment_link == href_tag['href'] or gallery_link == href_tag['href']:
-#                 attachment_div.decompose()
-#                 break
-#     return soup.prettify()
-
 def remove_jupyter_attachment_divs(content, nb_gallery_file_id, attachment_files):
     """
     Iterate all attachments in the document field and if any have ids matching the stored ids for this notebook
@@ -478,7 +483,7 @@ async def sync_notebook():
     await save_notebook()
     get_server_urls()
     # print(f"notebook name: {get_notebook_name()}")
-    current_notebook = get_notebook_name()['name']
+    current_notebook = get_notebook_name()['name'] if IN_COLAB == False else get_notebook_name()['name_path']
     with open(current_notebook, 'r') as notebook:
         notebook_node = nbformat.read(notebook, nbformat.NO_CONVERT)
     new_hash = calc_hash(current_notebook)
@@ -501,7 +506,9 @@ async def sync_notebook():
         nb_gallery_file = loaded_state.get(GALLERY_FILE_FOR_NOTEBOOK, {})
         nb_gallery_file_id = nb_gallery_file.get('id')
         history_data = loaded_state.get(HISTORY_DATA,{'text':''})
-        current_notebook = get_notebook_name()['name']
+        # Modified this line to get the 'name_path' which should be the actual file path
+        current_notebook_info = get_notebook_name()
+        current_notebook = current_notebook_info['name_path']
         attachments = None
         if rspace_doc is not None:
             print(
