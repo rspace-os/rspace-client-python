@@ -442,7 +442,8 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
     def notebook_can_be_saved(current_notebook):
         with open(current_notebook, 'r') as notebook:
             notebook_node = nbformat.read(notebook, nbformat.NO_CONVERT)
-            if notebook_node.metadata.kernelspec.display_name.lower() == 'python':
+            kernel_type = notebook_node.metadata.kernelspec.display_name.lower()
+            if 'python' in kernel_type:
                 return True
         return False
 
