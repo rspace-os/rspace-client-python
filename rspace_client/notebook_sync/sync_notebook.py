@@ -439,11 +439,19 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
         if server_url is not None and notebook_name is None or notebook_name is not None and server_url is None:
             raise Exception("Both server_url  and notebook_name must be either None or have a value")
 
+    def notebook_can_be_saved(current_notebook):
+        with open(current_notebook, 'r') as notebook:
+            notebook_node = nbformat.read(notebook, nbformat.NO_CONVERT)
+            if notebook_node.metadata.kernelspec.display_name.lower() == 'python':
+                return True
+        return False
+
     assert_invariants()
     current_notebook = get_notebook_name()['name']
     # do not remove this print statement as it is required to ensure notebook is always in modified state when we call save_notebook
     print(f'Running sync on notebook:{current_notebook}')
-    await save_notebook()
+    if notebook_can_be_saved(current_notebook):
+        await save_notebook()
     get_server_urls()
     with open(current_notebook, 'r') as notebook:
         notebook_node = nbformat.read(notebook, nbformat.NO_CONVERT)
@@ -478,8 +486,8 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
         previous_content = remove_jupyter_attachment_divs(previous_content, nb_gallery_file_id, attachment_files)
         new_content = make_content(nb_gallery_file_id, attachment_files) + previous_content
         rspace_doc = client.update_document(rspace_document_file_id, tags=['Python', 'API', 'Jupyter'],
-                                                fields=[
-                                                    {'id': rspace_document_target_field_id, "content": new_content}])
+                                            fields=[
+                                                {'id': rspace_document_target_field_id, "content": new_content}])
         await reload_notebook()
         save_rspace_data(rspace_doc, attachment_files, nb_gallery_file, new_execution_count, history_data)
         return 'success'
