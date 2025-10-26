@@ -1,3 +1,11 @@
+get_ipython().run_line_magic('pip', 'install -q pickleshare')
+get_ipython().run_line_magic('pip', 'install -q notebook')
+get_ipython().run_line_magic('pip', 'install -q keyring')
+get_ipython().run_line_magic('pip', 'install -q keyrings.alt')
+get_ipython().run_line_magic('pip', 'install -q dill')
+get_ipython().run_line_magic('pip', 'install -q ipynbname')
+get_ipython().run_line_magic('pip', 'install -q ipylab')
+get_ipython().run_line_magic('pip', 'install -q lxml')
 from notebook import app
 from rspace_client.eln import eln
 import os
@@ -136,14 +144,21 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
         return all_roots
 
     def get_notebook_name():
+        if notebook_name is not None:
+            if '/' in notebook_name:
+                notebook_name_alone = notebook_name[notebook_name.rfind('/') + 1:]
+            else:
+                notebook_name_alone = notebook_name
+            return {'name': notebook_name_alone, 'root_name': notebook_name_alone[:notebook_name_alone.rfind('.')],
+                    'name_path': notebook_name}
+        else:
+            return calculate_notebook_name()
+
+    def calculate_notebook_name():
+        """
+        This code only works for python notebooks and a browser refresh is required after first install
+        """
         try:
-            if notebook_name is not None:
-                if '/' in notebook_name:
-                    notebook_name_alone = notebook_name[notebook_name.rfind('/') + 1:]
-                else:
-                    notebook_name_alone = notebook_name
-                return {'name': notebook_name_alone, 'root_name': notebook_name_alone[:notebook_name_alone.rfind('.')],
-                        'name_path': notebook_name}
             nb_fname = ipynbname.name()
             nb_path = str(ipynbname.path())
             for srv_root in get_server_roots():
@@ -167,7 +182,7 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
         retrieved_password = keyring.get_password(service_id, rspace_username)
         if retrieved_password is None:
             retrieved_password = getpass.getpass("Please enter your RSpace Api key: ")
-            keyring.set_password(service_id, username, retrieved_password)
+            keyring.set_password(service_id, rspace_username, retrieved_password)
         return retrieved_password
 
     def get_rspace_client():
@@ -242,7 +257,8 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
             curr_mod_time = os.path.getmtime(file_path)
             elapsed_time = time.time() - start_watch_time
             if elapsed_time > 30:
-                msg = "TIMEOUT ON SAVE ***** DID YOU MEAN TO SAVE NOTEBOOK: " + file_path + " ?"
+                # ******* save will time out if user does not refresh browser tab running jupyterlab after they first install the ipylab dependency! *******
+                msg = "TIMEOUT ON SAVE ***** DID YOU MEAN TO SAVE NOTEBOOK: " + file_path + " ? If this is your first installation of the code, refresh the browser tab."
                 raise Exception(msg)
 
     async def reload_notebook():
@@ -439,7 +455,17 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
         if server_url is not None and notebook_name is None or notebook_name is not None and server_url is None:
             raise Exception("Both server_url  and notebook_name must be either None or have a value")
 
-    def notebook_can_be_saved(current_notebook):
+        if notebook_name is not None and '.' not in notebook_name:
+            raise Exception(
+                "This is not a valid notebook name - it should have a suffix preceeded by a dot: '.' For example 'notebook.ipynb' is a valid name, 'notebook' with no suffix is invalid.")
+
+    def notebook_should_be_saved(current_notebook):
+        return this_nb_pythonic_and_target_notebook_runs_this_code(current_notebook)
+
+    def notebook_should_be_reloaded(current_notebook):
+        return this_nb_pythonic_and_target_notebook_runs_this_code(current_notebook)
+
+    def notebook_is_python_based(current_notebook):
         with open(current_notebook, 'r') as notebook:
             notebook_node = nbformat.read(notebook, nbformat.NO_CONVERT)
             kernel_type = notebook_node.metadata.kernelspec.display_name.lower()
@@ -447,11 +473,24 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
                 return True
         return False
 
+    def this_nb_pythonic_and_target_notebook_runs_this_code(current_notebook):
+        """
+        True if this code is run in a cell of a python notebook being synced with RSpace and False if
+        this code is running in the cell of one notebook but syncing another notebook OR if this notebook is
+        not a python notebook
+        """
+        try:
+            calculated_notebook_name = calculate_notebook_name()
+        except:
+            calculated_notebook_name is None
+
+        return notebook_is_python_based(current_notebook) and get_notebook_name() == calculated_notebook_name
+
     assert_invariants()
     current_notebook = get_notebook_name()['name']
     # do not remove this print statement as it is required to ensure notebook is always in modified state when we call save_notebook
     print(f'Running sync on notebook:{current_notebook}')
-    if notebook_can_be_saved(current_notebook):
+    if notebook_should_be_saved(current_notebook):
         await save_notebook()
     get_server_urls()
     with open(current_notebook, 'r') as notebook:
@@ -489,7 +528,8 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
         rspace_doc = client.update_document(rspace_document_file_id, tags=['Python', 'API', 'Jupyter'],
                                             fields=[
                                                 {'id': rspace_document_target_field_id, "content": new_content}])
-        await reload_notebook()
+        if notebook_should_be_reloaded(current_notebook):
+            await reload_notebook()
         save_rspace_data(rspace_doc, attachment_files, nb_gallery_file, new_execution_count, history_data)
         return 'success'
     except Exception as e:
