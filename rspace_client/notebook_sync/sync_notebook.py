@@ -246,7 +246,11 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
         3) Timeout after 30s - infinite loop can happen when user enters an incorrect notebook name and then mistakely saves a different notebook which is unchanged
         '''
         file_path = get_notebook_name()['name_path']
-        start_mod_time = os.path.getmtime(file_path)
+        nested_dir_pos = file_path.count('/')
+        relative_path = file_path
+        for i in range(nested_dir_pos):
+            relative_path = "../" + relative_path
+        start_mod_time = os.path.getmtime(relative_path)
         curr_mod_time = start_mod_time
         start_watch_time = time.time()
         # this arbitrary 1 second sleep is to allow the UI time to update and register that it is the 'unsaved' state
@@ -254,7 +258,7 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
         app.commands.execute('docmanager:save')
         while start_mod_time == curr_mod_time:
             await asyncio.sleep(0.1)
-            curr_mod_time = os.path.getmtime(file_path)
+            curr_mod_time = os.path.getmtime(relative_path)
             elapsed_time = time.time() - start_watch_time
             if elapsed_time > 30:
                 # ******* save will time out if user does not refresh browser tab running jupyterlab after they first install the ipylab dependency! *******
