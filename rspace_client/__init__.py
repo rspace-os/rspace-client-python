@@ -13,4 +13,5 @@ __all__ = [
     "AdvancedQueryBuilder",
     "createELNClient",
     "FieldContent",
+    "notebook_sync"
 ]
