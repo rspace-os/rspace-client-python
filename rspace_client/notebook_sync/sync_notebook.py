@@ -529,16 +529,20 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
         history_data = loaded_state.get(RSPACE_HISTORY_DATA, {'text': ''})
         target_notebook_name = get_target_notebook_name()['name']
         upload_attached_data(attachment_files)
+        # always get the latest version of the RSpace doc from RSpac, dont use the locally stored copy
         if rspace_doc is None and rspace_prexisting_document_id is None:
             rspace_doc = client.create_document(name="DocumentFor_" + target_notebook_name,
                                                 tags=["Python", "API", "Jupyter"])
+        elif rspace_prexisting_document_id is not None:
+            rspace_doc = client.get_document(rspace_prexisting_document_id)
+        else:
+            rspace_doc = client.get_document(rspace_doc['id'])
         if rspace_document_target_field is not None:
             rspace_document_target_field_id = str(rspace_doc['fields'][int(rspace_document_target_field)]['id'])
         else:
             rspace_document_target_field_id = str(rspace_doc['fields'][0]['id'])
         rspace_document_file_id = str(
             rspace_doc['id']) if rspace_prexisting_document_id is None else rspace_prexisting_document_id
-        rspace_doc = client.get_document(rspace_document_file_id)
         nb_gallery_file = await upload_notebook_to_gallery(relative_notebook_path, notebook_node, nb_gallery_file,
                                                            attachment_files, rspace_doc, history_data)
         nb_gallery_file_id = nb_gallery_file.get('id')
