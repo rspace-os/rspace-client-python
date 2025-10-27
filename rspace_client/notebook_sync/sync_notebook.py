@@ -143,7 +143,10 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
             raise  # Code may fail if server has a password/doesnt use token auth - see ipynbname README
         return all_roots
 
-    def get_notebook_name():
+    def get_target_notebook_name():
+        """
+        This refers to the notebook being synced to RSpace and might not be the notebook actually running this code.
+        """
         if notebook_name is not None:
             if '/' in notebook_name:
                 notebook_name_alone = notebook_name[notebook_name.rfind('/') + 1:]
@@ -157,6 +160,7 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
     def calculate_notebook_name():
         """
         This code only works for python notebooks and a browser refresh is required after first install
+        Certain jupyter installations might not be able to run this code (if the server is password protected)
         """
         try:
             nb_fname = ipynbname.name()
@@ -197,14 +201,14 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
 
     def save_rspace_data(rspace_doc, attachments, gallery_file, execution_count, history_data):
         # Define the filename to save the state
-        state_filename = get_notebook_name()['root_name'] + "_state.pkl"
+        state_filename = get_target_notebook_name()['root_name'] + "_state.pkl"
         with open(state_filename, 'wb') as f:
             dill.dump({RSPACE_DOC_FOR_NOTEBOOK: rspace_doc, RSPACE_ATTACHMENTS_FOR_NOTEBOOK: attachments,
                        RSPACE_GALLERY_FILE_FOR_NOTEBOOK: gallery_file,
                        RSPACE_EXECUTION_COUNT_FOR_NOTEBOOK: execution_count, RSPACE_HISTORY_DATA: history_data}, f)
 
     def load_data():
-        state_filename = get_notebook_name()['root_name'] + "_state.pkl"
+        state_filename = get_target_notebook_name()['root_name'] + "_state.pkl"
 
         if os.path.exists(state_filename):
             # Load the variables from the file using dill
@@ -217,7 +221,7 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
             loaded_state = {}
         return loaded_state
 
-    async def save_notebook():
+    async def save_notebook(relative_notebook_path):
         '''
         'docmanager:save' does not appear to hook into any callback invoked when the document is actually saved. So we have no
         idea when it has completed. Jupyter Notebooks can be (at least) 100MB in size - there are some limitations imposed by the
@@ -245,12 +249,7 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
         2) Loop until modified time changes
         3) Timeout after 30s - infinite loop can happen when user enters an incorrect notebook name and then mistakely saves a different notebook which is unchanged
         '''
-        file_path = get_notebook_name()['name_path']
-        nested_dir_pos = file_path.count('/')
-        relative_path = file_path
-        for i in range(nested_dir_pos):
-            relative_path = "../" + relative_path
-        start_mod_time = os.path.getmtime(relative_path)
+        start_mod_time = os.path.getmtime(relative_notebook_path)
         curr_mod_time = start_mod_time
         start_watch_time = time.time()
         # this arbitrary 1 second sleep is to allow the UI time to update and register that it is the 'unsaved' state
@@ -258,7 +257,7 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
         app.commands.execute('docmanager:save')
         while start_mod_time == curr_mod_time:
             await asyncio.sleep(0.1)
-            curr_mod_time = os.path.getmtime(relative_path)
+            curr_mod_time = os.path.getmtime(relative_notebook_path)
             elapsed_time = time.time() - start_watch_time
             if elapsed_time > 30:
                 # ******* save will time out if user does not refresh browser tab running jupyterlab after they first install the ipylab dependency! *******
@@ -399,10 +398,7 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
             for attached_data in attached_data_files_list:
                 if attached_data:
                     # make file paths to data relative to the location of this notebook
-                    nested_dir_pos = get_notebook_name()['name_path'].count('/')
-                    relative_attached_data = attached_data
-                    for i in range(nested_dir_pos):
-                        relative_attached_data = "../" + relative_attached_data
+                    relative_attached_data = get_relative_path_to_this_notebook(attached_data)
                     with open(relative_attached_data, 'r', encoding='utf-8') as attch:
                         attachment_file_id = attachment_files.get(attached_data, {}).get('id')
                         attachment_file_hash = attachment_files.get(attached_data, {}).get('hash')
@@ -463,41 +459,61 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
             raise Exception(
                 "This is not a valid notebook name - it should have a suffix preceeded by a dot: '.' For example 'notebook.ipynb' is a valid name, 'notebook' with no suffix is invalid.")
 
-    def notebook_should_be_saved(current_notebook):
-        return this_nb_pythonic_and_target_notebook_runs_this_code(current_notebook)
+    def notebook_should_be_saved(relative_notebook_path):
+        return this_nb_pythonic_and_target_notebook_runs_this_code_and_notebook_name_can_be_calculated(relative_notebook_path)
 
-    def notebook_should_be_reloaded(current_notebook):
-        return this_nb_pythonic_and_target_notebook_runs_this_code(current_notebook)
+    def notebook_should_be_reloaded(relative_notebook_path):
+        return this_nb_pythonic_and_target_notebook_runs_this_code_and_notebook_name_can_be_calculated(relative_notebook_path)
 
-    def notebook_is_python_based(current_notebook):
-        with open(current_notebook, 'r') as notebook:
+    def notebook_is_python_based(relative_notebook_path):
+        with open(relative_notebook_path, 'r') as notebook:
             notebook_node = nbformat.read(notebook, nbformat.NO_CONVERT)
             kernel_type = notebook_node.metadata.kernelspec.display_name.lower()
             if 'python' in kernel_type:
                 return True
         return False
 
-    def this_nb_pythonic_and_target_notebook_runs_this_code(current_notebook):
+    def this_nb_pythonic_and_target_notebook_runs_this_code_and_notebook_name_can_be_calculated(relative_notebook_path):
         """
         True if this code is run in a cell of a python notebook being synced with RSpace and False if
         this code is running in the cell of one notebook but syncing another notebook OR if this notebook is
-        not a python notebook
+        not a python notebook. Also false if notebook name cannot be calculated - we use this code to determine
+        if the save_notebook and reload_notebook functions should be called and they dont work in jupyter setups
+        where notebook name cannot be calculated.
         """
         try:
             calculated_notebook_name = calculate_notebook_name()
         except:
             calculated_notebook_name is None
+        # if we cant calculate a notebook name return false
+        return notebook_is_python_based(relative_notebook_path) and get_target_notebook_name() == calculated_notebook_name
 
-        return notebook_is_python_based(current_notebook) and get_notebook_name() == calculated_notebook_name
+    def get_relative_path_to_this_notebook(file_path):
+        """
+        This calculates paths relative to the notebook running the sync code.
+        This is not **necessarily** the get_target_notebook_name()['name_path'] - we might have set that to a different notebook.
+        This will be true when the notebook running the sync code is not the actual notebook being synced
+
+        Note - unsure how this will behave on windows os.
+        """
+        root = get_ipython().getoutput('cd ~ ; pwd')[0]
+        path_to_this_dir = os.getcwd()
+        path_to_this_dir = path_to_this_dir.replace(str(root), '')
+        nested_dir_pos = path_to_this_dir.count('/')
+        relative_file_path = file_path
+        for i in range(nested_dir_pos):
+            relative_file_path = "../" + relative_file_path
+        return relative_file_path
 
     assert_invariants()
-    current_notebook = get_notebook_name()['name']
+    target_nb_file_path = get_target_notebook_name()['name_path']
+    relative_notebook_path = get_relative_path_to_this_notebook(target_nb_file_path)
     # do not remove this print statement as it is required to ensure notebook is always in modified state when we call save_notebook
-    print(f'Running sync on notebook:{current_notebook}')
-    if notebook_should_be_saved(current_notebook):
-        await save_notebook()
+    print(f'Running sync on notebook:{relative_notebook_path}')
+    if notebook_should_be_saved(relative_notebook_path):
+        await save_notebook(relative_notebook_path)
     get_server_urls()
-    with open(current_notebook, 'r') as notebook:
+    with open(relative_notebook_path, 'r') as notebook:
         notebook_node = nbformat.read(notebook, nbformat.NO_CONVERT)
     try:
         loaded_state = load_data()
@@ -511,10 +527,10 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
         attachment_files = loaded_state.get(RSPACE_ATTACHMENTS_FOR_NOTEBOOK, {})
         nb_gallery_file = loaded_state.get(RSPACE_GALLERY_FILE_FOR_NOTEBOOK, {})
         history_data = loaded_state.get(RSPACE_HISTORY_DATA, {'text': ''})
-        current_notebook = get_notebook_name()['name']
+        target_notebook_name = get_target_notebook_name()['name']
         upload_attached_data(attachment_files)
         if rspace_doc is None and rspace_prexisting_document_id is None:
-            rspace_doc = client.create_document(name="DocumentFor_" + current_notebook,
+            rspace_doc = client.create_document(name="DocumentFor_" + target_notebook_name,
                                                 tags=["Python", "API", "Jupyter"])
         if rspace_document_target_field is not None:
             rspace_document_target_field_id = str(rspace_doc['fields'][int(rspace_document_target_field)]['id'])
@@ -523,7 +539,7 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
         rspace_document_file_id = str(
             rspace_doc['id']) if rspace_prexisting_document_id is None else rspace_prexisting_document_id
         rspace_doc = client.get_document(rspace_document_file_id)
-        nb_gallery_file = await upload_notebook_to_gallery(current_notebook, notebook_node, nb_gallery_file,
+        nb_gallery_file = await upload_notebook_to_gallery(relative_notebook_path, notebook_node, nb_gallery_file,
                                                            attachment_files, rspace_doc, history_data)
         nb_gallery_file_id = nb_gallery_file.get('id')
         previous_content = get_field_content(rspace_doc)
@@ -532,7 +548,7 @@ async def sync_notebook_to_rspace(rspace_url="", attached_data_files="", noteboo
         rspace_doc = client.update_document(rspace_document_file_id, tags=['Python', 'API', 'Jupyter'],
                                             fields=[
                                                 {'id': rspace_document_target_field_id, "content": new_content}])
-        if notebook_should_be_reloaded(current_notebook):
+        if notebook_should_be_reloaded(relative_notebook_path):
             await reload_notebook()
         save_rspace_data(rspace_doc, attachment_files, nb_gallery_file, new_execution_count, history_data)
         return 'success'
