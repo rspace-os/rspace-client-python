@@ -57,10 +57,11 @@ BeautifulSoup for removing html tags
 https://www.crummy.com/software/BeautifulSoup/bs4/doc/
 =======
 IPYLAB
+**Install of Ipylab requires a browser refresh after %pip install step or it does not work and SAVE FAILS**
 
 Note JupyterLab lists all commands here: https://jupyterlab.readthedocs.io/en/latest/user/commands.html - ipylab can call these commands through its proxy.
 
-app.commands.execute('docmanager:save') - does save the notebook! (Synchronous)
+app.commands.execute('docmanager:save') - does save the notebook! (Asynchronous)
 
 Using JupyterFrontEnd from ipylab 
 https://nbviewer.org/github/jtpio/ipylab/blob/main/examples/commands.ipynb
