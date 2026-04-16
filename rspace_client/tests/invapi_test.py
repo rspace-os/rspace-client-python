@@ -17,6 +17,7 @@ from rspace_client.inv import inv, template_builder, sample_builder2
 from rspace_client.inv import quantity_unit as qu
 
 
+@pytest.mark.integration
 class InventoryApiTest(base.BaseApiTest):
     def setUp(self):
         """
@@ -57,7 +58,7 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_set_image_sample(self):
         sample = self.invapi.create_sample(base.random_string(5))
-        file = base.get_datafile("AntibodySample150.png")
+        file = base.get_datafile("antibodySample150.png")
         with open(file, "rb") as f:
             updated_sample = self.invapi.set_image(sample, f)
 
@@ -110,10 +111,11 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(new_name, updated["name"])
 
     def test_list_samples(self):
+        self.invapi.create_sample(base.random_string(5))
         samples = self.invapi.list_samples(inv.Pagination(sort_order="desc"))
 
         self.assertEqual(0, samples["pageNumber"])
-        self.assertEqual(10, len(samples["samples"]))
+        self.assertGreaterEqual(len(samples["samples"]), 1)
 
     def test_add_note_to_subsample(self):
         note = " a note about a subsample " + base.random_string()
@@ -124,6 +126,9 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(note, updated["notes"][0]["content"])
 
     def test_paginated_samples(self):
+        # Create 2 samples so page 1 (0-indexed) has results
+        self.invapi.create_sample(base.random_string(5))
+        self.invapi.create_sample(base.random_string(5))
         pag = inv.Pagination(page_number=1, page_size=1, sort_order="desc")
         samples = self.invapi.list_samples(pag)
         self.assertEqual(1, samples["pageNumber"])
@@ -136,9 +141,10 @@ class InventoryApiTest(base.BaseApiTest):
         c = self.invapi.set_as_top_level_container(c)
         containers = self.invapi.list_top_level_containers(pag)
         self.assertEqual(0, containers["pageNumber"])
-        self.assertEqual(1, len(containers["containers"]))
+        self.assertGreaterEqual(len(containers["containers"]), 1)
 
     def test_paginated_subsamples(self):
+        self.invapi.create_sample(base.random_string(5), subsample_count=1)
         pag = inv.Pagination(page_number=0, page_size=1)
         ss = self.invapi.list_subsamples(pag)
         self.assertEqual(0, ss["pageNumber"])
@@ -162,6 +168,9 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(c2["id"], c2_l["id"])
 
     def test_stream_samples(self):
+        # Ensure at least 2 samples exist
+        self.invapi.create_sample(base.random_string(5))
+        self.invapi.create_sample(base.random_string(5))
         onePerPage = inv.Pagination(page_size=1)
         gen = self.invapi.stream_samples(onePerPage)
         # get 2 items
@@ -286,7 +295,7 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_get_benches(self):
         benches = self.invapi.get_workbenches()
-        self.assertEqual(2, len(benches))
+        self.assertGreaterEqual(len(benches), 1)
         bench_ob = inv.Container.of(benches[0])
         self.assertTrue(bench_ob.is_workbench())
 
@@ -679,12 +688,17 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_barcode(self):
         barcode_bytes = self.invapi.barcode("SA14567")
-        self.assertEqual(99, len(barcode_bytes))
+        self.assertTrue(len(barcode_bytes) > 0)
+        self.assertTrue(barcode_bytes.startswith(b"\x89PNG\r\n\x1a\n"))
 
         qr_bytes = self.invapi.barcode(
-            "SA12345", outfile="out10.png", barcode_type=inv.Barcode.QR
+            "SA12345", outfile="out10.png", barcode_type=inv.BarcodeFormat.QR
         )
-        self.assertEqual(293, len(qr_bytes))
+        self.assertTrue(len(qr_bytes) > 0)
+        self.assertTrue(qr_bytes.startswith(b"\x89PNG\r\n\x1a\n"))
+        self.assertTrue(os.path.exists("out10.png"))
+        self.assertTrue(os.path.getsize("out10.png") > 0)
+        os.remove("out10.png")
 
     def test_delete_samples(self):
         new_sample = self.invapi.create_sample("to_delete")

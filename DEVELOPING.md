@@ -1,6 +1,6 @@
 ## Development
 
-Python 3.7 or later is required. We aim to support only active versions of Python.
+Python 3.9 or later is required. We aim to support only active versions of Python.
 
 ### Setup
 
@@ -21,23 +21,30 @@ to install all project dependencies into your virtual environment.
 
 ### Running tests
 
-Tests are a mixture of plain unit tests and integration tests making calls to an RSpace server.
-To run all tests, set these environment variables,replacing with your own values
+Tests are a mixture of plain unit tests and integration tests that make calls to a live RSpace server.
+
+#### Unit tests only
 
 ```
-bash> export RSPACE_URL=https:/<your-rspace-domain>
-bash> export RSPACE_API_KEY=abcdefgh...
+poetry run pytest -m "not integration"
 ```
 
-If these aren't set, integration tests will be skipped.
+#### Integration tests
 
-Tests can be invoked:
+Integration tests require credentials for a live RSpace instance. Create a `.env` file in the project root:
 
 ```
-poetry run pytest rspace_client/tests
+RSPACE_URL=https://<your-rspace-domain>
+RSPACE_API_KEY=<your-api-key>
 ```
 
-They should be run with a new RSpace account that does not belong to any groups.
+Then run:
+
+```
+poetry run pytest -m integration
+```
+
+Integration tests should be run with a new RSpace account that does not belong to any groups.
  
 ### Writing Tests
  

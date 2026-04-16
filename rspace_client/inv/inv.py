@@ -8,7 +8,7 @@ import sys, io, base64
 import requests
 import pprint
 import requests
-from typing import Optional, Sequence, Union, List, TypedDict, BinaryIO
+from typing import Optional, Sequence, Union, List, TypedDict, BinaryIO, ClassVar
 
 from rspace_client.client_base import ClientBase, Pagination
 from rspace_client.inv import quantity_unit as qu
@@ -33,19 +33,22 @@ class Tag(TypedDict):
 
 @dataclass
 class Barcode:
-    data: str
-    format: BarcodeFormat
+    data: Optional[str] = None
+    format: Optional[BarcodeFormat] = None
     description: str = ""
-    newBarcodeRequest: bool = True
-    id: Optional[str] = ""
+    new_barcode_request: bool = True
+    id: Optional[str] = None
 
     def to_dict(self):
-        return{
-            "data": self.data,
-            "format": self.format.value,
+        result = {
             "description": self.description,
-            "newBarcodeRequest": self.newBarcodeRequest
+            "newBarcodeRequest": self.new_barcode_request,
         }
+        if self.data is not None:
+            result["data"] = self.data
+        if self.format is not None:
+            result["format"] = self.format.value
+        return result
 
 
 class FillingStrategy(Enum):
@@ -815,7 +818,8 @@ class SamplePost(ItemPost):
         subsample_count: int = None,
         total_quantity: Quantity = None,
         attachments=None,
-        barcodes: Optional[List[Barcode]] = None
+        barcodes: Optional[List[Barcode]] = None,
+        location: "TargetLocation" = None,
     ):
         super().__init__(name, "SAMPLE", tags, description, extra_fields)
         ## converts arguments into JSON POST syntax
@@ -834,10 +838,11 @@ class SamplePost(ItemPost):
             self.data["templateId"] = sample_template_id
         if fields is not None:
             self.data["fields"] = fields
+        if location is not None:
+            self.data.update(location.data)
         ## fail early
-        if attachments is not None:
-            if not isinstance(attachments, list):
-                raise ValueError("attachments must be a list of open files")
+        if attachments is not None and not isinstance(attachments, list):
+            raise ValueError("attachments must be a list of open files")
         if barcodes is not None:
             self.data["barcodes"] = [barcode.to_dict() for barcode in barcodes]
 
