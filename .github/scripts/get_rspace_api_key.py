@@ -93,6 +93,6 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as exc:
-        print(f"Error generating API key: {exc}", file=sys.stderr)c
+        print(f"Error generating API key: {exc}", file=sys.stderr)
         sys.exit(1)
     
