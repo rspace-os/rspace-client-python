@@ -1,7 +1,7 @@
 import os
 import re
 import sys
-from playwright.sync_api import sync_playwright, expect
+from playwright.sync_api import sync_playwright
 from dotenv import load_dotenv
 
 load_dotenv()

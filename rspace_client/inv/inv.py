@@ -8,7 +8,7 @@ import sys, io, base64
 import requests
 import pprint
 import requests
-from typing import Optional, Sequence, Union, List, TypedDict, BinaryIO, ClassVar
+from typing import Optional, Sequence, Union, List, TypedDict, BinaryIO
 
 from rspace_client.client_base import ClientBase, Pagination
 from rspace_client.inv import quantity_unit as qu
