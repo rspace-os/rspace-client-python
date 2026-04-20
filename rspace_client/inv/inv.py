@@ -33,22 +33,19 @@ class Tag(TypedDict):
 
 @dataclass
 class Barcode:
-    data: Optional[str] = None
-    format: Optional[BarcodeFormat] = None
+    data: str
+    format: BarcodeFormat
     description: str = ""
-    new_barcode_request: bool = True
-    id: Optional[str] = None
+    newBarcodeRequest: bool = True
+    id: Optional[str] = ""
 
     def to_dict(self):
-        result = {
+        return{
+            "data": self.data,
+            "format": self.format.value,
             "description": self.description,
-            "newBarcodeRequest": self.new_barcode_request,
+            "newBarcodeRequest": self.newBarcodeRequest
         }
-        if self.data is not None:
-            result["data"] = self.data
-        if self.format is not None:
-            result["format"] = self.format.value
-        return result
 
 
 class FillingStrategy(Enum):

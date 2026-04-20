@@ -28,21 +28,12 @@ class SamplePostTest(unittest.TestCase):
         self.assertEqual([{"id": 123}], post.data["parentContainers"])
         self.assertEqual({"coordX": 2, "coordY": 3}, post.data["parentLocation"])
 
-    def test_sample_post_with_empty_barcode_request(self):
-        barcode = inv.Barcode(new_barcode_request=True)
-        post = inv.SamplePost("sample", barcodes=[barcode])
-
-        self.assertEqual(
-            [{"description": "", "newBarcodeRequest": True}],
-            post.data["barcodes"],
-        )
-
     def test_sample_post_with_barcode_format_included_when_set(self):
         barcode = inv.Barcode(
             data="SA123",
             format=inv.BarcodeFormat.QR,
             description="test",
-            new_barcode_request=True,
+            newBarcodeRequest=True,
         )
         post = inv.SamplePost("sample", barcodes=[barcode])
 
