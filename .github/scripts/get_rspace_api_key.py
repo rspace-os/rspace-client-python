@@ -68,10 +68,8 @@ def main():
 
         match = re.search(r"Key:\s*([A-Za-z0-9]{32})", info_text)
         if not match:
-            raise RuntimeError(
-                f"API key regex did not match — text length {len(info_text)}, starts with: {repr(info_text[:20])}"
-            )
-        
+            raise RuntimeError(f"API key regex did not match for selector 'div.api-menu__key' — text length {len(info_text)}")
+
         api_key = match.group(1)
         print("Successfully extracted API key", file=sys.stderr)
 
@@ -88,11 +86,9 @@ def main():
         browser.close()
 
 
-
 if __name__ == "__main__":
     try:
         main()
     except Exception as exc:
         print(f"Error generating API key: {exc}", file=sys.stderr)
         sys.exit(1)
-    
