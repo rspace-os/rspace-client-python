@@ -543,6 +543,8 @@ class ResultType(Enum):
     SUBSAMPLE = 2
     TEMPLATE = 3
     CONTAINER = 4
+    INSTRUMENT = 5
+    INSTRUMENT_TEMPLATE = 6
 
 
 class Id:
@@ -563,12 +565,16 @@ class Id:
         "SS": "SUBSAMPLE",
         "SA": "SAMPLE",
         "IT": "SAMPLE_TEMPLATE",
+        "IN": "INSTRUMENT",
+        "NT": "INSTRUMENT_TEMPLATE",
     }
     PREFIX_TO_API = {
         "IC": "containers",
         "SS": "subSamples",
         "SA": "samples",
         "IT": "sampleTemplates",
+        "IN": "instruments",
+        "NT": "instrumentTemplates",
     }
 
     @staticmethod
@@ -826,6 +832,37 @@ class SamplePost(ItemPost):
             self.data["quantity"] = total_quantity._toDict()
         if sample_template_id is not None:
             self.data["templateId"] = sample_template_id
+        if fields is not None:
+            self.data["fields"] = fields
+        ## fail early
+        if attachments is not None:
+            if not isinstance(attachments, list):
+                raise ValueError("attachments must be a list of open files")
+        if barcodes is not None:
+            self.data["barcodes"] = [barcode.to_dict() for barcode in barcodes]
+
+
+class InstrumentPost(ItemPost):
+    """
+    Help define instrument data structures to create or modify instruments
+    """
+
+    def __init__(
+        self,
+        name: str,
+        tags: List[Tag] = [],
+        description: Optional[str] = None,
+        extra_fields: Optional[Sequence] = [],
+        instrument_template_id=None,
+        fields=None,
+        attachments=None,
+        barcodes: Optional[List[Barcode]] = None,
+    ):
+        super().__init__(name, "INSTRUMENT", tags, description, extra_fields)
+        ## converts arguments into JSON POST syntax
+
+        if instrument_template_id is not None:
+            self.data["templateId"] = instrument_template_id
         if fields is not None:
             self.data["fields"] = fields
         ## fail early
@@ -1328,6 +1365,168 @@ class InventoryClient(ClientBase):
         """
         id_to_delete = Id(sample_id)
         self.doDelete("samples", id_to_delete.as_id())
+
+    def create_instrument(
+        self,
+        name: str,
+        tags: List[Tag] = [],
+        description: Optional[str] = None,
+        extra_fields: Optional[Sequence] = [],
+        instrument_template_id=None,
+        fields=None,
+        attachments=None,
+        barcodes: Optional[List[Barcode]] = None,
+    ) -> dict:
+        """
+        Creates a new instrument with a mandatory name and optional attributes.
+        If no template id is specified, the default Instrument template will be used.
+
+        Note that including files to attach to Attachment fields is not supported
+        by this method.
+        """
+        toPost = InstrumentPost(
+            name,
+            tags,
+            description,
+            extra_fields,
+            instrument_template_id,
+            fields,
+            attachments,
+            barcodes,
+        )
+
+        instrument = self.retrieve_api_results(
+            "/instruments", request_type="POST", params=toPost.data
+        )
+        if attachments is not None:
+            for file in attachments:
+                self.upload_attachment(instrument["globalId"], file)
+            ## get latest version
+            instrument = self.get_instrument_by_id(instrument["id"])
+        return instrument
+
+    def get_instrument_by_id(self, instrument_id: Union[str, int]) -> dict:
+        """
+        Gets a full instrument information by id or global id
+        Parameters
+        ----------
+        id : Union[int, str]
+            An integer ID e.g 1234 or a global ID e.g. IN1234
+        Returns
+        -------
+        dict
+            A full description of one instrument
+        """
+        i_id = Id(instrument_id)
+        return self.retrieve_api_results(f"/instruments/{i_id.as_id()}")
+
+    def list_instruments(
+        self, pagination: Pagination = Pagination(), search_filter: SearchFilter = None
+    ) -> dict:
+        """
+        Parameters
+        ----------
+        pagination : Pagination, optional
+            The default is Pagination().
+        Returns
+        -------
+        Paginated Search result. Use 'next' and 'prev' links to navigate
+        """
+        return self._do_simple_list("instruments", pagination, search_filter)
+
+    def delete_instrument(self, instrument_id: Union[int, str]):
+        """
+        Marks an instrument as deleted, so it won't appear in Inventory UI and
+        default listings.
+        Parameters
+        ----------
+        instrument_id : Union[int, str]
+            A integer id, or a string id or global ID.
+
+        Returns
+        -------
+        None.
+        """
+        id_to_delete = Id(instrument_id)
+        self.doDelete("instruments", id_to_delete.as_id())
+
+    def restore_instrument(self, instrument_id: Union[int, str]) -> dict:
+        """
+        Restores a previously deleted instrument.
+        Parameters
+        ----------
+        instrument_id : Union[int, str]
+            The id of the deleted instrument to restore.
+        Returns
+        -------
+        dict
+            The updated instrument.
+        """
+        id_to_restore = Id(instrument_id)
+        return self.retrieve_api_results(
+            f"/instruments/{id_to_restore.as_id()}/restore",
+            request_type="PUT",
+        )
+
+    def transfer_instrument_owner(self, instrument_id: Union[int, str], new_owner: str):
+        """
+        Transfers the instrument to the new owner
+        Parameters
+        ----------
+        instrument_id : Union[int, str]
+            The id of the instrument to transfer
+        new_owner : str
+            The username of the new owner
+
+        Returns
+        -------
+        dict
+            The updated instrument.
+        """
+        i_id = Id(instrument_id)
+        return self._do_transfer_owner("instruments", i_id, new_owner)
+
+    def update_instrument_to_latest_template_version(
+        self, instrument_id: Union[int, str]
+    ) -> dict:
+        """
+        If the Instrument Template used to create this instrument has been updated
+        since, applies those changes to this instrument (e.g. adds newly added
+        template fields, renames existing fields). No-op if already on the latest
+        template version.
+        Parameters
+        ----------
+        instrument_id : Union[int, str]
+            The id of the instrument to update.
+        Returns
+        -------
+        dict
+            The updated instrument.
+        """
+        i_id = Id(instrument_id)
+        return self.retrieve_api_results(
+            f"/instruments/{i_id.as_id()}/actions/updateToLatestTemplateVersion",
+            request_type="POST",
+        )
+
+    def get_instrument_revisions(self, instrument_id: Union[int, str]) -> Sequence[dict]:
+        """
+        Returns list of historical revisions saved for the Instrument, starting from
+        the earliest revision.
+        """
+        i_id = Id(instrument_id)
+        return self.retrieve_api_results(f"/instruments/{i_id.as_id()}/revisions")
+
+    def get_instrument_revision(
+        self, instrument_id: Union[int, str], revision_id: Union[int, str]
+    ) -> dict:
+        """
+        Returns full details of a historical revision saved for the Instrument.
+        """
+        i_id = Id(instrument_id)
+        return self.retrieve_api_results(
+            f"/instruments/{i_id.as_id()}/revisions/{revision_id}"
+        )
 
     def add_extra_fields(self, item_id: Union[str, dict], *ExtraField) -> dict:
         s_id = Id(item_id)
@@ -2195,6 +2394,206 @@ class InventoryClient(ClientBase):
         """
         st_id = Id(sample_template_id)
         return self._do_transfer_owner("sampleTemplates", st_id, new_owner)
+
+    def create_instrument_template(self, instrument_template_post: dict) -> dict:
+        """
+        Creates a new InstrumentTemplate. Use InstrumentTemplateBuilder to create the
+        template data structure required as instrument_template_post parameter.
+
+        Parameters
+        ----------
+        instrument_template_post : A Dict
+            A Dictionary of the InstrumentTemplate definition to post.
+
+        Returns
+        -------
+        Dict
+            The newly created template.
+        """
+        return self.retrieve_api_results(
+            "/instrumentTemplates", request_type="POST", params=instrument_template_post
+        )
+
+    def get_instrument_template_by_id(
+        self, instrument_template_id: Union[str, int]
+    ) -> dict:
+        """
+        Gets a full InstrumentTemplate information by id or global id
+        Parameters
+        ----------
+        id : Union[int, str]
+            An integer ID e.g 1234 or a global ID e.g. NT1234
+        Returns
+        -------
+        dict
+            A full description of one instrument template
+        """
+        it_id = Id(instrument_template_id)
+        return self.retrieve_api_results(f"/instrumentTemplates/{it_id.as_id()}")
+
+    def delete_instrument_template(
+        self, instrument_template_id: Union[int, str]
+    ) -> None:
+        """
+        Parameters
+        ----------
+        instrument_template_id : Union[int, str]
+            A integer id, or a string id or global ID of the template to delete
+
+        Returns
+        -------
+        None.
+
+        """
+        id_to_delete = Id(instrument_template_id)
+        self.doDelete("instrumentTemplates", id_to_delete.as_id())
+
+    def set_instrument_template_icon(
+        self, instrument_template_id: Union[int, str], file
+    ):
+        """
+        Parameters
+        ----------
+        instrument_template_id : Union[int, str]
+            The ID of the template to add the icon too.
+        file : an open File
+            An icon or image to help identify the template in listings.
+
+        Returns
+        -------
+        The updated InstrumentTemplate, with an iconId set.
+
+        """
+        it_id = Id(instrument_template_id)
+        headers = self._get_headers()
+        response = requests.post(
+            f"{self._get_api_url()}/instrumentTemplates/{it_id.as_id()}/icon",
+            files={"file": file},
+            headers=headers,
+        )
+        return self._handle_response(response)
+
+    def get_instrument_template_icon(
+        self, instrument_template_id: Union[int, str], icon_id: int, outfile
+    ):
+        """
+        Downloads the Instrument Template's icon
+
+        Parameters
+        ----------
+        instrument_template_id : Union[int, str]
+            The id of the InstrumentTemplate.
+        icon_id : int
+            A numeric ID of the icon.
+        outfile : string
+            A  path to a writable file to store the downloaded icon.
+
+        Returns
+        -------
+        void, no return value
+        """
+        it_id = Id(instrument_template_id)
+        url_base = self._get_api_url()
+        return self.download_link_to_file(
+            f"{url_base}/instrumentTemplates/{it_id.as_id()}/icon/{icon_id}", outfile
+        )
+
+    def list_instrument_templates(
+        self, pagination: Pagination = Pagination(), search_filter: SearchFilter = None
+    ):
+        """
+        Paginated listing of InstrumentTemplates, optionally filtering by username
+        (owner) or deletion status
+
+        Parameters
+        ----------
+        pagination : Pagination, optional
+            The default is Pagination().
+        search_filter : SearchFilter, optional
+            The default is None.
+
+        Returns
+        -------
+        A standard SearchResult with 'totalHits' attribute and a list of 'templates'
+        with basic information about each template.
+
+        """
+        return self._do_simple_list("instrumentTemplates", pagination, search_filter)
+
+    def restore_instrument_template(
+        self, instrument_template_id: Union[int, str]
+    ) -> dict:
+        """
+        Restores a deleted instrument template so it will appear in the template
+        listings and be usable to create new instruments.
+        If the template is not in a deleted state, this action has no effect.
+        Parameters
+        ----------
+        instrument_template_id : Union[int, str]
+            The id of the deleted instrument template to restore.
+        Returns
+        -------
+        dict
+            The updated template.
+        """
+        id_to_restore = Id(instrument_template_id)
+        return self.retrieve_api_results(
+            f"/instrumentTemplates/{id_to_restore.as_id()}/restore",
+            request_type="PUT",
+        )
+
+    def get_instrument_template_version(
+        self, instrument_template_id: Union[int, str], version: int
+    ) -> dict:
+        """
+        Retrieves a particular historical version of an InstrumentTemplate. Each
+        InstrumentTemplate has a 'version' property starting at 1, incremented on
+        each content update.
+        """
+        it_id = Id(instrument_template_id)
+        return self.retrieve_api_results(
+            f"/instrumentTemplates/{it_id.as_id()}/versions/{version}"
+        )
+
+    def transfer_instrument_template_owner(
+        self, instrument_template_id: Union[int, str], new_owner: str
+    ):
+        """
+        Transfers the instrument template to the new owner
+        Parameters
+        ----------
+        instrument_template_id : Union[int, str]
+            The  id of the instrument template to transfer
+        new_owner : str
+            The username of the new owner
+
+        Returns
+        -------
+        dict
+            The updated instrument template.
+        """
+        it_id = Id(instrument_template_id)
+        return self._do_transfer_owner("instrumentTemplates", it_id, new_owner)
+
+    def update_instrument_template_instruments(
+        self, instrument_template_id: Union[int, str]
+    ) -> dict:
+        """
+        Walks the current user's instruments that were created from this template at
+        an older version and applies the template's latest changes to each (e.g. add
+        or rename fields). If updating a particular instrument fails, it is skipped
+        and the process continues.
+
+        Returns
+        -------
+        dict
+            The list of updated instruments and any errors encountered.
+        """
+        it_id = Id(instrument_template_id)
+        return self.retrieve_api_results(
+            f"/instrumentTemplates/{it_id.as_id()}/actions/updateInstrumentsToLatestTemplateVersion",
+            request_type="POST",
+        )
 
     def transfer_sample_owner(self, sample_id: Union[int, str], new_owner: str):
         """

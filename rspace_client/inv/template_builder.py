@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Define SampleTemplates using a Builder pattern
+Define SampleTemplates and InstrumentTemplates using a Builder pattern
 """
 from typing import Optional, Sequence, Union, List
 from urllib.parse import urlparse
@@ -10,25 +10,16 @@ import datetime as dt
 from rspace_client.inv.quantity_unit import QuantityUnit
 
 
-class TemplateBuilder:
+class FieldDefinitionBuilder:
     """
-    Define a SampleTemplate prior to POSTing to RSpace.
-    A SampleTemplate only  requires a name and a default unit to be defined.
-    The default unit is supplied as a String from a permitted list in class QuantityUnit. E.g. 'ml', 'g'.
+    Base class providing methods to define the fields of an Inventory template
+    (SampleTemplate or InstrumentTemplate) prior to POSTing to RSpace.
     """
 
     numeric = Union[int, float]
 
-    def __init__(self, name, defaultUnit, description=None):
-        if not QuantityUnit.is_supported_unit(defaultUnit):
-            raise ValueError(
-                f"{defaultUnit} must be a label of a supported unit in QuantityUnit"
-            )
-        self.name = name
+    def __init__(self):
         self.fields = []
-        self.qu = QuantityUnit.of(defaultUnit)
-        if description is not None:
-            self.description = description
 
     def _set_name(self, name: str, f_type: str):
         if len(name) == 0:
@@ -244,11 +235,50 @@ class TemplateBuilder:
     def field_count(self):
         return len(self.fields)
 
+    def _fields(self):
+        return self.fields
+
+
+class TemplateBuilder(FieldDefinitionBuilder):
+    """
+    Define a SampleTemplate prior to POSTing to RSpace.
+    A SampleTemplate only  requires a name and a default unit to be defined.
+    The default unit is supplied as a String from a permitted list in class QuantityUnit. E.g. 'ml', 'g'.
+    """
+
+    def __init__(self, name, defaultUnit, description=None):
+        super().__init__()
+        if not QuantityUnit.is_supported_unit(defaultUnit):
+            raise ValueError(
+                f"{defaultUnit} must be a label of a supported unit in QuantityUnit"
+            )
+        self.name = name
+        self.qu = QuantityUnit.of(defaultUnit)
+        if description is not None:
+            self.description = description
+
     def build(self) -> dict:
         d = {"name": self.name, "defaultUnitId": self.qu["id"], "fields": self.fields}
         if hasattr(self, "description"):
             d["description"] = self.description
         return d
 
-    def _fields(self):
-        return self.fields
+
+class InstrumentTemplateBuilder(FieldDefinitionBuilder):
+    """
+    Define an InstrumentTemplate prior to POSTing to RSpace.
+    An InstrumentTemplate only requires a name to be defined; unlike a SampleTemplate
+    it has no default unit.
+    """
+
+    def __init__(self, name, description=None):
+        super().__init__()
+        self.name = name
+        if description is not None:
+            self.description = description
+
+    def build(self) -> dict:
+        d = {"name": self.name, "fields": self.fields}
+        if hasattr(self, "description"):
+            d["description"] = self.description
+        return d

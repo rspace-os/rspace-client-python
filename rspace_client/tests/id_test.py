@@ -72,3 +72,17 @@ class IdUnitTest(unittest.TestCase):
             Id.is_valid_id({"id": 123, "globalId": "BE123", "cType": "WORKBENCH"})
         )
         self.assertFalse(Id.is_valid_id("ndjfndskjf"))
+
+    def test_id_from_instrument(self):
+        id_a = Id("IN1234")
+        self.assertEqual(1234, id_a.as_id())
+        self.assertEqual("IN", id_a.prefix)
+        self.assertEqual("INSTRUMENT", id_a.get_type())
+        self.assertEqual("instruments", id_a.get_api_endpoint())
+
+    def test_id_from_instrument_template(self):
+        id_a = Id("NT1234")
+        self.assertEqual(1234, id_a.as_id())
+        self.assertEqual("NT", id_a.prefix)
+        self.assertEqual("INSTRUMENT_TEMPLATE", id_a.get_type())
+        self.assertEqual("instrumentTemplates", id_a.get_api_endpoint())

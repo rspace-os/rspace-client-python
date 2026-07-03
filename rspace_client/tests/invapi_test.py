@@ -836,6 +836,130 @@ class InventoryApiTest(base.BaseApiTest):
         with open(data_file, "rb") as f:
             self.invapi.upload_attachment(created_sample["fields"][0]["globalId"], f)
 
+    def test_create_instrument_template(self):
+        it_json = (
+            template_builder.InstrumentTemplateBuilder("toTest")
+            .text("Notes")
+            .number("Calibration", 7)
+            .build()
+        )
+        it = self.invapi.create_instrument_template(it_json)
+        self.assertTrue("id" in it)
+        self.assertEqual("toTest", it["name"])
+        self.assertEqual(2, len(it["fields"]))
+
+    def test_delete_restore_instrument_template(self):
+        it_json = (
+            template_builder.InstrumentTemplateBuilder("toTest")
+            .text("Notes")
+            .build()
+        )
+        it = self.invapi.create_instrument_template(it_json)
+
+        self.invapi.delete_instrument_template(it["id"])
+        restored = self.invapi.restore_instrument_template(it["id"])
+        self.assertTrue("id" in restored)
+        self.assertEqual(1, len(restored["fields"]))
+
+    def test_list_instrument_templates(self):
+        template_builder_json = template_builder.InstrumentTemplateBuilder(
+            base.random_string(5)
+        ).build()
+        self.invapi.create_instrument_template(template_builder_json)
+        results = self.invapi.list_instrument_templates()
+        self.assertTrue(results["totalHits"] > 0)
+
+    def test_create_instrument(self):
+        instrument_name = base.random_string(5)
+        instrument_tags = inv.gen_tags([base.random_string(4)])
+        ef1 = inv.ExtraField("f1", inv.ExtraFieldType.TEXT, "hello")
+        instrument = self.invapi.create_instrument(
+            name=instrument_name,
+            tags=instrument_tags,
+            extra_fields=[ef1],
+        )
+        self.assertEqual(instrument_name, instrument["name"])
+        self.assertEqual(1, len(instrument["extraFields"]))
+
+    def test_get_single_instrument(self):
+        instrument = self.invapi.create_instrument(base.random_string(5))
+        by_id = self.invapi.get_instrument_by_id(instrument["id"])
+        self.assertEqual(instrument["globalId"], by_id["globalId"])
+        by_global_id = self.invapi.get_instrument_by_id(instrument["globalId"])
+        self.assertEqual(instrument["globalId"], by_global_id["globalId"])
+
+    def test_list_instruments(self):
+        self.invapi.create_instrument(base.random_string(5))
+        results = self.invapi.list_instruments()
+        self.assertTrue(results["totalHits"] > 0)
+
+    def test_delete_restore_instrument(self):
+        instrument = self.invapi.create_instrument(base.random_string(5))
+        self.invapi.delete_instrument(instrument["id"])
+        restored = self.invapi.restore_instrument(instrument["id"])
+        self.assertEqual(instrument["globalId"], restored["globalId"])
+
+    def test_rename_instrument(self):
+        instrument = self.invapi.create_instrument(base.random_string(5))
+        new_name = "renamed_" + instrument["name"]
+        updated = self.invapi.rename(instrument["globalId"], new_name)
+        self.assertEqual(new_name, updated["name"])
+
+    def test_set_image_instrument(self):
+        instrument = self.invapi.create_instrument(base.random_string(5))
+        file = base.get_datafile("AntibodySample150.png")
+        with open(file, "rb") as f:
+            updated_instrument = self.invapi.set_image(instrument, f)
+
+        links = updated_instrument["_links"]
+        for l in links:
+            if l["rel"] == "image":
+                self.assertFalse(l["link"].endswith("-1"))
+
+    def test_duplicate_instrument(self):
+        instrument = self.invapi.create_instrument(base.random_string(5))
+        duplicated = self.invapi.duplicate(instrument["globalId"], "duplicated name")
+        self.assertEqual("duplicated name", duplicated["name"])
+        self.assertNotEqual(instrument["id"], duplicated["id"])
+
+    def test_create_instrument_from_template(self):
+        builder = template_builder.InstrumentTemplateBuilder("MyMicroscope")
+        it_json = (
+            builder.string("Serial Number")
+            .number("Calibration")
+            .uri("Manual")
+            .build()
+        )
+        it = self.invapi.create_instrument_template(it_json)
+
+        ForInstrumentCreation = sample_builder2.FieldBuilderGenerator().generate_class(
+            it
+        )
+        instrument_fields = ForInstrumentCreation()
+        instrument_fields.serial_number = "SN-1234"
+        instrument_fields.calibration = 4.7
+        instrument_fields.manual = "https://myinstrument.supplier.com"
+
+        created_instrument = self.invapi.create_instrument(
+            name="From MyMicroscope",
+            instrument_template_id=it["id"],
+            fields=instrument_fields.to_field_post(),
+        )
+
+        self.assertIsNotNone(created_instrument["id"])
+        self.assertEqual("SN-1234", created_instrument["fields"][0]["content"])
+        self.assertEqual(4.7, float(created_instrument["fields"][1]["content"]))
+        self.assertEqual(
+            "https://myinstrument.supplier.com",
+            created_instrument["fields"][2]["content"],
+        )
+
+    def test_add_extra_fields_instrument(self):
+        instrument = self.invapi.create_instrument(base.random_string(5))
+        ef1 = inv.ExtraField("f1", inv.ExtraFieldType.TEXT, "hello")
+        updated = self.invapi.add_extra_fields(instrument["globalId"], ef1)
+        self.assertEqual(1, len(updated["extraFields"]))
+
     def test_update_datacite_settings_enabled(self):
         """
         Test updating DataCite settings when enabling DataCite
