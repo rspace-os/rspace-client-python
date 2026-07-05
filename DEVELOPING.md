@@ -45,11 +45,6 @@ poetry run pytest -m integration
 ```
 
 Integration tests should be run with a new RSpace account that does not belong to any groups.
-
-In CI, the `integration-test` job boots RSpace the same way `rspace-web`'s `e2e.yml` does: it downloads
-the latest release WAR, deploys it with `mvnw jetty:run-war -Denvironment=drop-recreate-db` against a
-MariaDB service container, which loads RSpace's dev-test seed data. That seed data includes a `sysadmin1`
-user with a fixed, known API key, so no key-generation step is needed.
  
 ### Writing Tests
  
