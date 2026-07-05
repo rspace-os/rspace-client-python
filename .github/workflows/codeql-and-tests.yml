@@ -79,10 +79,41 @@ jobs:
     needs: test
     permissions:
       contents: read
+    env:
+      RS_FILE_BASE: /tmp/e2e-filestore
+    services:
+      db:
+        image: mariadb:lts-jammy
+        env:
+          MARIADB_ROOT_PASSWORD: rspacedbpwd
+          MARIADB_DATABASE: rspace
+          MARIADB_USER: rspacedbuser
+          MARIADB_PASSWORD: rspacedbpwd
+        ports:
+          - 3306:3306
+        options: >-
+          --tmpfs /var/lib/mysql:rw,noexec,nosuid,size=2g
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=40
+          --health-start-period=30s
+      # RSpace's chemistry-gated integrations only render when this is reachable.
+      chemistry:
+        image: rspaceops/oss-chemistry:latest
+        ports:
+          - 8090:8090
 
     steps:
-      - name: Checkout repository
+      - name: Checkout rspace-client-python
         uses: actions/checkout@v4
+
+      - name: Checkout rspace-web
+        uses: actions/checkout@v4
+        with:
+          repository: rspace-os/rspace-web
+          path: rspace-web
+          persist-credentials: false
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
@@ -99,13 +130,20 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction
 
-      - name: Clone rspace-docker
-        run: git clone https://github.com/rspace-os/rspace-docker.git /tmp/rspace-docker
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+          cache-dependency-path: rspace-web/pom.xml
 
       - name: Download latest RSpace WAR
+        working-directory: rspace-web
         run: |
           set -euo pipefail
 
+          mkdir -p target
           release_json=$(curl -fsSL https://api.github.com/repos/rspace-os/rspace-web/releases/latest)
           latest_tag=$(echo "$release_json" | jq -r '.tag_name')
           war_url=$(echo "$release_json" | jq -r '.assets[]? | select(.name | test("^researchspace-.*\\.war$")) | .browser_download_url' | head -n1)
@@ -120,7 +158,7 @@ jobs:
           fi
 
           echo "Latest RSpace tag: $latest_tag"
-          curl -fsSL "$war_url" -o /tmp/rspace-docker/rspace.war
+          curl -fsSL "$war_url" -o target/researchspace.war
 
       - name: Free up disk space
         run: |
@@ -129,44 +167,68 @@ jobs:
           docker image prune -af || true
           df -h
 
-      - name: Start RSpace
-        working-directory: /tmp/rspace-docker
-        run: docker compose up -d
+      - name: Configure MariaDB
+        run: |
+          mysql -h127.0.0.1 -uroot -prspacedbpwd <<'SQL'
+          SET GLOBAL character_set_server = 'utf8mb4';
+          SET GLOBAL collation_server = 'utf8mb4_unicode_ci';
+          SET GLOBAL sql_mode = 'STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+          GRANT CREATE, DROP ON *.* TO 'rspacedbuser'@'%';
+          FLUSH PRIVILEGES;
+          SQL
 
-      - name: Wait for RSpace to be ready
-        timeout-minutes: 10
+      - name: Setup filestore
+        run: |
+          rm -rf "$RS_FILE_BASE"
+          mkdir -p "$RS_FILE_BASE"
+
+      # Deploys the downloaded WAR directly (-Dmaven.war.skip=true skips
+      # rebuilding it) against a "dev" + "drop-recreate-db" environment, which
+      # drops/recreates the schema and loads RSpace's dev-test Liquibase seed
+      # data - including a sysadmin1 user with a fixed, known API key. No
+      # separate key-generation step (UI or REST) is needed as a result.
+      - name: Start RSpace (prebuilt WAR) and wait for readiness
+        working-directory: rspace-web
         run: |
           set -euo pipefail
-
-          echo "Waiting for RSpace on http://localhost:8080 ..."
-          for i in {1..40}; do
-            if timeout 2 bash -c "cat < /dev/null > /dev/tcp/localhost/8080" 2>/dev/null; then
-              echo "RSpace is up"
-              exit 0
+          nohup ./mvnw jetty:run-war \
+            -DskipTests=true -Dmaven.war.skip=true \
+            -Dtimestamp=${{ github.run_id }} \
+            -Djava-version=17 -Djava-vendor=temurin \
+            -Denvironment=drop-recreate-db \
+            -Dspring.profiles.active=run \
+            -DreactDevMode=false \
+            -Dchemistry.provider=indigo \
+            -Dchemistry.service.url=http://localhost:8090 \
+            -Djdbc.url=jdbc:mysql://localhost:3306/rspace \
+            -Djdbc.db.maven=rspace \
+            -DRS_FILE_BASE="$RS_FILE_BASE" \
+            -DRS.devlogLevel=INFO \
+            > /tmp/jetty.log 2>&1 &
+          for i in $(seq 1 180); do
+            if [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/login || true)" = "200" ]; then
+              echo "Ready after ~$((i*5))s"; exit 0
             fi
-            echo "  attempt $i/40..."
-            sleep 15
+            sleep 5
           done
-          echo "RSpace failed to start"
-          exit 1
-
-      - name: Install Playwright Browsers
-        run: poetry run python -m playwright install chromium --with-deps
-
-      - name: Generate RSpace API Key
-        id: generate_key
-        run: poetry run python .github/scripts/get_rspace_api_key.py
-        env:
-          RSPACE_URL: http://localhost:8080
-          RSPACE_USERNAME: ${{ secrets.RSPACE_USERNAME }}
-          RSPACE_PASSWORD: ${{ secrets.RSPACE_PASSWORD }}
-
-      - name: Mask API key
-        run: echo "::add-mask::${{ steps.generate_key.outputs.rspace_api_key }}"
+          echo "::error::RSpace did not become ready in time"; tail -100 /tmp/jetty.log; exit 1
 
       - name: Run integration tests
         timeout-minutes: 20
         env:
           RSPACE_URL: http://localhost:8080
-          RSPACE_API_KEY: ${{ steps.generate_key.outputs.rspace_api_key }}
+          # Pre-seeded sysadmin1 API key from RSpace's dev-test Liquibase seed data.
+          RSPACE_API_KEY: abcdefghijklmnop12
         run: poetry run pytest -m integration -v
+
+      - name: Dump server log on failure
+        if: failure()
+        run: tail -200 /tmp/jetty.log || true
+
+      - name: Upload Jetty log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jetty-log
+          path: /tmp/jetty.log
+          retention-days: 3
