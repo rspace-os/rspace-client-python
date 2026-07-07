@@ -998,28 +998,24 @@ class InventoryApiTest(base.BaseApiTest):
 
             # Verify the response structure
             self.assertIsInstance(result, dict)
-            self.assertIn("datacite", result)
-            datacite_settings = result["datacite"]
-            self.assertEqual(datacite_settings["serverUrl"], server_url)
-            self.assertEqual(datacite_settings["username"], username)
-            self.assertEqual(datacite_settings["password"], password)
-            self.assertEqual(datacite_settings["repositoryPrefix"], repository_prefix)
-            self.assertEqual(datacite_settings["enabled"], "true")
+            self.assertEqual(result["serverUrl"], server_url)
+            self.assertEqual(result["username"], username)
+            self.assertEqual(result["password"], password)
+            self.assertEqual(result["repositoryPrefix"], repository_prefix)
+            self.assertEqual(result["enabled"], "true")
 
         finally:
             # Restore original settings
-            if "datacite" in original_settings:
-                orig_datacite = original_settings["datacite"]
-                if orig_datacite.get("enabled") == "true":
-                    self.invapi.update_datacite_settings(
-                        enabled=True,
-                        server_url=orig_datacite.get("serverUrl", ""),
-                        username=orig_datacite.get("username", ""),
-                        password=orig_datacite.get("password", ""),
-                        repository_prefix=orig_datacite.get("repositoryPrefix", "")
-                    )
-                else:
-                    self.invapi.update_datacite_settings(enabled=False)
+            if original_settings.get("enabled") == "true":
+                self.invapi.update_datacite_settings(
+                    enabled=True,
+                    server_url=original_settings.get("serverUrl", ""),
+                    username=original_settings.get("username", ""),
+                    password=original_settings.get("password", ""),
+                    repository_prefix=original_settings.get("repositoryPrefix", "")
+                )
+            else:
+                self.invapi.update_datacite_settings(enabled=False)
 
     def test_update_datacite_settings_disabled(self):
         """
@@ -1033,23 +1029,20 @@ class InventoryApiTest(base.BaseApiTest):
             result = self.invapi.update_datacite_settings(enabled=False)
 
             self.assertIsInstance(result, dict)
-            self.assertIn("datacite", result)
-            self.assertEqual(result["datacite"]["enabled"], "false")
+            self.assertEqual(result["enabled"], "false")
 
         finally:
             # Restore original settings
-            if "datacite" in original_settings:
-                orig_datacite = original_settings["datacite"]
-                if orig_datacite.get("enabled") == "true":
-                    self.invapi.update_datacite_settings(
-                        enabled=True,
-                        server_url=orig_datacite.get("serverUrl", ""),
-                        username=orig_datacite.get("username", ""),
-                        password=orig_datacite.get("password", ""),
-                        repository_prefix=orig_datacite.get("repositoryPrefix", "")
-                    )
-                else:
-                    self.invapi.update_datacite_settings(enabled=False)
+            if original_settings.get("enabled") == "true":
+                self.invapi.update_datacite_settings(
+                    enabled=True,
+                    server_url=original_settings.get("serverUrl", ""),
+                    username=original_settings.get("username", ""),
+                    password=original_settings.get("password", ""),
+                    repository_prefix=original_settings.get("repositoryPrefix", "")
+                )
+            else:
+                self.invapi.update_datacite_settings(enabled=False)
 
     def test_datacite_connection_with_valid_settings(self):
         """
@@ -1078,18 +1071,16 @@ class InventoryApiTest(base.BaseApiTest):
 
         finally:
             # Restore original settings
-            if "datacite" in original_settings:
-                orig_datacite = original_settings["datacite"]
-                if orig_datacite.get("enabled") == "true":
-                    self.invapi.update_datacite_settings(
-                        enabled=True,
-                        server_url=orig_datacite.get("serverUrl", ""),
-                        username=orig_datacite.get("username", ""),
-                        password=orig_datacite.get("password", ""),
-                        repository_prefix=orig_datacite.get("repositoryPrefix", "")
-                    )
-                else:
-                    self.invapi.update_datacite_settings(enabled=False)
+            if original_settings.get("enabled") == "true":
+                self.invapi.update_datacite_settings(
+                    enabled=True,
+                    server_url=original_settings.get("serverUrl", ""),
+                    username=original_settings.get("username", ""),
+                    password=original_settings.get("password", ""),
+                    repository_prefix=original_settings.get("repositoryPrefix", "")
+                )
+            else:
+                self.invapi.update_datacite_settings(enabled=False)
 
     def test_datacite_connection_with_invalid_settings(self):
         """
@@ -1116,18 +1107,16 @@ class InventoryApiTest(base.BaseApiTest):
 
         finally:
             # Restore original settings
-            if "datacite" in original_settings:
-                orig_datacite = original_settings["datacite"]
-                if orig_datacite.get("enabled") == "true":
-                    self.invapi.update_datacite_settings(
-                        enabled=True,
-                        server_url=orig_datacite.get("serverUrl", ""),
-                        username=orig_datacite.get("username", ""),
-                        password=orig_datacite.get("password", ""),
-                        repository_prefix=orig_datacite.get("repositoryPrefix", "")
-                    )
-                else:
-                    self.invapi.update_datacite_settings(enabled=False)
+            if original_settings.get("enabled") == "true":
+                self.invapi.update_datacite_settings(
+                    enabled=True,
+                    server_url=original_settings.get("serverUrl", ""),
+                    username=original_settings.get("username", ""),
+                    password=original_settings.get("password", ""),
+                    repository_prefix=original_settings.get("repositoryPrefix", "")
+                )
+            else:
+                self.invapi.update_datacite_settings(enabled=False)
 
     def test_get_datacite_settings(self):
         """
@@ -1137,5 +1126,6 @@ class InventoryApiTest(base.BaseApiTest):
 
         # Should return a dictionary
         self.assertIsInstance(result, dict)
-        # Should contain datacite section (even if empty/default)
-        self.assertIn("datacite", result)
+        # Should contain the provider's settings fields
+        self.assertIn("provider", result)
+        self.assertIn("enabled", result)

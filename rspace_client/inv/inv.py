@@ -2655,87 +2655,106 @@ class InventoryClient(ClientBase):
                 fd.write(content)
         return content
 
-    def get_datacite_settings(self) -> dict:
+    @staticmethod
+    def _find_identifier_provider_settings(result: dict, provider: str) -> dict:
+        for group in result.get("identifiersSettings", {}).values():
+            for entry in group:
+                if entry.get("provider") == provider:
+                    return entry
+        raise ValueError(f"No settings found for provider '{provider}' in response: {result}")
+
+    def get_datacite_settings(self, provider: str = "IGSN_DATACITE") -> dict:
         """
-        Gets the current DataCite settings.
+        Gets the current settings for the given identifier provider.
+
+        Parameters
+        ----------
+        provider : str, optional
+            One of "IGSN_DATACITE", "PIDINST_DATACITE", "PIDINST_B2INST". Defaults to "IGSN_DATACITE".
 
         Returns
         -------
         dict
-            The current DataCite settings
+            The current settings for the given provider
         """
-        return self.retrieve_api_results(
-            "/system/settings",
-            request_type="GET"
-        )
+        result = self.retrieve_api_results("/system/settings", request_type="GET")
+        return self._find_identifier_provider_settings(result, provider)
 
-    def update_datacite_settings(self, enabled: bool, server_url: str = None, username: str = None, password: str = None, repository_prefix: str = None) -> dict:
+    def update_datacite_settings(
+        self,
+        enabled: bool,
+        provider: str = "IGSN_DATACITE",
+        server_url: str = None,
+        username: str = None,
+        password: str = None,
+        repository_prefix: str = None,
+    ) -> dict:
         """
-        Updates the DataCite settings.
+        Updates the settings for the given identifier provider.
 
         Parameters
         ----------
         enabled : bool
-            Whether DataCite is enabled (True or False)
+            Whether this provider is enabled (True or False)
+        provider : str, optional
+            One of "IGSN_DATACITE", "PIDINST_DATACITE", "PIDINST_B2INST". Defaults to "IGSN_DATACITE".
         server_url : str, optional
-            DataCite server URL. Required when enabled=True
+            Server URL. Required when enabled=True
         username : str, optional
-            DataCite username. Required when enabled=True
+            Username. Required when enabled=True
         password : str, optional
-            DataCite password. Required when enabled=True
+            Password. Required when enabled=True
         repository_prefix : str, optional
-            DataCite repository prefix. Required when enabled=True
+            Repository prefix. Required when enabled=True
 
         Returns
         -------
         dict
-            The updated settings
+            The updated settings for the given provider
         """
         if enabled and (server_url is None or username is None or password is None or repository_prefix is None):
             raise ValueError("server_url, username, password, and repository_prefix are required when enabled=True")
-        
-        settings = {
-            "datacite": {
-                "enabled": str(enabled).lower()
-            }
-        }
-        
-        # Only include other settings if enabling DataCite
-        if enabled:
-            settings["datacite"].update({
-                "serverUrl": server_url,
-                "username": username,
-                "password": password,
-                "repositoryPrefix": repository_prefix
-            })
-        
-        return self.retrieve_api_results(
+
+        body = {"provider": provider, "enabled": str(enabled).lower()}
+        if server_url is not None:
+            body["serverUrl"] = server_url
+        if username is not None:
+            body["username"] = username
+        if password is not None:
+            body["password"] = password
+        if repository_prefix is not None:
+            body["repositoryPrefix"] = repository_prefix
+
+        result = self.retrieve_api_results(
             "/system/settings",
             request_type="PUT",
-            params=settings
+            params=body
         )
+        return self._find_identifier_provider_settings(result, provider)
 
-    def test_datacite_connection(self) -> bool:
+    def test_datacite_connection(self, provider: str = "IGSN_DATACITE") -> bool:
         """
-        Tests the connection to the configured DataCite server.
+        Tests the connection to the configured server for the given identifier provider.
 
-        This method calls the DataCite test connection endpoint to verify that:
-        - DataCite client is properly configured and initialized
-        - The connection to the DataCite API server can be established
-        - The stored credentials are valid
+        Parameters
+        ----------
+        provider : str, optional
+            One of "IGSN_DATACITE", "PIDINST_DATACITE", "PIDINST_B2INST". Defaults to "IGSN_DATACITE".
 
         Returns
         -------
         bool
             True if the connection test passes, False otherwise
         """
-
-        url = self._get_api_url() + "/identifiers/testDataCiteConnection"
+        endpoint_name = "testIgsnConnection" if provider == "IGSN_DATACITE" else "testPidinstConnection"
+        url = self._get_api_url() + f"/identifiers/{endpoint_name}"
         headers = self._get_headers("application/json")
 
         try:
             response = requests.get(url, headers=headers)
-            return response.status_code == 200
+            if response.status_code != 200:
+                return False
+            return bool(response.json())
         except requests.exceptions.RequestException:
             return False
 
