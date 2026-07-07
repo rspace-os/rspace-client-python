@@ -921,7 +921,7 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_set_image_instrument(self):
         instrument = self.invapi.create_instrument(base.random_string(5))
-        file = base.get_datafile("AntibodySample150.png")
+        file = base.get_datafile("antibodySample150.png")
         with open(file, "rb") as f:
             updated_instrument = self.invapi.set_image(instrument, f)
 
