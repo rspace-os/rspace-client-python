@@ -25,6 +25,7 @@ python = "^3.9"
 requests = "^2.25.1"
 beautifulsoup4 = "^4.9.3"
 fs = "^2.4.16"
+setuptools = "<82"
 
 [tool.poetry.group.dev.dependencies]
 python-dotenv = "^1.1.1"
