@@ -7,7 +7,7 @@ Created on Mon Jun  7 08:38:55 2021
 """
 
 
-from rspace_client.inv.template_builder import TemplateBuilder
+from rspace_client.inv.template_builder import TemplateBuilder, InstrumentTemplateBuilder
 import unittest
 import datetime as dt
 
@@ -145,3 +145,41 @@ class TemplateBuilderTest(unittest.TestCase):
     def test_build(self):
         builder = TemplateBuilder("water sample", "ml").text("notes").number("pH", 7)
         to_post = builder.build()
+
+
+class InstrumentTemplateBuilderTest(unittest.TestCase):
+    def test_build_minimal(self):
+        builder = InstrumentTemplateBuilder("Microscope template")
+        to_post = builder.build()
+        self.assertEqual("Microscope template", to_post["name"])
+        self.assertEqual([], to_post["fields"])
+        self.assertFalse("description" in to_post)
+        self.assertFalse("defaultUnitId" in to_post)
+
+    def test_build_with_description(self):
+        builder = InstrumentTemplateBuilder(
+            "Microscope template", "A template for the lab's microscopes"
+        )
+        to_post = builder.build()
+        self.assertEqual(
+            "A template for the lab's microscopes", to_post["description"]
+        )
+
+    def test_shares_field_definition_methods_with_template_builder(self):
+        builder = InstrumentTemplateBuilder("Microscope template")
+        builder.string("Serial Number").number("Calibration", 7).uri(
+            "Manual", "https://example.com/manual.pdf"
+        )
+        self.assertEqual(3, builder.field_count())
+        to_post = builder.build()
+        self.assertEqual(
+            "https://example.com/manual.pdf", to_post["fields"][2]["content"]
+        )
+
+    def test_name_required(self):
+        builder = InstrumentTemplateBuilder("Microscope template")
+        self.assertRaises(
+            ValueError,
+            builder.string,
+            "",
+        )

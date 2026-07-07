@@ -6,6 +6,21 @@ All notable changes to this project will be documented in this file
  - replace naming of classes and methods using 'Workbench' to 'Bench'
  - replace create_sample, create_container long argument lists with new XXXPost objects
 
+## 2.7.0  2026-07-03
+
+- Added support for Inventory Instruments and Instrument Templates (beta RSpace 2.24
+  feature): `create_instrument`, `get_instrument_by_id`, `list_instruments`,
+  `delete_instrument`, `restore_instrument`, `transfer_instrument_owner`,
+  `update_instrument_to_latest_template_version`, `get_instrument_revisions`,
+  `get_instrument_revision`, `create_instrument_template`,
+  `get_instrument_template_by_id`, `delete_instrument_template`,
+  `list_instrument_templates`, `restore_instrument_template`,
+  `transfer_instrument_template_owner`, `set_instrument_template_icon`,
+  `get_instrument_template_icon`, `get_instrument_template_version`,
+  `update_instrument_template_instruments`, and a new `InstrumentTemplateBuilder`.
+  `rename`, `set_image`, `duplicate` and `add_extra_fields` now also work on
+  Instruments and Instrument Templates.
+
 ## 2.6.0  2025-02-25
 
 - implementing pyfilesystem API methods for browsing RSpace Gallery and RSpace Inventory 

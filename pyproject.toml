@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rspace-client"
-version = "2.6.2"
+version = "2.7.0"
 description = "A client for calling RSpace ELN and Inventory APIs"
 license = "Apache-2.0"
 authors = ["Research Innovations Ltd <support@researchspace.com>"]
@@ -25,6 +25,7 @@ python = "^3.9"
 requests = "^2.25.1"
 beautifulsoup4 = "^4.9.3"
 fs = "^2.4.16"
+setuptools = "<82"
 
 [tool.poetry.group.dev.dependencies]
 python-dotenv = "^1.1.1"
