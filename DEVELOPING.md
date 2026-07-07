@@ -45,6 +45,12 @@ poetry run pytest -m integration
 ```
 
 Integration tests should be run with a new RSpace account that does not belong to any groups.
+
+#### How CI runs integration tests
+
+CI doesn't use a long-lived RSpace deployment or your credentials. Each run builds `rspace-web` from source and starts it fresh (Maven/Jetty, seeded database). That gives a known built-in `sysadmin1` account and API key (seeded by rspace-web's own dev/test fixtures), but authenticating purely via API key without ever logging in hits a lazy-initialization bug on that account's first write (its home folder isn't created yet). So CI does one plain HTTP login first (`.github/scripts/warmup_sysadmin.py`), which runs the same initialization correctly, then uses the account's API key directly for the whole suite. See `.github/workflows/codeql-and-tests.yml`.
+
+If you want to reproduce this locally against your own from-source RSpace build (rather than any existing account), log in once as `sysadmin1` / `sysWisc23!` (e.g. run `warmup_sysadmin.py` against your instance) before pointing `RSPACE_API_KEY` at `abcdefghijklmnop12` in your `.env` - otherwise the first document-creation call will 500.
  
 ### Writing Tests
  

@@ -18,7 +18,23 @@ For full details of our API specification, please see https://<YOUR_RSPACE_DOMAI
 For example, if you are using `https://community.researchspace.com`,
 the API documentation is available at `https://community.researchspace.com/public/apiDocs`
 
-See [DEVELOPING.md](DEVELOPING.md) for details of running tests.
+### Testing
+
+CI (`.github/workflows/codeql-and-tests.yml`) runs unit tests across supported Python versions, then integration tests against a real RSpace instance: it builds `rspace-web` from source and starts it with a freshly seeded database (no Docker image, no browser automation), logs in once to initialize the built-in test account, then runs the suite against it.
+
+To run tests locally:
+
+```bash
+# unit tests only
+poetry run pytest -m "not integration"
+
+# integration tests, against your own RSpace instance
+export RSPACE_URL=https://<your-rspace-domain>
+export RSPACE_API_KEY=<your-api-key>
+poetry run pytest -m integration
+```
+
+See [DEVELOPING.md](DEVELOPING.md) for more details.
 
 To install rspace-client and its dependencies, run
 
