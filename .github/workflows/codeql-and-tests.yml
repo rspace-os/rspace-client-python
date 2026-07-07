@@ -79,6 +79,31 @@ jobs:
     needs: test
     permissions:
       contents: read
+    env:
+      RS_FILE_BASE: /tmp/rspace-filestore
+    services:
+      db:
+        image: mariadb:lts-jammy
+        env:
+          MARIADB_ROOT_PASSWORD: rspacedbpwd
+          MARIADB_DATABASE: rspace
+          MARIADB_USER: rspacedbuser
+          MARIADB_PASSWORD: rspacedbpwd
+        ports:
+          - 3306:3306
+        options: >-
+          --tmpfs /var/lib/mysql:rw,noexec,nosuid,size=2g
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=40
+          --health-start-period=30s
+      # Required even though these are API-only tests: some backend startup
+      # paths check that the chemistry service is reachable.
+      chemistry:
+        image: rspaceops/oss-chemistry:latest
+        ports:
+          - 8090:8090
 
     steps:
       - name: Checkout repository
@@ -99,74 +124,105 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction
 
-      - name: Clone rspace-docker
-        run: git clone https://github.com/rspace-os/rspace-docker.git /tmp/rspace-docker
-
-      - name: Download latest RSpace WAR
+      - name: Determine latest rspace-web release tag
+        id: rspace_web_release
         run: |
           set -euo pipefail
-
-          release_json=$(curl -fsSL https://api.github.com/repos/rspace-os/rspace-web/releases/latest)
-          latest_tag=$(echo "$release_json" | jq -r '.tag_name')
-          war_url=$(echo "$release_json" | jq -r '.assets[]? | select(.name | test("^researchspace-.*\\.war$")) | .browser_download_url' | head -n1)
-
+          latest_tag=$(curl -fsSL https://api.github.com/repos/rspace-os/rspace-web/releases/latest | jq -r '.tag_name')
           if [ -z "$latest_tag" ] || [ "$latest_tag" = "null" ]; then
             echo "Unable to determine latest release tag for rspace-web"
             exit 1
           fi
+          echo "Latest rspace-web tag: $latest_tag"
+          echo "tag=$latest_tag" >> "$GITHUB_OUTPUT"
 
-          if [ -z "$war_url" ] || [ "$war_url" = "null" ]; then
-            war_url="https://github.com/rspace-os/rspace-web/releases/download/${latest_tag}/researchspace-${latest_tag}.war"
-          fi
+      - name: Checkout rspace-web
+        uses: actions/checkout@v4
+        with:
+          repository: rspace-os/rspace-web
+          ref: ${{ steps.rspace_web_release.outputs.tag }}
+          path: rspace-web
+          persist-credentials: false
 
-          echo "Latest RSpace tag: $latest_tag"
-          curl -fsSL "$war_url" -o /tmp/rspace-docker/rspace.war
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+          cache-dependency-path: rspace-web/pom.xml
 
-      - name: Free up disk space
+      - name: Configure MariaDB
         run: |
-          df -h
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
-          docker image prune -af || true
-          df -h
+          mysql -h127.0.0.1 -uroot -prspacedbpwd <<'SQL'
+          SET GLOBAL character_set_server = 'utf8mb4';
+          SET GLOBAL collation_server = 'utf8mb4_unicode_ci';
+          SET GLOBAL sql_mode = 'STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+          GRANT CREATE, DROP ON *.* TO 'rspacedbuser'@'%';
+          FLUSH PRIVILEGES;
+          SQL
 
-      - name: Start RSpace
-        working-directory: /tmp/rspace-docker
-        run: docker compose up -d
+      - name: Setup filestore
+        run: |
+          rm -rf "$RS_FILE_BASE"
+          mkdir -p "$RS_FILE_BASE"
 
-      - name: Wait for RSpace to be ready
-        timeout-minutes: 10
+      # Backend only - no -DgenerateReactDist, so no Node/pnpm/Vite build.
+      # The Python client only exercises the REST API, not the UI.
+      - name: Build RSpace backend
+        working-directory: rspace-web
+        run: ./mvnw clean package -DskipTests -Dtimestamp=${{ github.run_id }} -Djava-version=17 -Djava-vendor=temurin
+
+      - name: Start RSpace and wait for readiness
+        working-directory: rspace-web
+        timeout-minutes: 15
         run: |
           set -euo pipefail
-
-          echo "Waiting for RSpace on http://localhost:8080 ..."
-          for i in {1..40}; do
-            if timeout 2 bash -c "cat < /dev/null > /dev/tcp/localhost/8080" 2>/dev/null; then
-              echo "RSpace is up"
+          nohup ./mvnw jetty:run-war \
+            -DskipTests=true -Dmaven.war.skip=true \
+            -Dtimestamp=${{ github.run_id }} \
+            -Djava-version=17 -Djava-vendor=temurin \
+            -Denvironment=drop-recreate-db \
+            -Dspring.profiles.active=run \
+            -DreactDevMode=false \
+            -Dchemistry.provider=indigo \
+            -Dchemistry.service.url=http://localhost:8090 \
+            -Djdbc.url=jdbc:mysql://localhost:3306/rspace \
+            -Djdbc.db.maven=rspace \
+            -DRS_FILE_BASE="$RS_FILE_BASE" \
+            > /tmp/jetty.log 2>&1 &
+          for i in $(seq 1 180); do
+            if [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/login || true)" = "200" ]; then
+              echo "Ready after ~$((i*5))s"
               exit 0
             fi
-            echo "  attempt $i/40..."
-            sleep 15
+            sleep 5
           done
-          echo "RSpace failed to start"
+          echo "RSpace did not become ready in time"
+          tail -200 /tmp/jetty.log
           exit 1
 
-      - name: Install Playwright Browsers
-        run: poetry run python -m playwright install chromium --with-deps
-
-      - name: Generate RSpace API Key
-        id: generate_key
-        run: poetry run python .github/scripts/get_rspace_api_key.py
+      # sysadmin1's account is a raw SQL fixture row - authenticating purely via
+      # its API key without ever logging in hits a lazy-initialization bug on
+      # its first write (home folder isn't created yet). One real login avoids
+      # it entirely by running the same initialization synchronously and correctly.
+      - name: Warm up sysadmin1 account
+        timeout-minutes: 5
+        run: poetry run python .github/scripts/warmup_sysadmin.py
         env:
           RSPACE_URL: http://localhost:8080
-          RSPACE_USERNAME: ${{ secrets.RSPACE_USERNAME }}
-          RSPACE_PASSWORD: ${{ secrets.RSPACE_PASSWORD }}
-
-      - name: Mask API key
-        run: echo "::add-mask::${{ steps.generate_key.outputs.rspace_api_key }}"
 
       - name: Run integration tests
         timeout-minutes: 20
         env:
           RSPACE_URL: http://localhost:8080
-          RSPACE_API_KEY: ${{ steps.generate_key.outputs.rspace_api_key }}
+          # Bootstrap sysadmin1 API key seeded by rspace-web's own "dev-test"
+          # Liquibase context (initial-seed-devtest.sql). Public, non-secret
+          # dev fixture value - not a credential that protects anything
+          # outside this ephemeral, job-local RSpace instance.
+          RSPACE_API_KEY: abcdefghijklmnop12
         run: poetry run pytest -m integration -v
+
+      - name: Dump RSpace server log on failure
+        if: failure()
+        run: tail -300 /tmp/jetty.log || true
