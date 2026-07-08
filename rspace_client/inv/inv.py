@@ -2661,7 +2661,7 @@ class InventoryClient(ClientBase):
             for entry in group:
                 if entry.get("provider") == provider:
                     return entry
-        raise ValueError(f"No settings found for provider '{provider}' in response: {result}")
+        raise ValueError(f"No settings found for provider '{provider}' in /system/settings response")
 
     def get_datacite_settings(self, provider: str = "IGSN_DATACITE") -> dict:
         """
@@ -2755,7 +2755,7 @@ class InventoryClient(ClientBase):
             if response.status_code != 200:
                 return False
             return bool(response.json())
-        except requests.exceptions.RequestException:
+        except (requests.exceptions.RequestException, ValueError):
             return False
 
 def _calculate_start_index(

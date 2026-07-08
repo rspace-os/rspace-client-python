@@ -691,14 +691,18 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertTrue(len(barcode_bytes) > 0)
         self.assertTrue(barcode_bytes.startswith(b"\x89PNG\r\n\x1a\n"))
 
-        qr_bytes = self.invapi.barcode(
-            "SA12345", outfile="out10.png", barcode_type=inv.BarcodeFormat.QR
-        )
-        self.assertTrue(len(qr_bytes) > 0)
-        self.assertTrue(qr_bytes.startswith(b"\x89PNG\r\n\x1a\n"))
-        self.assertTrue(os.path.exists("out10.png"))
-        self.assertTrue(os.path.getsize("out10.png") > 0)
-        os.remove("out10.png")
+        outfile = "out10.png"
+        try:
+            qr_bytes = self.invapi.barcode(
+                "SA12345", outfile=outfile, barcode_type=inv.BarcodeFormat.QR
+            )
+            self.assertTrue(len(qr_bytes) > 0)
+            self.assertTrue(qr_bytes.startswith(b"\x89PNG\r\n\x1a\n"))
+            self.assertTrue(os.path.exists(outfile))
+            self.assertTrue(os.path.getsize(outfile) > 0)
+        finally:
+            if os.path.exists(outfile):
+                os.remove(outfile)
 
     def test_delete_samples(self):
         new_sample = self.invapi.create_sample("to_delete")

@@ -128,7 +128,7 @@ jobs:
         id: rspace_web_release
         run: |
           set -euo pipefail
-          latest_tag=$(curl -fsSL https://api.github.com/repos/rspace-os/rspace-web/releases/latest | jq -r '.tag_name')
+          latest_tag=$(curl -fsSL --retry 3 --retry-delay 2 https://api.github.com/repos/rspace-os/rspace-web/releases/latest | jq -r '.tag_name')
           if [ -z "$latest_tag" ] || [ "$latest_tag" = "null" ]; then
             echo "Unable to determine latest release tag for rspace-web"
             exit 1
