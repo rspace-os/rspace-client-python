@@ -690,6 +690,119 @@ class Id:
 class ExtraFieldType(Enum):
     TEXT = "text"
     NUMBER = "number"
+    LINK = "link"
+
+
+class RelationType(Enum):
+    """
+    The vocabulary of relationship types permitted on an Inventory Link field.
+
+    These are the DataCite 4.7 ``relationType`` values plus the PIDINST
+    ``IsCalibratedBy``/``Calibrates`` pair. A Link field, or a template Link
+    field's whitelist, may use any of these values.
+    """
+
+    IS_CITED_BY = "IsCitedBy"
+    CITES = "Cites"
+    IS_SUPPLEMENT_TO = "IsSupplementTo"
+    IS_SUPPLEMENTED_BY = "IsSupplementedBy"
+    IS_CONTINUED_BY = "IsContinuedBy"
+    CONTINUES = "Continues"
+    IS_DESCRIBED_BY = "IsDescribedBy"
+    DESCRIBES = "Describes"
+    HAS_METADATA = "HasMetadata"
+    IS_METADATA_FOR = "IsMetadataFor"
+    HAS_VERSION = "HasVersion"
+    IS_VERSION_OF = "IsVersionOf"
+    IS_NEW_VERSION_OF = "IsNewVersionOf"
+    IS_PREVIOUS_VERSION_OF = "IsPreviousVersionOf"
+    IS_PART_OF = "IsPartOf"
+    HAS_PART = "HasPart"
+    IS_PUBLISHED_IN = "IsPublishedIn"
+    IS_REFERENCED_BY = "IsReferencedBy"
+    REFERENCES = "References"
+    IS_DOCUMENTED_BY = "IsDocumentedBy"
+    DOCUMENTS = "Documents"
+    IS_COMPILED_BY = "IsCompiledBy"
+    COMPILES = "Compiles"
+    IS_VARIANT_FORM_OF = "IsVariantFormOf"
+    IS_ORIGINAL_FORM_OF = "IsOriginalFormOf"
+    IS_IDENTICAL_TO = "IsIdenticalTo"
+    IS_REVIEWED_BY = "IsReviewedBy"
+    REVIEWS = "Reviews"
+    IS_DERIVED_FROM = "IsDerivedFrom"
+    IS_SOURCE_OF = "IsSourceOf"
+    IS_REQUIRED_BY = "IsRequiredBy"
+    REQUIRES = "Requires"
+    IS_OBSOLETED_BY = "IsObsoletedBy"
+    OBSOLETES = "Obsoletes"
+    IS_COLLECTED_BY = "IsCollectedBy"
+    COLLECTS = "Collects"
+    IS_TRANSLATION_OF = "IsTranslationOf"
+    HAS_TRANSLATION = "HasTranslation"
+    IS_CALIBRATED_BY = "IsCalibratedBy"
+    CALIBRATES = "Calibrates"
+
+    @classmethod
+    def is_valid(cls, value: str) -> bool:
+        """True if ``value`` is one of the known relationType string values."""
+        return value in cls._value2member_map_
+
+
+class InventoryLink:
+    """
+    Value object describing the target of a Link extra-field.
+
+    A link records a ``relation_type`` (how the source relates to the target),
+    a ``target_global_id`` (the linked record) and an optional ``version_pin``
+    that pins the link to a specific version of the target.
+
+    ``relation_type`` accepts either a :class:`RelationType` or a raw string.
+    Raw strings that are not in the known vocabulary are allowed through with
+    no client-side error, so callers are not blocked if the server vocabulary
+    grows ahead of this client; the server remains the source of truth.
+    """
+
+    # Global ID prefixes the server accepts as link targets: Inventory items
+    # (samples, subsamples, containers, instruments, sample templates) and ELN
+    # records (documents, notebooks, gallery files).
+    ALLOWED_TARGET_PREFIXES = ("SA", "SS", "IC", "IN", "IT", "SD", "NB", "GL")
+
+    def __init__(
+        self,
+        relation_type: Union["RelationType", str],
+        target_global_id: str,
+        version_pin: Optional[int] = None,
+    ):
+        if isinstance(relation_type, RelationType):
+            self.relation_type = relation_type.value
+        else:
+            self.relation_type = relation_type
+        if not target_global_id or not str(target_global_id).strip():
+            raise ValueError("target_global_id cannot be empty or None")
+        prefix = re.match(r"^[A-Z]+", str(target_global_id))
+        if prefix is None or prefix.group(0) not in self.ALLOWED_TARGET_PREFIXES:
+            raise ValueError(
+                f"target_global_id '{target_global_id}' must start with one of "
+                f"the allowed prefixes {self.ALLOWED_TARGET_PREFIXES}"
+            )
+        self.target_global_id = target_global_id
+        self.version_pin = version_pin
+
+    def _toDict(self) -> dict:
+        d = {
+            "relationType": self.relation_type,
+            "targetGlobalId": self.target_global_id,
+        }
+        if self.version_pin is not None:
+            d["versionPin"] = self.version_pin
+        return d
+
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__} ({self.relation_type!r}, "
+            f"{self.target_global_id!r}, {self.version_pin!r})"
+        )
 
 
 class TemperatureUnit(Enum):
@@ -757,7 +870,14 @@ class Quantity:
 
 class ExtraField:
     """
-    The data in the 'content' field must be of the type set in the 'fieldType' field
+    A custom field that can be added to an Inventory item.
+
+    For ``TEXT`` and ``NUMBER`` fields the value is held in ``content``, which
+    must match the type set in ``fieldType``.
+
+    For ``LINK`` fields the value is a :class:`InventoryLink` supplied via the
+    ``link`` argument (or via the :meth:`link` convenience constructor) instead
+    of ``content``.
     """
 
     def __init__(
@@ -765,10 +885,55 @@ class ExtraField:
         name: str,
         fieldType: ExtraFieldType = ExtraFieldType.TEXT,
         content: Union[str, int, float] = "",
+        link: Optional["InventoryLink"] = None,
     ):
-        self.data = {"name": name, "type": fieldType.value, "content": content}
+        if fieldType == ExtraFieldType.LINK:
+            if link is None:
+                raise ValueError("A LINK ExtraField requires a 'link' argument")
+            if content:
+                raise ValueError("A LINK ExtraField cannot also set 'content'")
+            self.data = {"name": name, "type": fieldType.value, "link": link._toDict()}
+        else:
+            if link is not None:
+                raise ValueError(
+                    f"'link' is only valid for LINK fields, not {fieldType.value}"
+                )
+            self.data = {"name": name, "type": fieldType.value, "content": content}
+
+    @classmethod
+    def link(
+        cls,
+        name: str,
+        relation_type: Union["RelationType", str],
+        target_global_id: str,
+        version_pin: Optional[int] = None,
+    ) -> "ExtraField":
+        """
+        Convenience constructor for a Link extra-field.
+
+        Parameters
+        ----------
+        name : str
+            The field name.
+        relation_type : RelationType or str
+            How the source item relates to the target.
+        target_global_id : str
+            The Global ID of the linked record (e.g. 'SA123', 'IT42', 'GL9').
+        version_pin : int, optional
+            Pins the link to a specific version of the target.
+        """
+        return cls(
+            name,
+            ExtraFieldType.LINK,
+            link=InventoryLink(relation_type, target_global_id, version_pin),
+        )
 
     def __repr__(self):
+        if self.data["type"] == ExtraFieldType.LINK.value:
+            return (
+                f"{self.__class__.__name__} ({self.data['name']!r}, "
+                f"{self.data['type']!r}, {self.data['link']!r})"
+            )
         return f"{self.__class__.__name__} ({self.data['name']!r}, {self.data['type']!r},\
 {self.data['content']!r})"
 
@@ -1540,6 +1705,47 @@ class InventoryClient(ClientBase):
             request_type="PUT",
             params={"extraFields": toPut},
         )
+
+    def get_link_target_summary(self, global_id: Union[str, dict]) -> dict:
+        """
+        Returns a read-time summary of an Inventory Link target: its current
+        state as {globalId, name, type, deleted, readable}, permission-redacted
+        for the current user (targets the caller cannot read return a
+        globalId-only summary).
+
+        Parameters
+        ----------
+        global_id : Union[str, dict]
+            The Global ID (or item dict) of a link target. May be an Inventory
+            item or an ELN record (document, notebook, gallery file).
+
+        Returns
+        -------
+        dict
+            The link target summary.
+        """
+        gid = Id(global_id).as_global_id()
+        return self.retrieve_api_results(f"/linkTargets/{gid}/summary")
+
+    def get_referencing_items(self, global_id: Union[str, dict]) -> dict:
+        """
+        Returns the Inventory items whose Link extra-field points at the
+        supplied target, i.e. the back-references to ``global_id``. The result
+        is permission-filtered to sources the current user can read.
+
+        Parameters
+        ----------
+        global_id : Union[str, dict]
+            The Global ID (or item dict) of the target. May be an Inventory
+            item or an ELN record (document, notebook, gallery file).
+
+        Returns
+        -------
+        dict
+            The referencing (linking) items.
+        """
+        gid = Id(global_id).as_global_id()
+        return self.retrieve_api_results(f"/referencingItems/{gid}")
 
     def get_attachment_by_id(self, attachment_id: Union[str, int]) -> dict:
         """

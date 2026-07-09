@@ -6,6 +6,18 @@ All notable changes to this project will be documented in this file
  - replace naming of classes and methods using 'Workbench' to 'Bench'
  - replace create_sample, create_container long argument lists with new XXXPost objects
 
+## Unreleased
+
+- Added support for the Inventory "Link" extra-field type (server PR #803 /
+  RSDEV-1131): a new `ExtraFieldType.LINK`, a `RelationType` enum of the 40
+  DataCite/PIDINST relationship values, and an `InventoryLink` value object.
+  `ExtraField` now accepts Link fields, with an `ExtraField.link(...)`
+  convenience constructor. `TemplateBuilder`/`InstrumentTemplateBuilder` gain a
+  `link()` field with an optional relationship-type whitelist, and the client
+  gains `get_link_target_summary()` and `get_referencing_items()`. See
+  `examples/inventory_link_field.py`. Requires an RSpace server that supports
+  Link fields; integration tests are opt-in via `RSPACE_SUPPORTS_LINK_FIELDS`.
+
 ## 2.7.0  2026-07-03
 
 - Added support for Inventory Instruments and Instrument Templates (beta RSpace 2.24
