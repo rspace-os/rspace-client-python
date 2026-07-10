@@ -8,6 +8,7 @@ import numbers
 import datetime as dt
 
 from rspace_client.inv.quantity_unit import QuantityUnit
+from rspace_client.inv.inv import RelationType
 
 
 class FieldDefinitionBuilder:
@@ -229,6 +230,51 @@ class FieldDefinitionBuilder:
         if uri is not None and len(uri) > 0 and len(str.strip(uri)) > 0:
             parsed_uri = urlparse(uri)
             f["content"] = uri
+        self.fields.append(f)
+        return self
+
+    def link(
+        self,
+        name: str,
+        allowed_relation_types: List = None,
+        mandatory: bool = False,
+    ):
+        """
+        Defines a Link field: samples created from this template hold typed,
+        versioned links to other records.
+
+        Parameters
+        ----------
+        name : str
+            The field name.
+        allowed_relation_types : List, optional
+            An optional whitelist of permitted relationship types, each a
+            :class:`RelationType` or a raw string. Empty or None means all
+            relationship types are allowed.
+        mandatory : bool, optional
+            Whether samples created from this template must set this link.
+            The default is False.
+
+        Returns
+        -------
+        This object for chaining
+
+        Raises
+        ------
+        ValueError if any supplied relationship type is not a known value.
+        """
+        f = self._set_name(name, "Link")
+        if allowed_relation_types:
+            whitelist = []
+            for rt in allowed_relation_types:
+                if isinstance(rt, RelationType):
+                    whitelist.append(rt.value)
+                elif RelationType.is_valid(rt):
+                    whitelist.append(rt)
+                else:
+                    raise ValueError(f"{rt!r} is not a known relationship type")
+            f["allowedRelationTypes"] = whitelist
+        f["mandatory"] = mandatory
         self.fields.append(f)
         return self
 
