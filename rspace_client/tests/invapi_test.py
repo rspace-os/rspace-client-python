@@ -1134,8 +1134,8 @@ class InventoryApiTest(base.BaseApiTest):
         # Should contain the provider's settings fields
         self.assertIn("provider", result)
         self.assertIn("enabled", result)
-        # Should contain datacite section (even if empty/default)
-        self.assertIn("datacite", result)
+        self.assertIn("serverUrl", result)
+        self.assertIn("repositoryPrefix", result)
 
     def _require_link_field_support(self):
         """
