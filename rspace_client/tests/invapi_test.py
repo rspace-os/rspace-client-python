@@ -9,6 +9,7 @@ import sys, os
 import json
 import datetime as dt
 import pprint
+import unittest
 
 import pytest
 
@@ -1133,3 +1134,172 @@ class InventoryApiTest(base.BaseApiTest):
         # Should contain the provider's settings fields
         self.assertIn("provider", result)
         self.assertIn("enabled", result)
+        # Should contain datacite section (even if empty/default)
+        self.assertIn("datacite", result)
+
+    def _require_link_field_support(self):
+        """
+        Skips the calling test unless the target server is known to support
+        Inventory Link fields (RSpace server PR #803 / RSDEV-1131). Released
+        servers predate the feature, so the tests are opt-in via the
+        RSPACE_SUPPORTS_LINK_FIELDS environment variable.
+        """
+        if not os.getenv("RSPACE_SUPPORTS_LINK_FIELDS"):
+            pytest.skip(
+                "Skipping Link-field test: set RSPACE_SUPPORTS_LINK_FIELDS=1 "
+                "to run against a server that supports Inventory Link fields"
+            )
+
+    def test_add_link_extra_field(self):
+        self._require_link_field_support()
+        target = self.invapi.create_sample(base.random_string())
+        source = self.invapi.create_sample(base.random_string())
+        link_ef = inv.ExtraField.link(
+            "related", inv.RelationType.IS_DERIVED_FROM, target["globalId"]
+        )
+        updated = self.invapi.add_extra_fields(source["globalId"], link_ef)
+        link_fields = [
+            f for f in updated["extraFields"] if f["type"] == inv.ExtraFieldType.LINK.value
+        ]
+        self.assertEqual(1, len(link_fields))
+        self.assertEqual(
+            target["globalId"], link_fields[0]["link"]["targetGlobalId"]
+        )
+
+    def test_create_sample_with_link_extra_field(self):
+        self._require_link_field_support()
+        target = self.invapi.create_sample(base.random_string())
+        link_ef = inv.ExtraField.link(
+            "cites", inv.RelationType.CITES, target["globalId"]
+        )
+        sample = self.invapi.create_sample(
+            name=base.random_string(), extra_fields=[link_ef]
+        )
+        link_fields = [
+            f for f in sample["extraFields"] if f["type"] == inv.ExtraFieldType.LINK.value
+        ]
+        self.assertEqual(1, len(link_fields))
+
+    def test_get_referencing_items(self):
+        self._require_link_field_support()
+        target = self.invapi.create_sample(base.random_string())
+        source = self.invapi.create_sample(base.random_string())
+        link_ef = inv.ExtraField.link(
+            "ref", inv.RelationType.REFERENCES, target["globalId"]
+        )
+        self.invapi.add_extra_fields(source["globalId"], link_ef)
+        referencing = self.invapi.get_referencing_items(target["globalId"])
+        self.assertIsInstance(referencing, dict)
+
+    def test_get_link_target_summary(self):
+        self._require_link_field_support()
+        target = self.invapi.create_sample(base.random_string())
+        summary = self.invapi.get_link_target_summary(target["globalId"])
+        self.assertEqual(target["globalId"], summary["globalId"])
+
+    def test_create_sample_template_with_link_field(self):
+        self._require_link_field_support()
+        template_post = (
+            template_builder.TemplateBuilder(base.random_string(), "ml")
+            .link(
+                "related items",
+                allowed_relation_types=[inv.RelationType.IS_DERIVED_FROM],
+                mandatory=False,
+            )
+            .build()
+        )
+        template = self.invapi.create_sample_template(template_post)
+        link_fields = [
+            f for f in template["fields"] if f["type"] == inv.ExtraFieldType.LINK.value
+        ]
+        self.assertEqual(1, len(link_fields))
+
+
+class LinkFieldUnitTest(unittest.TestCase):
+    """
+    Pure unit tests for Inventory Link field value objects and builders that
+    do not require a live RSpace server.
+    """
+
+    def test_inventory_link_to_dict_with_enum(self):
+        link = inv.InventoryLink(
+            inv.RelationType.IS_CALIBRATED_BY, "IT42", version_pin=3
+        )
+        self.assertEqual(
+            {
+                "relationType": "IsCalibratedBy",
+                "targetGlobalId": "IT42",
+                "versionPin": 3,
+            },
+            link._toDict(),
+        )
+
+    def test_inventory_link_accepts_raw_string_relation_type(self):
+        link = inv.InventoryLink("References", "GL9")
+        self.assertEqual("References", link._toDict()["relationType"])
+        # version pin omitted when not set
+        self.assertNotIn("versionPin", link._toDict())
+
+    def test_inventory_link_rejects_disallowed_target_prefix(self):
+        with self.assertRaises(ValueError):
+            inv.InventoryLink(inv.RelationType.CITES, "ZZ1")
+
+    def test_inventory_link_rejects_empty_target(self):
+        with self.assertRaises(ValueError):
+            inv.InventoryLink(inv.RelationType.CITES, "")
+
+    def test_extra_field_link_serialization(self):
+        ef = inv.ExtraField.link("f", inv.RelationType.IS_DERIVED_FROM, "SA1")
+        self.assertEqual("link", ef.data["type"])
+        self.assertEqual("SA1", ef.data["link"]["targetGlobalId"])
+        self.assertNotIn("content", ef.data)
+
+    def test_link_extra_field_requires_link_argument(self):
+        with self.assertRaises(ValueError):
+            inv.ExtraField("f", inv.ExtraFieldType.LINK)
+
+    def test_link_extra_field_rejects_content(self):
+        with self.assertRaises(ValueError):
+            inv.ExtraField(
+                "f",
+                inv.ExtraFieldType.LINK,
+                content="x",
+                link=inv.InventoryLink(inv.RelationType.CITES, "SA1"),
+            )
+
+    def test_non_link_field_rejects_link_argument(self):
+        with self.assertRaises(ValueError):
+            inv.ExtraField(
+                "f",
+                inv.ExtraFieldType.TEXT,
+                link=inv.InventoryLink(inv.RelationType.CITES, "SA1"),
+            )
+
+    def test_relation_type_is_valid(self):
+        self.assertTrue(inv.RelationType.is_valid("IsCalibratedBy"))
+        self.assertFalse(inv.RelationType.is_valid("NotARelation"))
+
+    def test_relation_type_vocabulary_size(self):
+        # 38 DataCite 4.7 values plus the PIDINST IsCalibratedBy/Calibrates pair
+        self.assertEqual(40, len(list(inv.RelationType)))
+
+    def test_template_builder_link_field(self):
+        fields = (
+            template_builder.TemplateBuilder("t", "ml")
+            .link(
+                "links",
+                allowed_relation_types=[inv.RelationType.CITES, "References"],
+                mandatory=True,
+            )
+            ._fields()
+        )
+        self.assertEqual(1, len(fields))
+        self.assertEqual("Link", fields[0]["type"])
+        self.assertEqual(["Cites", "References"], fields[0]["allowedRelationTypes"])
+        self.assertTrue(fields[0]["mandatory"])
+
+    def test_template_builder_link_field_rejects_bad_relation_type(self):
+        with self.assertRaises(ValueError):
+            template_builder.TemplateBuilder("t", "ml").link(
+                "links", allowed_relation_types=["NotARelation"]
+            )
