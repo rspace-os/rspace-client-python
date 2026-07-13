@@ -2,6 +2,9 @@ import re
 import requests
 import sys
 
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
 from rspace_client.exceptions import (
     ApiError,
     AuthenticationError,
@@ -9,6 +12,26 @@ from rspace_client.exceptions import (
     RSpaceConnectionError,
     RSpaceError,
 )
+
+DEFAULT_TIMEOUT = (3.05, 30)  # (connect, read) seconds
+DEFAULT_MAX_RETRIES = 3
+DEFAULT_BACKOFF_FACTOR = 0.5
+RETRY_STATUSES = (429, 500, 502, 503, 504)
+
+
+class _RSpaceRetry(Retry):
+    """
+    Retry policy that additionally retries POST requests, but only on
+    statuses where the server rejected the request before processing it
+    (rate limiting / unavailable), so a replay cannot create duplicates.
+    """
+
+    POST_RETRYABLE_STATUSES = frozenset({429, 503})
+
+    def is_retry(self, method, status_code, has_retry_after=False):
+        if method and method.upper() == "POST":
+            return status_code in self.POST_RETRYABLE_STATUSES
+        return super().is_retry(method, status_code, has_retry_after)
 
 
 class Pagination:
@@ -34,13 +57,59 @@ class Pagination:
 class ClientBase:
     """Base class of common methods for all API clients"""
 
-    def __init__(self, rspace_url, api_key):
+    def __init__(
+        self,
+        rspace_url,
+        api_key,
+        timeout=DEFAULT_TIMEOUT,
+        max_retries=DEFAULT_MAX_RETRIES,
+        backoff_factor=DEFAULT_BACKOFF_FACTOR,
+    ):
         """
         Initializes RSpace client.
         :param api_key: RSpace API key of a user can be found on 'My Profile' page
+        :param timeout: seconds to wait for the server, either a single number
+            or a (connect, read) tuple, applied to every request
+        :param max_retries: how many times to retry a request that failed with
+            a retryable status (429/5xx) or a connection error. Set to 0 to
+            disable retries.
+        :param backoff_factor: multiplier for exponential backoff between
+            retries; the Retry-After header is honored when the server sends it
         """
         self.rspace_url = rspace_url.rstrip('/')
         self.api_key = api_key
+        self.timeout = timeout
+        self._session = self._build_session(max_retries, backoff_factor)
+
+    def _build_session(self, max_retries, backoff_factor):
+        session = requests.Session()
+        retry = _RSpaceRetry(
+            total=max_retries,
+            backoff_factor=backoff_factor,
+            status_forcelist=RETRY_STATUSES,
+            allowed_methods=("GET", "PUT", "DELETE"),
+            respect_retry_after_header=True,
+            # once retries are exhausted, return the last response so it is
+            # mapped to ApiError as usual instead of raising RetryError
+            raise_on_status=False,
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount("https://", adapter)
+        session.mount("http://", adapter)
+        session.headers["apiKey"] = self.api_key
+        return session
+
+    def close(self):
+        """
+        Closes the underlying HTTP session and its pooled connections.
+        """
+        self._session.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
 
     def _get_headers(self, content_type="application/json"):
         return {"apiKey": self.api_key, "Accept": content_type}
@@ -141,14 +210,16 @@ class ClientBase:
         headers = self._get_headers(content_type)
         try:
             if request_type == "GET":
-                response = requests.get(url, params=params, headers=headers)
+                response = self._session.get(
+                    url, params=params, headers=headers, timeout=self.timeout
+                )
             elif (
                 request_type == "PUT"
                 or request_type == "POST"
                 or request_type == "DELETE"
             ):
-                response = requests.request(
-                    request_type, url, json=params, headers=headers
+                response = self._session.request(
+                    request_type, url, json=params, headers=headers, timeout=self.timeout
                 )
             else:
                 raise ValueError(
@@ -158,7 +229,7 @@ class ClientBase:
                 )
 
             return self._handle_response(response)
-        except requests.exceptions.ConnectionError as e:
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
             raise RSpaceConnectionError(e)
 
     @staticmethod
