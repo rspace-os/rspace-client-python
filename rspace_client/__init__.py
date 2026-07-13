@@ -1,6 +1,13 @@
 """
  RSpace API client for interacting with RSpace ELN and Inventory
 """
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("rspace-client")
+except PackageNotFoundError:
+    __version__ = "unknown"
+
 from .eln.eln import ELNClient
 from .inv.inv import InventoryClient
 from .eln.advanced_query_builder import AdvancedQueryBuilder

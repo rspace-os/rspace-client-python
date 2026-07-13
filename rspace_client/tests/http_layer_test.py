@@ -9,10 +9,13 @@ responses library mocks), so the retry *policy* is tested directly on
 _RSpaceRetry while request/response behavior is tested through responses.
 """
 import unittest
+from io import BytesIO
 from unittest import mock
 
 import requests
 import responses
+
+import rspace_client
 
 from rspace_client.client_base import (
     ClientBase,
@@ -222,6 +225,85 @@ class RawResponseHelperTest(unittest.TestCase):
         with self.assertRaises(ApiError) as cm:
             self.client._get_raw_response(API_URL + "/barcodes")
         self.assertEqual(404, cm.exception.response_status_code)
+
+
+class DownloadTest(unittest.TestCase):
+    def setUp(self):
+        self.client = ELNClient(RSPACE_URL, "fake-api-key")
+
+    def tearDown(self):
+        self.client.close()
+
+    @responses.activate
+    def test_download_streams_to_file_object(self):
+        responses.add(
+            responses.GET, API_URL + "/files/1/file", body=b"file content", status=200
+        )
+        buffer = BytesIO()
+        self.client.download_link_to_file(API_URL + "/files/1/file", buffer)
+        self.assertEqual(b"file content", buffer.getvalue())
+
+    @responses.activate
+    def test_download_error_raises_api_error_and_writes_nothing(self):
+        # previously the error body was silently written into the target file
+        responses.add(
+            responses.GET,
+            API_URL + "/files/1/file",
+            json={"message": "not found", "errors": []},
+            status=404,
+        )
+        buffer = BytesIO()
+        with self.assertRaises(ApiError):
+            self.client.download_link_to_file(API_URL + "/files/1/file", buffer)
+        self.assertEqual(b"", buffer.getvalue())
+
+    def test_download_requests_streaming(self):
+        mock_response = mock.MagicMock()
+        mock_response.status_code = 200
+        mock_response.__enter__ = mock.MagicMock(return_value=mock_response)
+        mock_response.iter_content.return_value = [b"x"]
+        with mock.patch.object(
+            self.client._session, "get", return_value=mock_response
+        ) as mocked_get:
+            self.client.download_link_to_file(API_URL + "/files/1/file", BytesIO())
+        self.assertTrue(mocked_get.call_args.kwargs["stream"])
+        self.assertEqual(DEFAULT_TIMEOUT, mocked_get.call_args.kwargs["timeout"])
+
+
+class StreamPaginationTest(unittest.TestCase):
+    def setUp(self):
+        self.client = ELNClient(RSPACE_URL, "fake-api-key")
+
+    def tearDown(self):
+        self.client.close()
+
+    def test_stream_pages_until_no_next_link(self):
+        page1 = {
+            "samples": [{"id": 1}, {"id": 2}],
+            "_links": [{"rel": "next", "link": API_URL + "/samples?pageNumber=1"}],
+        }
+        page2 = {"samples": [{"id": 3}], "_links": []}
+        with mock.patch.object(
+            self.client, "retrieve_api_results", side_effect=[page1, page2]
+        ) as mocked:
+            items = list(self.client._stream("samples"))
+        self.assertEqual([1, 2, 3], [item["id"] for item in items])
+        self.assertEqual(2, mocked.call_count)
+
+
+class MiscTest(unittest.TestCase):
+    def test_package_exposes_version(self):
+        self.assertTrue(hasattr(rspace_client, "__version__"))
+        self.assertNotEqual("", rspace_client.__version__)
+
+    def test_serr_logs_warning_instead_of_printing(self):
+        client = ELNClient(RSPACE_URL, "fake-api-key")
+        try:
+            with self.assertLogs("rspace_client", level="WARNING") as logs:
+                client.serr("something went wrong")
+            self.assertIn("something went wrong", logs.output[0])
+        finally:
+            client.close()
 
 
 if __name__ == "__main__":

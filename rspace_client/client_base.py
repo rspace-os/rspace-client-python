@@ -1,6 +1,8 @@
+import logging
 import re
 import requests
-import sys
+
+from typing import Optional
 
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -12,6 +14,8 @@ from rspace_client.exceptions import (
     RSpaceConnectionError,
     RSpaceError,
 )
+
+logger = logging.getLogger("rspace_client")
 
 DEFAULT_TIMEOUT = (3.05, 30)  # (connect, read) seconds
 DEFAULT_MAX_RETRIES = 3
@@ -321,25 +325,29 @@ class ClientBase:
             )
         )
 
-    def download_link_to_file(self, url, filename, chunk_size=128):
+    def download_link_to_file(self, url, filename, chunk_size=8192):
         """
-        Downloads a file from the API server.
+        Downloads a file from the API server, streaming it to disk in chunks
+        so large files are not buffered in memory.
         :param url: URL of the file to be downloaded
         :param filename: file path to save the file to or an already opened file object
-        :param chunk_size: size of the chunks to download at a time, default is 128
+        :param chunk_size: size of the chunks to download at a time, default is 8192
         """
         headers = {"apiKey": self.api_key, "Accept": "application/octet-stream"}
-        if isinstance(filename, str):
-            with open(filename, "wb") as fd:
-                for chunk in requests.get(url, headers=headers).iter_content(
-                    chunk_size=chunk_size
-                ):
-                    fd.write(chunk)
-        else:
-            for chunk in requests.get(url, headers=headers).iter_content(
-                chunk_size=chunk_size
-            ):
-                filename.write(chunk)
+        try:
+            with self._session.get(
+                url, headers=headers, stream=True, timeout=self.timeout
+            ) as response:
+                self._check_status(response)
+                if isinstance(filename, str):
+                    with open(filename, "wb") as fd:
+                        for chunk in response.iter_content(chunk_size=chunk_size):
+                            fd.write(chunk)
+                else:
+                    for chunk in response.iter_content(chunk_size=chunk_size):
+                        filename.write(chunk)
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            raise RSpaceConnectionError(e)
 
     def link_exists(self, response, link_rel):
         """
@@ -351,12 +359,17 @@ class ClientBase:
         return link_rel in [x["rel"] for x in self._get_links(response)]
 
     def serr(self, msg: str):
-        print(msg, file=sys.stderr)
+        """
+        Deprecated: logs a warning through the 'rspace_client' logger instead
+        of printing to stderr. Use the logging module directly; this method
+        will be removed in 3.0.
+        """
+        logger.warning(msg)
 
     def _stream(
         self,
         endpoint: str,
-        pagination: Pagination = Pagination(),
+        pagination: Optional[Pagination] = None,
     ):
         """
         Yields items, making paginated requests to the server as each page
@@ -371,25 +384,25 @@ class ClientBase:
             An endpoint with a GET request that makes paginated listings
         pagination : Pagination, optional
             The pagination control. The default is Pagination().
-         : Pagination
 
         Yields
         ------
         item : A stream of items, depending on the endpoint called
         """
+        if pagination is None:
+            pagination = Pagination()
 
         urlStr = f"{self._get_api_url()}/{endpoint}"
 
         next_link = requests.Request(url=urlStr, params=pagination.data).prepare().url
-        while True:
-            if next_link is not None:
-                items = self.retrieve_api_results(next_link)
-                for item in items[endpoint]:
-                    yield item
-                if self.link_exists(items, "next"):
-                    next_link = self.get_link(items, "next")
-                else:
-                    break
+        while next_link is not None:
+            items = self.retrieve_api_results(next_link)
+            for item in items[endpoint]:
+                yield item
+            if self.link_exists(items, "next"):
+                next_link = self.get_link(items, "next")
+            else:
+                next_link = None
 
     # Deprecated aliases of the module-level classes in rspace_client.exceptions,
     # kept so existing `except ClientBase.ApiError:` code works. Remove in 3.0.
