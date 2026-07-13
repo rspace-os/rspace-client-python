@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file
  - replace naming of classes and methods using 'Workbench' to 'Bench'
  - replace create_sample, create_container long argument lists with new XXXPost objects
 
-## Unreleased
+## 2.7.2 2026-07-13
 
 - Added support for the Inventory "Link" extra-field type (server PR #803 /
   RSDEV-1131): a new `ExtraFieldType.LINK`, a `RelationType` enum of the 40
