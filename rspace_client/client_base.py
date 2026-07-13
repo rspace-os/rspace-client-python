@@ -2,6 +2,14 @@ import re
 import requests
 import sys
 
+from rspace_client.exceptions import (
+    ApiError,
+    AuthenticationError,
+    NoSuchLinkRel,
+    RSpaceConnectionError,
+    RSpaceError,
+)
+
 
 class Pagination:
     """
@@ -66,32 +74,42 @@ class ClientBase:
         )
 
     @staticmethod
+    def _get_error_detail(response):
+        """
+        Builds an error description from a response body, tolerating bodies
+        whose Content-Type claims JSON but do not parse.
+        """
+        if ClientBase._responseContainsJson(response):
+            try:
+                return ClientBase._get_formated_error_message(response.json())
+            except ValueError:
+                pass
+        return "error message: {}".format(response.text)
+
+    @staticmethod
     def _handle_response(response):
-        # Check whether response includes UNAUTHORIZED response code
-        # print("status: {}, header: {}".format(response.headers, response.status_code))
         if response.status_code == 401:
-            raise ClientBase.AuthenticationError(response.json()["message"])
+            raise AuthenticationError(
+                "Error code: 401, {}".format(ClientBase._get_error_detail(response))
+            )
 
         try:
             response.raise_for_status()
+        except requests.HTTPError:
+            raise ApiError(
+                "Error code: {}, {}".format(
+                    response.status_code, ClientBase._get_error_detail(response)
+                ),
+                response_status_code=response.status_code,
+                response=response,
+            )
 
-            if ClientBase._responseContainsJson(response):
-                return response.json()
-            elif response.text:
-                return response.text
-            else:
-                return response
-        except:
-            if "application/json" in response.headers["Content-Type"]:
-                error = "Error code: {}, {}".format(
-                    response.status_code,
-                    ClientBase._get_formated_error_message(response.json()),
-                )
-            else:
-                error = "Error code: {}, error message: {}".format(
-                    response.status_code, response.text
-                )
-            raise ClientBase.ApiError(error, response_status_code=response.status_code)
+        if ClientBase._responseContainsJson(response):
+            return response.json()
+        elif response.text:
+            return response.text
+        else:
+            return response
 
     def doDelete(self, path, resource_id):
         """
@@ -141,7 +159,7 @@ class ClientBase:
 
             return self._handle_response(response)
         except requests.exceptions.ConnectionError as e:
-            raise ClientBase.ConnectionError(e)
+            raise RSpaceConnectionError(e)
 
     @staticmethod
     def _get_links(response):
@@ -154,7 +172,7 @@ class ClientBase:
         try:
             return response["_links"]
         except KeyError:
-            raise ClientBase.NoSuchLinkRel("There are no links!")
+            raise NoSuchLinkRel("There are no links!")
 
     def get_link_contents(self, response, link_rel):
         """
@@ -175,7 +193,7 @@ class ClientBase:
         for link in self._get_links(response):
             if link["rel"] == link_rel:
                 return link["link"]
-        raise ClientBase.NoSuchLinkRel(
+        raise NoSuchLinkRel(
             'Requested link rel "{}", available rel(s): {}'.format(
                 link_rel, (", ".join(x["rel"] for x in self._get_links(response)))
             )
@@ -251,16 +269,9 @@ class ClientBase:
                 else:
                     break
 
-    class ConnectionError(Exception):
-        pass
-
-    class AuthenticationError(Exception):
-        pass
-
-    class NoSuchLinkRel(Exception):
-        pass
-
-    class ApiError(Exception):
-        def __init__(self, error_message, response_status_code=None):
-            Exception.__init__(self, error_message)
-            self.response_status_code = response_status_code
+    # Deprecated aliases of the module-level classes in rspace_client.exceptions,
+    # kept so existing `except ClientBase.ApiError:` code works. Remove in 3.0.
+    ConnectionError = RSpaceConnectionError
+    AuthenticationError = AuthenticationError
+    NoSuchLinkRel = NoSuchLinkRel
+    ApiError = ApiError
