@@ -7,7 +7,6 @@ import re
 import sys, io, base64
 import requests
 import pprint
-import requests
 from typing import Optional, Sequence, Union, List, TypedDict, BinaryIO
 
 from rspace_client.client_base import ClientBase, Pagination
@@ -1781,13 +1780,10 @@ class InventoryClient(ClientBase):
         global_id = Id(inventory_item)
         fs = {"parentGlobalId": global_id.as_global_id()}
         fsStr = json.dumps(fs)
-        headers = self._get_headers()
-        response = requests.post(
-            self._get_api_url() + "/files",
+        return self._post_multipart(
+            "/files",
             files={"file": file, "fileSettings": (None, fsStr, "application/json")},
-            headers=headers,
         )
-        return self._handle_response(response)
 
     def delete_attachment_by_id(self, attachment_id: Union[str, int]) -> None:
         """
@@ -1809,14 +1805,11 @@ class InventoryClient(ClientBase):
         )
 
     def upload_attachment_by_global_id(self, record_global_id: str, file: BinaryIO) -> None:
-        print(record_global_id, json.dumps({"parentGlobalId": record_global_id}))
-        response = requests.post(
-            self._get_api_url() + "/files",
+        return self._post_multipart(
+            "/files",
+            files={"file": file},
             data={"fileSettings": json.dumps({"parentGlobalId": record_global_id})},
-            files={"file": file },
-            headers=self._get_headers(),
         )
-        return self._handle_response(response)
 
     def split_subsample(
         self,
@@ -2509,13 +2502,9 @@ class InventoryClient(ClientBase):
 
         """
         st_id = Id(sample_template_id)
-        headers = self._get_headers()
-        response = requests.post(
-            f"{self._get_api_url()}/sampleTemplates/{st_id.as_id()}/icon",
-            files={"file": file},
-            headers=headers,
+        return self._post_multipart(
+            f"/sampleTemplates/{st_id.as_id()}/icon", files={"file": file}
         )
-        return self._handle_response(response)
 
     def get_sample_template_icon(
         self, sample_template_id: Union[int, str], icon_id: int, outfile
@@ -2673,13 +2662,9 @@ class InventoryClient(ClientBase):
 
         """
         it_id = Id(instrument_template_id)
-        headers = self._get_headers()
-        response = requests.post(
-            f"{self._get_api_url()}/instrumentTemplates/{it_id.as_id()}/icon",
-            files={"file": file},
-            headers=headers,
+        return self._post_multipart(
+            f"/instrumentTemplates/{it_id.as_id()}/icon", files={"file": file}
         )
-        return self._handle_response(response)
 
     def get_instrument_template_icon(
         self, instrument_template_id: Union[int, str], icon_id: int, outfile
@@ -2851,10 +2836,8 @@ class InventoryClient(ClientBase):
         Id(global_id)  ## validate is identifier
         data = {"content": global_id, "barcodeType": barcode_type.name}
         url = f"{self._get_api_url()}/barcodes"
-        headers = {"apiKey": self.api_key, "Accept": "image/png"}
 
-        resp = requests.get(url, headers=headers, params=data)
-        resp.raise_for_status()
+        resp = self._get_raw_response(url, params=data, accept="image/png")
         content = resp.content
         if outfile is not None:
             with open(outfile, "wb") as fd:
@@ -2957,7 +2940,7 @@ class InventoryClient(ClientBase):
         headers = self._get_headers("application/json")
 
         try:
-            response = requests.get(url, headers=headers)
+            response = self._session.get(url, headers=headers, timeout=self.timeout)
             if response.status_code != 200:
                 return False
             return bool(response.json())

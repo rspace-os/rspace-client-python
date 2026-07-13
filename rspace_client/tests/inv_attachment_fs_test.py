@@ -88,7 +88,7 @@ class InvAttachmentFilesystemTest(unittest.TestCase):
             headers=ANY
         )
 
-    @patch('requests.post')
+    @patch('requests.Session.post')
     def test_upload(self, mock_post):
         mock_response = MagicMock()
         mock_response.json.return_value = {'id': '456'}
@@ -99,7 +99,8 @@ class InvAttachmentFilesystemTest(unittest.TestCase):
             'https://example.com/api/inventory/v1/files',
             data={'fileSettings': '{"parentGlobalId": "SS123"}'},
             files={'file': file_obj},
-            headers=ANY
+            headers=ANY,
+            timeout=ANY
         )
 
     @patch('requests.Session.get', side_effect=mock_requests_get)

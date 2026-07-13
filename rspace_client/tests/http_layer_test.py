@@ -156,5 +156,73 @@ class ExceptionMappingTest(unittest.TestCase):
         self.assertEqual({"message": "OK"}, self.client.retrieve_api_results("/status"))
 
 
+class MultipartHelperTest(unittest.TestCase):
+    def setUp(self):
+        self.client = ELNClient(RSPACE_URL, "fake-api-key")
+
+    def tearDown(self):
+        self.client.close()
+
+    @responses.activate
+    def test_upload_success_returns_parsed_json(self):
+        responses.add(
+            responses.POST, API_URL + "/files", json={"id": 123}, status=200
+        )
+        result = self.client._post_multipart(
+            "/files", files={"file": ("f.txt", b"content")}, data={"folderId": 1}
+        )
+        self.assertEqual({"id": 123}, result)
+
+    @responses.activate
+    def test_upload_error_maps_to_api_error_like_json_calls(self):
+        responses.add(
+            responses.POST,
+            API_URL + "/files",
+            json={"message": "file too large", "errors": []},
+            status=413,
+        )
+        with self.assertRaises(ApiError) as cm:
+            self.client._post_multipart("/files", files={"file": ("f.txt", b"x")})
+        self.assertEqual(413, cm.exception.response_status_code)
+
+    def test_upload_passes_timeout(self):
+        with mock.patch.object(
+            self.client._session, "post", return_value=make_response(200, json_body={})
+        ) as mocked_post:
+            self.client._post_multipart("/files", files={"file": ("f.txt", b"x")})
+        self.assertEqual(DEFAULT_TIMEOUT, mocked_post.call_args.kwargs["timeout"])
+
+
+class RawResponseHelperTest(unittest.TestCase):
+    def setUp(self):
+        self.client = ELNClient(RSPACE_URL, "fake-api-key")
+
+    def tearDown(self):
+        self.client.close()
+
+    @responses.activate
+    def test_binary_get_returns_raw_response(self):
+        responses.add(
+            responses.GET,
+            API_URL + "/barcodes",
+            body=b"\x89PNG binary",
+            status=200,
+            content_type="image/png",
+        )
+        response = self.client._get_raw_response(
+            API_URL + "/barcodes", accept="image/png"
+        )
+        self.assertEqual(b"\x89PNG binary", response.content)
+
+    @responses.activate
+    def test_binary_get_error_maps_to_api_error(self):
+        responses.add(
+            responses.GET, API_URL + "/barcodes", body="nope", status=404
+        )
+        with self.assertRaises(ApiError) as cm:
+            self.client._get_raw_response(API_URL + "/barcodes")
+        self.assertEqual(404, cm.exception.response_status_code)
+
+
 if __name__ == "__main__":
     unittest.main()

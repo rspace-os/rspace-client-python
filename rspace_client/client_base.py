@@ -156,7 +156,11 @@ class ClientBase:
         return "error message: {}".format(response.text)
 
     @staticmethod
-    def _handle_response(response):
+    def _check_status(response):
+        """
+        Raises AuthenticationError on 401 and ApiError on any other HTTP
+        error status; returns None for successful responses.
+        """
         if response.status_code == 401:
             raise AuthenticationError(
                 "Error code: 401, {}".format(ClientBase._get_error_detail(response))
@@ -172,6 +176,10 @@ class ClientBase:
                 response_status_code=response.status_code,
                 response=response,
             )
+
+    @staticmethod
+    def _handle_response(response):
+        ClientBase._check_status(response)
 
         if ClientBase._responseContainsJson(response):
             return response.json()
@@ -231,6 +239,49 @@ class ClientBase:
             return self._handle_response(response)
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
             raise RSpaceConnectionError(e)
+
+    def _post_multipart(self, endpoint, files=None, data=None):
+        """
+        POSTs a multipart/form-data request (typically a file upload) through
+        the shared session, so timeout, retries and error handling behave the
+        same as for JSON API calls.
+        :param endpoint: full URL or path relative to the API root
+        :param files: dict of multipart file parts, passed to requests
+        :param data: dict of additional form fields
+        :return: parsed response, as for retrieve_api_results
+        """
+        url = endpoint
+        if not endpoint.startswith(self._get_api_url()):
+            url = self._get_api_url() + endpoint
+        try:
+            response = self._session.post(
+                url,
+                files=files,
+                data=data,
+                headers=self._get_headers(),
+                timeout=self.timeout,
+            )
+            return self._handle_response(response)
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            raise RSpaceConnectionError(e)
+
+    def _get_raw_response(self, url, params=None, accept="application/octet-stream"):
+        """
+        GETs a URL through the shared session and returns the raw response,
+        for binary content such as images. Raises AuthenticationError or
+        ApiError on HTTP error statuses, like retrieve_api_results.
+        """
+        try:
+            response = self._session.get(
+                url,
+                params=params,
+                headers={"apiKey": self.api_key, "Accept": accept},
+                timeout=self.timeout,
+            )
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            raise RSpaceConnectionError(e)
+        self._check_status(response)
+        return response
 
     @staticmethod
     def _get_links(response):

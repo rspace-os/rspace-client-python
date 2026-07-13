@@ -168,7 +168,7 @@ class ElnFilesystemTest(unittest.TestCase):
             headers=ANY
         )
 
-    @patch('requests.post')
+    @patch('requests.Session.post')
     def test_upload(self, mock_post):
         mock_response = MagicMock()
         mock_response.json.return_value = {'id': '456'}
@@ -179,7 +179,8 @@ class ElnFilesystemTest(unittest.TestCase):
             'https://example.com/api/v1/files',
             files={'file': file_obj},
             data={'folderId': 123},
-            headers=ANY
+            headers=ANY,
+            timeout=ANY
         )
 
 if __name__ == '__main__':
