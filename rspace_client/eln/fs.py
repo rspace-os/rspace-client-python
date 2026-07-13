@@ -221,10 +221,11 @@ class GalleryFilesystem(FS):
 
     def _folder_section(self, folder_id: Text) -> Optional[Text]:
         """The Gallery section (mediaType) a folder belongs to, or None if it
-        cannot be determined. Used to explain upload failures."""
+        cannot be determined. Best-effort: never raises, so it cannot mask the
+        real outcome of an upload."""
         try:
             return self.eln_client.get_folder(folder_id).get("mediaType")
-        except ClientBase.ApiError:
+        except Exception:
             return None
 
     def _human_path(self, folder: Mapping[Text, Any]) -> Text:
@@ -243,10 +244,17 @@ class GalleryFilesystem(FS):
             parts.append(folder["name"])
         return "/".join(parts)
 
-    def _placement(self, response: Mapping[Text, Any], requested_path: Optional[Text],
+    def _placement(self, response: Any, requested_path: Optional[Text],
                    rerouted: bool) -> Placement:
         """Build a Placement from an upload response, resolving the parent
-        folder for section/path feedback where possible."""
+        folder for section/path feedback where possible.
+
+        Tolerates a response that is not a dict (e.g. None): some callers wrap
+        or replace ``eln_client.upload_file`` and discard its return value, so
+        Placement construction must never crash a successful upload.
+        """
+        if not isinstance(response, dict):
+            response = {}
         parent_id = response.get("parentFolderId")
         section = None
         folder_global_id = None
@@ -257,7 +265,7 @@ class GalleryFilesystem(FS):
                 section = folder.get("mediaType")
                 folder_global_id = folder.get("globalId")
                 path = self._human_path(folder)
-            except ClientBase.ApiError:
+            except Exception:
                 pass
         return Placement(
             file_global_id=response.get("globalId"),

@@ -316,6 +316,17 @@ class ElnFilesystemTest(unittest.TestCase):
         self.assertTrue(placement.rerouted)
         self.assertEqual('Documents', placement.section)
 
+    def test_upload_tolerates_upload_file_returning_none(self):
+        # Galaxy's file source monkeypatches eln_client.upload_file with a
+        # wrapper that captures the response and returns None. upload() must not
+        # crash while building the Placement in that case.
+        self.fs.eln_client.upload_file = MagicMock(return_value=None)
+        placement = self.fs.upload('/GF123', BytesIO(b'x'))
+        self.assertFalse(placement.rerouted)
+        self.assertIsNone(placement.file_global_id)
+        self.assertEqual('Gallery', placement.path)
+        self.fs.eln_client.upload_file.assert_called_once()
+
     @patch('requests.get', side_effect=mock_requests_get)
     def test_invalid_constructor_policy_rejected(self, mock_get):
         with self.assertRaises(ValueError):
