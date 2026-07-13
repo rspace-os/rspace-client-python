@@ -45,6 +45,51 @@ for globalId in content:
   print(rspace_gallery_fs.getinfo(globalId).raw)
 ```
 
+#### Uploading into Gallery folders and the media-type section rule
+
+The RSpace Gallery is split into media-type sections (Images, Documents,
+Chemistry, ...) and a file can only be placed in a folder whose section matches
+the file's media type. Uploading, say, a PDF into a folder that lives in the
+Images section is rejected by the server.
+
+By default `upload` turns that rejection into a clear `GallerySectionMismatch`
+that names the folder's section, rather than an opaque API error:
+
+```python
+from rspace_client.eln.fs import GallerySectionMismatch
+
+try:
+    rspace_gallery_fs.upload("/GF123", file_obj)  # GF123 is in the Images section
+except GallerySectionMismatch as e:
+    print(e)                 # explains the section clash
+    print(e.folder_section)  # e.g. "Images"
+```
+
+Alternatively, opt in to automatic rerouting. On a mismatch the file is placed
+in the correct section's inbox instead of failing. Set the policy once when
+constructing the filesystem (it then applies to every write, including generic
+PyFilesystem operations), or override it per call:
+
+```python
+# filesystem-wide default
+rspace_gallery_fs = fs.GalleryFilesystem(url, api_key, on_mismatch="reroute")
+
+# or per upload
+placement = rspace_gallery_fs.upload("/GF123", file_obj, on_mismatch="reroute")
+```
+
+`upload` returns a `Placement` telling you where the file actually landed:
+
+```python
+placement.rerouted        # True if it did not go in the requested folder
+placement.section         # e.g. "Documents"
+placement.path            # e.g. "Gallery/Documents/Api Inbox"
+placement.file_global_id  # e.g. "GL999"
+```
+
+Note that rerouting places the file in the section's inbox, not a subfolder
+matching the one you requested.
+
 To access Inventory attachments construct a `InventoryAttachmentFilesystem` object.
 ```python
 from rspace_client.inv import fs

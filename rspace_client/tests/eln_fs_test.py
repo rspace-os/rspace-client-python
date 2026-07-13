@@ -21,6 +21,31 @@ def mock_failed_upload_post(url, *args, **kwargs):
     mock_response.raise_for_status.side_effect = Exception('400 Bad Request')
     return mock_response
 
+
+def _ok_file_response(parent_folder_id):
+    mock_response = MagicMock()
+    mock_response.status_code = 201
+    mock_response.headers = {'Content-Type': 'application/json'}
+    mock_response.raise_for_status.return_value = None
+    mock_response.json.return_value = {
+        'id': '999', 'globalId': 'GL999', 'name': 'data.pdf',
+        'parentFolderId': parent_folder_id,
+    }
+    return mock_response
+
+
+def mock_reroute_upload_post(url, *args, **kwargs):
+    """Rejects an upload that targets a folder (wrong section), but accepts the
+    retry with no folderId (server auto-routes to the correct section inbox)."""
+    if 'folderId' in kwargs.get('data', {}):
+        return mock_failed_upload_post(url, *args, **kwargs)
+    return _ok_file_response(555)
+
+
+def mock_success_upload_post(url, *args, **kwargs):
+    """An upload the server accepts, landing in the requested folder (123)."""
+    return _ok_file_response(123)
+
 def mock_requests_get(url, *args, **kwargs):
     mock_response = MagicMock()
     if url.endswith('/folders/tree'):
@@ -56,6 +81,16 @@ def mock_requests_get(url, *args, **kwargs):
             'mediaType': 'Images',
             'pathToRootFolder': None,
             '_links': [{'link': 'http://localhost:8080/api/v1/folders/306', 'rel': 'self'}]
+        }
+    elif url.endswith('/folders/555'):
+        mock_response.json.return_value = {
+            'id': '555',
+            'globalId': 'GF555',
+            'name': 'Api Inbox',
+            'size': 0,
+            'notebook': False,
+            'mediaType': 'Documents',
+            'pathToRootFolder': None,
         }
     elif url.endswith('/folders/456'):
         mock_response.json.return_value = {
@@ -187,7 +222,11 @@ class ElnFilesystemTest(unittest.TestCase):
     @patch('requests.post')
     def test_upload(self, mock_post):
         mock_response = MagicMock()
-        mock_response.json.return_value = {'id': '456'}
+        mock_response.status_code = 201
+        mock_response.headers = {'Content-Type': 'application/json'}
+        mock_response.raise_for_status.return_value = None
+        # no parentFolderId -> no follow-up folder lookup needed
+        mock_response.json.return_value = {'id': '456', 'globalId': 'GL456'}
         mock_post.return_value = mock_response
         file_obj = BytesIO(b'test file content')
         self.fs.upload('/GF123', file_obj)
@@ -236,6 +275,55 @@ class ElnFilesystemTest(unittest.TestCase):
         with self.assertRaises(ClientBase.ApiError) as ctx:
             self.fs.upload('', file_obj)
         self.assertNotIsInstance(ctx.exception, GallerySectionMismatch)
+
+    @patch('requests.get', side_effect=mock_requests_get)
+    @patch('requests.post', side_effect=mock_success_upload_post)
+    def test_upload_success_returns_placement(self, mock_post, mock_get):
+        file_obj = BytesIO(b'x')
+        file_obj.name = 'a.pdf'
+        placement = self.fs.upload('/GF123', file_obj)
+        self.assertFalse(placement.rerouted)
+        self.assertEqual('GL999', placement.file_global_id)
+        self.assertEqual('Images', placement.section)
+        self.assertEqual('GF123', placement.folder_global_id)
+        self.assertEqual('/GF123', placement.requested_path)
+
+    @patch('requests.get', side_effect=mock_requests_get)
+    @patch('requests.post', side_effect=mock_reroute_upload_post)
+    def test_upload_reroute_per_call_override(self, mock_post, mock_get):
+        # self.fs defaults to "raise"; override to "reroute" on the call.
+        file_obj = BytesIO(b'%PDF-1.4 fake')
+        file_obj.name = 'data.pdf'
+        placement = self.fs.upload('/GF123', file_obj, on_mismatch='reroute')
+        self.assertTrue(placement.rerouted)
+        self.assertEqual('GL999', placement.file_global_id)
+        self.assertEqual('Documents', placement.section)
+        self.assertEqual('GF555', placement.folder_global_id)
+        self.assertEqual('/GF123', placement.requested_path)
+        self.assertEqual('Gallery/Documents/Api Inbox', placement.path)
+        # first attempt targets the folder, retry drops folderId
+        self.assertEqual(2, mock_post.call_count)
+        self.assertEqual({'folderId': 123}, mock_post.call_args_list[0].kwargs['data'])
+        self.assertEqual({}, mock_post.call_args_list[1].kwargs['data'])
+
+    @patch('requests.get', side_effect=mock_requests_get)
+    @patch('requests.post', side_effect=mock_reroute_upload_post)
+    def test_upload_reroute_constructor_policy(self, mock_post, mock_get):
+        reroute_fs = GalleryFilesystem('https://example.com', 'api_key', on_mismatch='reroute')
+        file_obj = BytesIO(b'%PDF-1.4 fake')
+        file_obj.name = 'data.pdf'
+        placement = reroute_fs.upload('/GF123', file_obj)
+        self.assertTrue(placement.rerouted)
+        self.assertEqual('Documents', placement.section)
+
+    @patch('requests.get', side_effect=mock_requests_get)
+    def test_invalid_constructor_policy_rejected(self, mock_get):
+        with self.assertRaises(ValueError):
+            GalleryFilesystem('https://example.com', 'api_key', on_mismatch='bogus')
+
+    def test_invalid_per_call_policy_rejected(self):
+        with self.assertRaises(ValueError):
+            self.fs.upload('/GF123', BytesIO(b'x'), on_mismatch='bogus')
 
 
 if __name__ == '__main__':

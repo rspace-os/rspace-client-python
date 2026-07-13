@@ -1,3 +1,5 @@
+import logging
+from dataclasses import dataclass
 from fs.base import FS
 from rspace_client.eln import eln
 from rspace_client.client_base import ClientBase
@@ -9,6 +11,13 @@ from fs import errors
 from fs.mode import Mode
 from io import BytesIO
 from ..fs_utils import path_to_id
+
+logger = logging.getLogger(__name__)
+
+# Accepted values for the GalleryFilesystem ``on_mismatch`` policy.
+ON_MISMATCH_RAISE = "raise"
+ON_MISMATCH_REROUTE = "reroute"
+_ON_MISMATCH_VALUES = (ON_MISMATCH_RAISE, ON_MISMATCH_REROUTE)
 
 # Best-effort mapping of file extension to the RSpace Gallery section that
 # RSpace would classify it into. This mirrors the server's own classification
@@ -75,6 +84,23 @@ class GallerySectionMismatch(ClientBase.ApiError):
         self.file_media_type = file_media_type
 
 
+@dataclass
+class Placement:
+    """Where an uploaded file actually ended up in the Gallery.
+
+    Returned by :meth:`GalleryFilesystem.upload`. When ``rerouted`` is True the
+    file did not land in the folder named by ``requested_path`` (its section did
+    not accept the file) and was placed in the correct section instead;
+    ``path`` reports the human-readable location it ended up in.
+    """
+    file_global_id: Optional[Text]
+    folder_global_id: Optional[Text]
+    section: Optional[Text]
+    path: Text
+    rerouted: bool
+    requested_path: Optional[Text] = None
+
+
 def is_folder(path):
     return path.split('/')[-1][:2] == "GF"
 
@@ -87,8 +113,24 @@ class GalleryInfo(Info):
 
 class GalleryFilesystem(FS):
 
-    def __init__(self, server: str, api_key: str) -> None:
+    def __init__(self, server: str, api_key: str, on_mismatch: str = ON_MISMATCH_RAISE) -> None:
+        """
+        :param server: RSpace server URL
+        :param api_key: RSpace API key
+        :param on_mismatch: what to do when a file is uploaded to a folder whose
+            Gallery section does not accept it. ``"raise"`` (default) raises a
+            :class:`GallerySectionMismatch`; ``"reroute"`` instead places the
+            file in the correct section automatically and reports where it
+            landed. This is the filesystem-wide default and applies to every
+            write (including generic PyFilesystem operations); individual
+            :meth:`upload` calls may override it.
+        """
         super(GalleryFilesystem, self).__init__()
+        if on_mismatch not in _ON_MISMATCH_VALUES:
+            raise ValueError(
+                "on_mismatch must be one of {}".format(_ON_MISMATCH_VALUES)
+            )
+        self.on_mismatch = on_mismatch
         self.eln_client = eln.ELNClient(server, api_key)
         self.gallery_id = next(file['id'] for file in self.eln_client.list_folder_tree()['records'] if file['name'] == 'Gallery')
 
@@ -185,23 +227,76 @@ class GalleryFilesystem(FS):
         except ClientBase.ApiError:
             return None
 
-    def upload(self, path: Text, file: BinaryIO, chunk_size: Optional[int] = None, **options: Any) -> None:
+    def _human_path(self, folder: Mapping[Text, Any]) -> Text:
+        """Best-effort readable path for a folder, e.g. 'Gallery/Documents/Api
+        Inbox'. Uses the API's pathToRootFolder when present, otherwise falls
+        back to the section and folder name."""
+        trail = folder.get("pathToRootFolder")
+        if isinstance(trail, list) and trail:
+            names = [f.get("name") for f in trail if f.get("name")]
+            if names:
+                return "/".join(names)
+        parts = ["Gallery"]
+        if folder.get("mediaType"):
+            parts.append(folder["mediaType"])
+        if folder.get("name"):
+            parts.append(folder["name"])
+        return "/".join(parts)
+
+    def _placement(self, response: Mapping[Text, Any], requested_path: Optional[Text],
+                   rerouted: bool) -> Placement:
+        """Build a Placement from an upload response, resolving the parent
+        folder for section/path feedback where possible."""
+        parent_id = response.get("parentFolderId")
+        section = None
+        folder_global_id = None
+        path = "Gallery"
+        if parent_id is not None:
+            try:
+                folder = self.eln_client.get_folder(parent_id)
+                section = folder.get("mediaType")
+                folder_global_id = folder.get("globalId")
+                path = self._human_path(folder)
+            except ClientBase.ApiError:
+                pass
+        return Placement(
+            file_global_id=response.get("globalId"),
+            folder_global_id=folder_global_id,
+            section=section,
+            path=path,
+            rerouted=rerouted,
+            requested_path=requested_path,
+        )
+
+    def upload(self, path: Text, file: BinaryIO, chunk_size: Optional[int] = None,
+               on_mismatch: Optional[str] = None, **options: Any) -> Placement:
         """
         :param path: Global Id of a folder in the appropriate gallery section or
                      else if empty then the upload will be placed in the Api
                      Imports folder of the relevant gallery section
         :param file: a binary file object to be uploaded
+        :param on_mismatch: optional override of the filesystem-wide policy for
+                     this call ("raise" or "reroute"); defaults to the value
+                     passed to the constructor.
+        :return: a :class:`Placement` describing where the file ended up.
 
         The RSpace Gallery is split into media-type sections (Images, Documents,
         Chemistry, ...) and a file may only be placed in a folder whose section
         matches the file's media type. If ``path`` names a folder in the wrong
-        section the upload is rejected; this method re-raises that as a
-        :class:`GallerySectionMismatch` naming the folder's section, instead of
-        an opaque API error.
+        section the upload is rejected. Depending on the effective policy this
+        either raises a :class:`GallerySectionMismatch` naming the folder's
+        section (``"raise"``) or places the file in the correct section's inbox
+        and returns a Placement with ``rerouted=True`` (``"reroute"``).
         """
+        policy = on_mismatch if on_mismatch is not None else self.on_mismatch
+        if policy not in _ON_MISMATCH_VALUES:
+            raise ValueError(
+                "on_mismatch must be one of {}".format(_ON_MISMATCH_VALUES)
+            )
         folder_id = path_to_id(path) if path else None
         try:
-            self.eln_client.upload_file(file, folder_id)
+            response = self.eln_client.upload_file(file, folder_id)
+            return self._placement(response, requested_path=path or None, rerouted=False)
         except ClientBase.ApiError as err:
             if folder_id is None:
                 raise
@@ -210,6 +305,22 @@ class GalleryFilesystem(FS):
                 raise
             filename = _filename_for(file, options)
             guessed = classify_media_section(filename)
+
+            if policy == ON_MISMATCH_REROUTE:
+                try:
+                    file.seek(0)
+                except (AttributeError, OSError, ValueError):
+                    pass
+                response = self.eln_client.upload_file(file, None)
+                placement = self._placement(response, requested_path=path, rerouted=True)
+                logger.info(
+                    "RSpace Gallery: %s could not go in %s (section '%s'); "
+                    "placed in %s instead",
+                    "'{}'".format(filename) if filename else "file",
+                    path, section, placement.path,
+                )
+                return placement
+
             named = "'{}'".format(filename) if filename else "the file"
             message = (
                 "Could not upload {named} to Gallery folder {path}. That folder "
@@ -221,9 +332,10 @@ class GalleryFilesystem(FS):
                     named=named, guessed=guessed
                 )
             message += (
-                ". Upload it to a folder in the matching section, or omit the "
+                ". Upload it to a folder in the matching section, omit the "
                 "folder path to let RSpace place it in the correct section "
-                "automatically. Original API error: {err}".format(err=err)
+                "automatically, or construct the filesystem with "
+                "on_mismatch='reroute'. Original API error: {err}".format(err=err)
             )
             raise GallerySectionMismatch(
                 message,
