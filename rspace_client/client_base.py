@@ -115,8 +115,15 @@ class ClientBase:
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
+    @staticmethod
+    def _is_absolute_url(url):
+        return url.startswith("http://") or url.startswith("https://")
+
     def _get_headers(self, content_type="application/json"):
-        return {"apiKey": self.api_key, "Accept": content_type}
+        headers = {"apiKey": self.api_key}
+        if content_type is not None:
+            headers["Accept"] = content_type
+        return headers
 
     @staticmethod
     def _get_numeric_record_id(global_id):
@@ -216,7 +223,7 @@ class ClientBase:
         :return: parsed JSON response as a dictionary
         """
         url = endpoint
-        if not endpoint.startswith(self._get_api_url()):
+        if not self._is_absolute_url(endpoint):
             url = self._get_api_url() + endpoint
 
         headers = self._get_headers(content_type)
@@ -255,7 +262,7 @@ class ClientBase:
         :return: parsed response, as for retrieve_api_results
         """
         url = endpoint
-        if not endpoint.startswith(self._get_api_url()):
+        if not self._is_absolute_url(endpoint):
             url = self._get_api_url() + endpoint
         try:
             response = self._session.post(

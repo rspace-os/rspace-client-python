@@ -1804,7 +1804,7 @@ class InventoryClient(ClientBase):
             f"{url_base}/files/{attachment_id}/file", file_path, chunk_size
         )
 
-    def upload_attachment_by_global_id(self, record_global_id: str, file: BinaryIO) -> None:
+    def upload_attachment_by_global_id(self, record_global_id: str, file: BinaryIO) -> dict:
         return self._post_multipart(
             "/files",
             files={"file": file},

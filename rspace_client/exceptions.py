@@ -4,7 +4,7 @@ Exception hierarchy for rspace-client.
 All exceptions raised by this library inherit from RSpaceError, so user code
 can catch anything the client raises with ``except rspace_client.RSpaceError``.
 
-Before version 2.8.0 these lived as nested classes on ClientBase
+In earlier releases these lived as nested classes on ClientBase
 (e.g. ``ClientBase.ApiError``). Those names remain as aliases of the classes
 defined here and will be removed in 3.0.
 """

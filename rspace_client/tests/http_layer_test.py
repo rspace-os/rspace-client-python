@@ -96,20 +96,20 @@ class SessionConfigTest(unittest.TestCase):
 
 class TimeoutPropagationTest(unittest.TestCase):
     def test_default_timeout_passed_to_get(self):
-        client = ELNClient(RSPACE_URL, "fake-api-key")
-        with mock.patch.object(
-            client._session, "get", return_value=make_response(200, json_body={})
-        ) as mocked_get:
-            client.retrieve_api_results("/status")
-        self.assertEqual(DEFAULT_TIMEOUT, mocked_get.call_args.kwargs["timeout"])
+        with ELNClient(RSPACE_URL, "fake-api-key") as client:
+            with mock.patch.object(
+                client._session, "get", return_value=make_response(200, json_body={})
+            ) as mocked_get:
+                client.retrieve_api_results("/status")
+            self.assertEqual(DEFAULT_TIMEOUT, mocked_get.call_args.kwargs["timeout"])
 
     def test_constructor_timeout_passed_to_non_get(self):
-        client = ELNClient(RSPACE_URL, "fake-api-key", timeout=(5, 120))
-        with mock.patch.object(
-            client._session, "request", return_value=make_response(200, json_body={})
-        ) as mocked_request:
-            client.retrieve_api_results("/forms", request_type="POST")
-        self.assertEqual((5, 120), mocked_request.call_args.kwargs["timeout"])
+        with ELNClient(RSPACE_URL, "fake-api-key", timeout=(5, 120)) as client:
+            with mock.patch.object(
+                client._session, "request", return_value=make_response(200, json_body={})
+            ) as mocked_request:
+                client.retrieve_api_results("/forms", request_type="POST")
+            self.assertEqual((5, 120), mocked_request.call_args.kwargs["timeout"])
 
 
 class ExceptionMappingTest(unittest.TestCase):
