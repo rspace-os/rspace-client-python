@@ -6,6 +6,7 @@ Created on Sat Oct  2 22:09:40 2021
 @author: richard
 """
 import sys, os
+import io
 import json
 import datetime as dt
 import pprint
@@ -1213,6 +1214,85 @@ class InventoryApiTest(base.BaseApiTest):
             f for f in template["fields"] if f["type"] == inv.ExtraFieldType.LINK.value
         ]
         self.assertEqual(1, len(link_fields))
+
+    @staticmethod
+    def _csv(content: str) -> io.BytesIO:
+        f = io.BytesIO(content.encode("utf-8"))
+        f.name = "test.csv"
+        return f
+
+    def test_parse_samples_csv(self):
+        parse_result = self.invapi.parse_csv_import_file(
+            self._csv("Name,Comment\nSample1,hello\nSample2,world"),
+            inv.ImportRecordType.SAMPLES,
+        )
+        self.assertEqual(["Name", "Comment"], parse_result["columnNames"])
+        self.assertEqual(2, parse_result["rowsCount"])
+        # samples parse returns a suggested template
+        self.assertIsNotNone(parse_result["templateInfo"])
+
+    def test_import_samples_csv_creates_template(self):
+        template_name = base.random_string(8)
+        result = self.invapi.import_samples_csv(
+            self._csv("Name,Comment\nSample1,hello\nSample2,world"),
+            field_mappings={"Name": "name"},
+            template_info={"name": template_name},
+        )
+        self.assertEqual("COMPLETED", result["status"])
+        sample_result = result["sampleResults"]
+        self.assertTrue(sample_result["templateCreated"])
+        self.assertEqual(2, sample_result["successCount"])
+        self.assertEqual(0, sample_result["errorCount"])
+
+    def test_import_samples_csv_requires_name_mapping(self):
+        with self.assertRaises(ValueError):
+            self.invapi.import_samples_csv(
+                self._csv("Name\nSample1"),
+                field_mappings={"Name": "description"},
+                template_info={"name": base.random_string(8)},
+            )
+
+    def test_import_samples_csv_requires_template(self):
+        with self.assertRaises(ValueError):
+            self.invapi.import_samples_csv(
+                self._csv("Name\nSample1"), field_mappings={"Name": "name"}
+            )
+
+    def test_import_containers_csv(self):
+        result = self.invapi.import_containers_csv(
+            self._csv("Name\nContainer1\nContainer2"),
+            field_mappings={"Name": "name"},
+        )
+        self.assertEqual("COMPLETED", result["status"])
+        container_result = result["containerResults"]
+        self.assertEqual(2, container_result["successCount"])
+        self.assertEqual(0, container_result["errorCount"])
+
+    def test_import_subsamples_into_existing_sample(self):
+        sample = self.invapi.create_sample(base.random_string(8))
+        global_id = sample["globalId"]
+        result = self.invapi.import_subsamples_csv(
+            self._csv(
+                "Name,Parent sample\n"
+                f"SubSample1,{global_id}\n"
+                f"SubSample2,{global_id}"
+            ),
+            field_mappings={
+                "Name": "name",
+                "Parent sample": "parent sample global id",
+            },
+        )
+        self.assertEqual("COMPLETED", result["status"])
+        subsample_result = result["subSampleResults"]
+        self.assertEqual(2, subsample_result["successCount"])
+        self.assertEqual(0, subsample_result["errorCount"])
+
+    def test_import_subsamples_csv_requires_parent_sample(self):
+        with self.assertRaises(ValueError):
+            self.invapi.import_subsamples_csv(
+                self._csv("Name\nSubSample1"),
+                field_mappings={"Name": "name"},
+            )
 
 
 class LinkFieldUnitTest(unittest.TestCase):

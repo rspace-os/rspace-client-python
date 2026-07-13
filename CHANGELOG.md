@@ -6,6 +6,14 @@ All notable changes to this project will be documented in this file
  - replace naming of classes and methods using 'Workbench' to 'Bench'
  - replace create_sample, create_container long argument lists with new XXXPost objects
 
+## Unreleased
+
+- Added support for importing Inventory CSV files (issue #32): `parse_csv_import_file`,
+  `import_csv_files`, `import_samples_csv`, `import_containers_csv` and
+  `import_subsamples_csv`, plus a new `ImportRecordType` enum. Supports samples,
+  subsamples and LIST containers; Instruments and Instrument Templates cannot be
+  imported from CSV. See `examples/import_inventory_csv.py`.
+
 ## 2.7.2 2026-07-13
 
 - Added support for the Inventory "Link" extra-field type (server PR #803 /
