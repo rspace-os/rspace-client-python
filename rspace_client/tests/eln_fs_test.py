@@ -1,7 +1,25 @@
 from unittest.mock import patch, MagicMock, ANY
 import unittest
-from rspace_client.eln.fs import path_to_id, GalleryFilesystem
+from rspace_client.eln.fs import (
+    path_to_id,
+    GalleryFilesystem,
+    GallerySectionMismatch,
+    classify_media_section,
+)
+from rspace_client.client_base import ClientBase
 from io import BytesIO
+
+
+def mock_failed_upload_post(url, *args, **kwargs):
+    """A /files upload that the server rejects (e.g. wrong Gallery section)."""
+    mock_response = MagicMock()
+    mock_response.status_code = 400
+    mock_response.headers = {'Content-Type': 'application/json'}
+    mock_response.json.return_value = {
+        'message': 'File type not allowed in this folder', 'errors': []
+    }
+    mock_response.raise_for_status.side_effect = Exception('400 Bad Request')
+    return mock_response
 
 def mock_requests_get(url, *args, **kwargs):
     mock_response = MagicMock()
@@ -179,6 +197,46 @@ class ElnFilesystemTest(unittest.TestCase):
             data={'folderId': 123},
             headers=ANY
         )
+
+    def test_classify_media_section(self):
+        self.assertEqual('Images', classify_media_section('photo.png'))
+        self.assertEqual('Images', classify_media_section('photo.JPG'))
+        self.assertEqual('Videos', classify_media_section('clip.mp4'))
+        self.assertEqual('Chemistry', classify_media_section('reaction.mol'))
+        # unrecognised extensions fall through to the Documents catch-all
+        self.assertEqual('Documents', classify_media_section('report.pdf'))
+        self.assertEqual('Documents', classify_media_section('data.xyz'))
+        # no filename / no extension -> cannot guess
+        self.assertIsNone(classify_media_section('noextension'))
+        self.assertIsNone(classify_media_section(None))
+
+    @patch('requests.get', side_effect=mock_requests_get)
+    @patch('requests.post', side_effect=mock_failed_upload_post)
+    def test_upload_wrong_section_raises_mismatch(self, mock_post, mock_get):
+        # Folder GF123 is in the 'Images' section (see mock_requests_get);
+        # uploading a PDF there is rejected by the server.
+        file_obj = BytesIO(b'%PDF-1.4 fake')
+        file_obj.name = 'data.pdf'
+        with self.assertRaises(GallerySectionMismatch) as ctx:
+            self.fs.upload('/GF123', file_obj)
+        err = ctx.exception
+        self.assertEqual('Images', err.folder_section)
+        self.assertEqual('GF123', err.folder_global_id)
+        self.assertEqual('Documents', err.file_media_type)
+        self.assertIn('Images', str(err))
+        self.assertIn('data.pdf', str(err))
+        # the original server message is preserved
+        self.assertIn('File type not allowed', str(err))
+
+    @patch('requests.post', side_effect=mock_failed_upload_post)
+    def test_upload_no_folder_reraises_original(self, mock_post):
+        # With no target folder the server auto-routes; a failure here is not a
+        # section mismatch and must surface unchanged.
+        file_obj = BytesIO(b'x')
+        with self.assertRaises(ClientBase.ApiError) as ctx:
+            self.fs.upload('', file_obj)
+        self.assertNotIsInstance(ctx.exception, GallerySectionMismatch)
+
 
 if __name__ == '__main__':
     unittest.main()

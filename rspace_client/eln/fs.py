@@ -1,5 +1,6 @@
 from fs.base import FS
 from rspace_client.eln import eln
+from rspace_client.client_base import ClientBase
 from typing import Optional, List, Text, BinaryIO, Mapping, Any
 from fs.info import Info
 from fs.permissions import Permissions
@@ -8,6 +9,71 @@ from fs import errors
 from fs.mode import Mode
 from io import BytesIO
 from ..fs_utils import path_to_id
+
+# Best-effort mapping of file extension to the RSpace Gallery section that
+# RSpace would classify it into. This mirrors the server's own classification
+# but is NOT authoritative: it is used only to phrase error messages, never to
+# decide whether an upload is allowed. Anything not listed falls through to the
+# "Documents" catch-all, matching the server default.
+_SECTION_BY_EXTENSION = {
+    # Images
+    "png": "Images", "jpg": "Images", "jpeg": "Images", "gif": "Images",
+    "tif": "Images", "tiff": "Images", "bmp": "Images", "svg": "Images",
+    "webp": "Images", "heic": "Images",
+    # Audios
+    "mp3": "Audios", "wav": "Audios", "flac": "Audios", "ogg": "Audios",
+    "m4a": "Audios", "aac": "Audios", "wma": "Audios",
+    # Videos
+    "mp4": "Videos", "mov": "Videos", "avi": "Videos", "mkv": "Videos",
+    "wmv": "Videos", "webm": "Videos", "m4v": "Videos", "flv": "Videos",
+    # Chemistry
+    "mol": "Chemistry", "mol2": "Chemistry", "rxn": "Chemistry",
+    "cdx": "Chemistry", "cdxml": "Chemistry", "smi": "Chemistry",
+    "sdf": "Chemistry", "cml": "Chemistry",
+}
+
+
+def classify_media_section(filename: Optional[Text]) -> Optional[Text]:
+    """
+    Best-effort guess of the Gallery section for a filename, mirroring RSpace's
+    server-side classification. Returns a section name (e.g. "Images"), or
+    "Documents" as the catch-all when the extension is unrecognised, or None
+    when no filename/extension is available to guess from.
+
+    The server remains the authority on placement; this is only used to make
+    error messages and log lines more helpful.
+    """
+    if not filename or "." not in filename:
+        return None
+    ext = filename.rsplit(".", 1)[-1].lower()
+    return _SECTION_BY_EXTENSION.get(ext, "Documents")
+
+
+def _filename_for(file: BinaryIO, options: Mapping[Text, Any]) -> Optional[Text]:
+    """Best-effort filename for a file object: an explicit ``filename`` option
+    wins, otherwise the file object's own ``name`` if it is a string."""
+    name = options.get("filename")
+    if name:
+        return name
+    name = getattr(file, "name", None)
+    return name if isinstance(name, str) else None
+
+
+class GallerySectionMismatch(ClientBase.ApiError):
+    """
+    Raised when a file could not be uploaded into the requested Gallery folder
+    because that folder belongs to a media-type section that does not accept the
+    file. Carries the folder's section and, when it could be guessed, the file's
+    media type, so callers can react programmatically as well as read the message.
+    """
+
+    def __init__(self, message, *, folder_section=None, folder_global_id=None,
+                 file_media_type=None, response_status_code=None):
+        super().__init__(message, response_status_code=response_status_code)
+        self.folder_section = folder_section
+        self.folder_global_id = folder_global_id
+        self.file_media_type = file_media_type
+
 
 def is_folder(path):
     return path.split('/')[-1][:2] == "GF"
@@ -111,11 +177,58 @@ class GalleryFilesystem(FS):
         else:
             self.eln_client.download_file(path_to_id(path), file)
 
+    def _folder_section(self, folder_id: Text) -> Optional[Text]:
+        """The Gallery section (mediaType) a folder belongs to, or None if it
+        cannot be determined. Used to explain upload failures."""
+        try:
+            return self.eln_client.get_folder(folder_id).get("mediaType")
+        except ClientBase.ApiError:
+            return None
+
     def upload(self, path: Text, file: BinaryIO, chunk_size: Optional[int] = None, **options: Any) -> None:
         """
         :param path: Global Id of a folder in the appropriate gallery section or
                      else if empty then the upload will be placed in the Api
                      Imports folder of the relevant gallery section
         :param file: a binary file object to be uploaded
+
+        The RSpace Gallery is split into media-type sections (Images, Documents,
+        Chemistry, ...) and a file may only be placed in a folder whose section
+        matches the file's media type. If ``path`` names a folder in the wrong
+        section the upload is rejected; this method re-raises that as a
+        :class:`GallerySectionMismatch` naming the folder's section, instead of
+        an opaque API error.
         """
-        self.eln_client.upload_file(file, path_to_id(path) if path else None)
+        folder_id = path_to_id(path) if path else None
+        try:
+            self.eln_client.upload_file(file, folder_id)
+        except ClientBase.ApiError as err:
+            if folder_id is None:
+                raise
+            section = self._folder_section(folder_id)
+            if section is None:
+                raise
+            filename = _filename_for(file, options)
+            guessed = classify_media_section(filename)
+            named = "'{}'".format(filename) if filename else "the file"
+            message = (
+                "Could not upload {named} to Gallery folder {path}. That folder "
+                "is in the '{section}' section, which only accepts {section} "
+                "files".format(named=named, path=path, section=section)
+            )
+            if guessed and guessed != section:
+                message += ", but {named} looks like a '{guessed}' file".format(
+                    named=named, guessed=guessed
+                )
+            message += (
+                ". Upload it to a folder in the matching section, or omit the "
+                "folder path to let RSpace place it in the correct section "
+                "automatically. Original API error: {err}".format(err=err)
+            )
+            raise GallerySectionMismatch(
+                message,
+                folder_section=section,
+                folder_global_id="GF" + str(folder_id),
+                file_media_type=guessed,
+                response_status_code=getattr(err, "response_status_code", None),
+            ) from err
