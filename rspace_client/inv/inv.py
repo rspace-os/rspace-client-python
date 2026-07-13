@@ -2143,7 +2143,14 @@ class InventoryClient(ClientBase):
             An open file stream of the samples CSV file.
         field_mappings : dict
             Maps CSV column names to RSpace sample field names. Exactly one
-            column must map to "name".
+            column must map to "name". Every CSV column must either map to a
+            built-in field ("name", "description", "tags", "source",
+            "expiry date", "quantity", "identifier", "import identifier",
+            "parent container import id", "parent container global id") or be
+            left unmapped so that it corresponds, in order, to a custom field
+            of the template. The number of unmapped columns must exactly equal
+            the number of custom fields in the template, otherwise the server
+            rejects the import with a PREVALIDATION_ERROR status.
         template_id : Union[str, int], optional
             The id or global id of an existing Sample Template to create the
             samples from.

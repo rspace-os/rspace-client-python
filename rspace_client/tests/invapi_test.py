@@ -1232,10 +1232,13 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertIsNotNone(parse_result["templateInfo"])
 
     def test_import_samples_csv_creates_template(self):
+        # Every CSV column must either map to a built-in field or correspond to
+        # a template field; here both columns map to built-in fields, so a
+        # zero-field template is compatible.
         template_name = base.random_string(8)
         result = self.invapi.import_samples_csv(
             self._csv("Name,Comment\nSample1,hello\nSample2,world"),
-            field_mappings={"Name": "name"},
+            field_mappings={"Name": "name", "Comment": "description"},
             template_info={"name": template_name},
         )
         self.assertEqual("COMPLETED", result["status"])
