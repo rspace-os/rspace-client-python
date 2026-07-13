@@ -95,6 +95,22 @@ Interactive notebooks in [`jupyter_notebooks/`](jupyter_notebooks):
 
 (`proteins.csv` and `temp_data.csv` in the same folder are sample data used by these notebooks.)
 
+## Testing
+
+CI (`.github/workflows/codeql-and-tests.yml`) runs unit tests across supported Python versions, then integration tests against a real RSpace instance: it builds `rspace-web` from source and starts it with a freshly seeded database (no Docker image, no browser automation), logs in once to initialize the built-in test account, then runs the suite against it.
+
+To run tests locally:
+
+```bash
+# unit tests only
+poetry run pytest -m "not integration"
+
+# integration tests, against your own RSpace instance
+export RSPACE_URL=https://<your-rspace-domain>
+export RSPACE_API_KEY=<your-api-key>
+poetry run pytest -m integration
+```
+
 ## Community projects
 
 See what others have built on top of RSpace and RSpace Python SDK  on the **[Community Projects](https://github.com/rspace-os/community/blob/main/community-projects/community-projects.md)** page. Built something with this client? Share it in an [office hour](https://github.com/rspace-os/community/blob/main/the%20rspace%20project/Guide/calendar.md) or open a PR to add it.

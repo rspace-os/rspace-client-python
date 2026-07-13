@@ -5,11 +5,14 @@ Created on Tue Oct 19 21:41:03 2021
 
 @author: richard
 """
+import pytest
+
 import rspace_client.tests.base_test as base
 from rspace_client.inv import inv
 from rspace_client.eln import eln
 
 
+@pytest.mark.integration
 class LomApiTest(base.BaseApiTest):
     def setUp(self):
         """

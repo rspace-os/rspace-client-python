@@ -30,8 +30,14 @@ setuptools = "<82"
 [tool.poetry.group.dev.dependencies]
 python-dotenv = "^1.1.1"
 black = "^21.6b0"
-pytest = "^6.2.4"
+pytest = "^8.0.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["rspace_client/tests"]
+markers = [
+    "integration: marks tests as integration tests requiring a live RSpace server (deselect with '-m not integration')",
+]
