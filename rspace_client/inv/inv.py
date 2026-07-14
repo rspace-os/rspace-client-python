@@ -2104,11 +2104,26 @@ class InventoryClient(ClientBase):
         )
 
     @staticmethod
-    def _require_name_mapping(field_mappings: dict, record: str) -> None:
-        if field_mappings is None or "name" not in field_mappings.values():
+    def _require_single_mapping(
+        field_mappings: dict, target: str, record: str
+    ) -> None:
+        """
+        Ensures exactly one CSV column is mapped to ``target``. Mapping zero
+        columns leaves a required field unset; mapping more than one is
+        ambiguous (the server would silently use only one of them).
+        """
+        count = (
+            0 if field_mappings is None else list(field_mappings.values()).count(target)
+        )
+        if count != 1:
             raise ValueError(
-                f"{record} field_mappings must map one column to 'name'"
+                f"{record} field_mappings must map exactly one column to "
+                f"'{target}', but {count} were found"
             )
+
+    @staticmethod
+    def _require_name_mapping(field_mappings: dict, record: str) -> None:
+        InventoryClient._require_single_mapping(field_mappings, "name", record)
 
     @staticmethod
     def _sample_settings(
@@ -2220,13 +2235,16 @@ class InventoryClient(ClientBase):
             The import result (see import_csv_files).
         """
         self._require_name_mapping(field_mappings, "subsample")
-        if "parent sample global id" not in field_mappings.values():
+        if "parent sample global id" not in (field_mappings or {}).values():
             raise ValueError(
                 "subsample field_mappings must map one column to "
                 "'parent sample global id'. To link subsamples to samples "
                 "imported in the same operation, use import_csv_files with "
                 "both sampleSettings and subSampleSettings."
             )
+        self._require_single_mapping(
+            field_mappings, "parent sample global id", "subsample"
+        )
         settings = {"subSampleSettings": {"fieldMappings": field_mappings}}
         return self.import_csv_files(settings, subsamples_file=subsamples_file)
 

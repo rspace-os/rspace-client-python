@@ -1261,6 +1261,14 @@ class InventoryApiTest(base.BaseApiTest):
                 self._csv("Name\nSample1"), field_mappings={"Name": "name"}
             )
 
+    def test_import_samples_csv_rejects_duplicate_name_mapping(self):
+        with self.assertRaises(ValueError):
+            self.invapi.import_samples_csv(
+                self._csv("Name,Alias\nSample1,S1"),
+                field_mappings={"Name": "name", "Alias": "name"},
+                template_info={"name": base.random_string(8)},
+            )
+
     def test_import_containers_csv(self):
         result = self.invapi.import_containers_csv(
             self._csv("Name\nContainer1\nContainer2"),
@@ -1295,6 +1303,17 @@ class InventoryApiTest(base.BaseApiTest):
             self.invapi.import_subsamples_csv(
                 self._csv("Name\nSubSample1"),
                 field_mappings={"Name": "name"},
+            )
+
+    def test_import_subsamples_csv_rejects_duplicate_parent_mapping(self):
+        with self.assertRaises(ValueError):
+            self.invapi.import_subsamples_csv(
+                self._csv("Name,P1,P2\nSubSample1,SA1,SA2"),
+                field_mappings={
+                    "Name": "name",
+                    "P1": "parent sample global id",
+                    "P2": "parent sample global id",
+                },
             )
 
 
