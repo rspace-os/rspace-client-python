@@ -58,6 +58,19 @@ class FillingStrategy(Enum):
     EXACT = 3
 
 
+class ImportRecordType(str, Enum):
+    """
+    Type of Inventory record held in a CSV file being imported.
+
+    Note that Inventory CSV import only supports these three record types.
+    Instruments and Instrument Templates cannot be imported from CSV.
+    """
+
+    SAMPLES = "SAMPLES"
+    SUBSAMPLES = "SUBSAMPLES"
+    CONTAINERS = "CONTAINERS"
+
+
 class Sample:
     """
     Wraps a dict of Sample data returned from samples/{id} GET API call
@@ -1974,6 +1987,266 @@ class InventoryClient(ClientBase):
         """
         result = self.retrieve_api_results("/workbenches")
         return [wb for wb in result["containers"]]
+
+    ## ---------------------------------------------------------------------
+    ## CSV import
+    ## ---------------------------------------------------------------------
+    ## The Inventory API can import CSV files of samples, subsamples and
+    ## containers (only simple LIST containers). Importing Instruments or
+    ## Instrument Templates from CSV is NOT supported by the API.
+
+    def _multipart_post(self, endpoint: str, files: dict, data: dict) -> dict:
+        """
+        Helper for multipart/form-data POSTs. ``requests`` sets the correct
+        multipart Content-Type (with boundary) when ``files`` is supplied, and
+        adds each entry of ``data`` as an additional form field.
+        """
+        response = requests.post(
+            self._get_api_url() + endpoint,
+            files=files,
+            data=data,
+            headers=self._get_headers(),
+        )
+        return self._handle_response(response)
+
+    def parse_csv_import_file(
+        self, file: BinaryIO, record_type: Union[str, ImportRecordType]
+    ) -> dict:
+        """
+        Uploads a CSV file for analysis prior to import, without creating
+        anything. Use this to discover the file's columns and the field
+        mappings/sample template that the server suggests, then adjust them
+        before calling one of the import methods.
+
+        Parameters
+        ----------
+        file : an open file
+            An open file stream of the CSV file to analyse.
+        record_type : Union[str, ImportRecordType]
+            The type of record held in the file: SAMPLES, SUBSAMPLES or
+            CONTAINERS.
+
+        Returns
+        -------
+        dict
+            Parse result containing 'columnNames', 'fieldNameForColumnName',
+            'fieldMappings', 'columnsWithoutBlankValue' and 'rowsCount'. For
+            SAMPLES it also includes a suggested 'templateInfo', plus
+            'radioOptionsForColumn' and 'quantityUnitForColumn'.
+        """
+        record_type = ImportRecordType(record_type).value
+        return self._multipart_post(
+            "/import/parseFile",
+            files={"file": file},
+            data={"recordType": record_type},
+        )
+
+    def import_csv_files(
+        self,
+        import_settings: dict,
+        containers_file: BinaryIO = None,
+        samples_file: BinaryIO = None,
+        subsamples_file: BinaryIO = None,
+    ) -> dict:
+        """
+        Imports one or more CSV files (containers, samples, subsamples) in a
+        single operation, using the supplied import settings. This is the
+        low-level method that mirrors the API directly; see
+        import_samples_csv/import_containers_csv/import_subsamples_csv for
+        convenience wrappers.
+
+        Parameters
+        ----------
+        import_settings : dict
+            The full import settings, e.g.::
+
+                {
+                  "containerSettings": {"fieldMappings": {...}},
+                  "sampleSettings": {"fieldMappings": {...},
+                                     "templateInfo": {"id": 1234}},
+                  "subSampleSettings": {"fieldMappings": {...}},
+                }
+
+            Each ``fieldMappings`` maps a CSV column name to an RSpace field
+            name (e.g. "name", "description", "quantity", "expiry date",
+            "identifier", "import identifier", "parent container import id",
+            "parent container global id", "parent sample import id",
+            "parent sample global id"). Map a column to ``None`` to ignore it.
+        containers_file : an open file, optional
+        samples_file : an open file, optional
+        subsamples_file : an open file, optional
+            The CSV files to import. Provide the files matching the settings
+            keys you populated. At least one file must be supplied.
+
+        Returns
+        -------
+        dict
+            Import result with a top-level 'status' and per-type
+            'containerResults', 'sampleResults' and 'subSampleResults', plus
+            a 'defaultContainer' if one was created for the imported items.
+        """
+        files = {}
+        if containers_file is not None:
+            files["containersFile"] = containers_file
+        if samples_file is not None:
+            files["samplesFile"] = samples_file
+        if subsamples_file is not None:
+            files["subSamplesFile"] = subsamples_file
+        if not files:
+            raise ValueError(
+                "At least one of containers_file, samples_file or "
+                "subsamples_file must be supplied"
+            )
+        return self._multipart_post(
+            "/import/importFiles",
+            files=files,
+            data={"importSettings": json.dumps(import_settings)},
+        )
+
+    @staticmethod
+    def _require_single_mapping(
+        field_mappings: dict, target: str, record: str
+    ) -> None:
+        """
+        Ensures exactly one CSV column is mapped to ``target``. Mapping zero
+        columns leaves a required field unset; mapping more than one is
+        ambiguous (the server would silently use only one of them).
+        """
+        count = (
+            0 if field_mappings is None else list(field_mappings.values()).count(target)
+        )
+        if count != 1:
+            raise ValueError(
+                f"{record} field_mappings must map exactly one column to "
+                f"'{target}', but {count} were found"
+            )
+
+    @staticmethod
+    def _require_name_mapping(field_mappings: dict, record: str) -> None:
+        InventoryClient._require_single_mapping(field_mappings, "name", record)
+
+    @staticmethod
+    def _sample_settings(
+        field_mappings: dict, template_id=None, template_info: dict = None
+    ) -> dict:
+        InventoryClient._require_name_mapping(field_mappings, "sample")
+        settings = {"fieldMappings": field_mappings}
+        if template_info is not None:
+            settings["templateInfo"] = template_info
+        elif template_id is not None:
+            settings["templateInfo"] = {"id": Id(template_id).as_id()}
+        else:
+            raise ValueError(
+                "Either template_id (to reuse an existing Sample Template) or "
+                "template_info (to create a new one) must be provided"
+            )
+        return settings
+
+    def import_samples_csv(
+        self,
+        samples_file: BinaryIO,
+        field_mappings: dict,
+        template_id: Union[str, int] = None,
+        template_info: dict = None,
+    ) -> dict:
+        """
+        Imports a CSV file of samples.
+
+        Parameters
+        ----------
+        samples_file : an open file
+            An open file stream of the samples CSV file.
+        field_mappings : dict
+            Maps CSV column names to RSpace sample field names. Exactly one
+            column must map to "name". Every CSV column must either map to a
+            built-in field ("name", "description", "tags", "source",
+            "expiry date", "quantity", "identifier", "import identifier",
+            "parent container import id", "parent container global id") or be
+            left unmapped so that it corresponds, in order, to a custom field
+            of the template. The number of unmapped columns must exactly equal
+            the number of custom fields in the template, otherwise the server
+            rejects the import with a PREVALIDATION_ERROR status.
+        template_id : Union[str, int], optional
+            The id or global id of an existing Sample Template to create the
+            samples from.
+        template_info : dict, optional
+            A Sample Template definition to create a new template from,
+            typically the 'templateInfo' returned by parse_csv_import_file.
+            Provide either template_id or template_info.
+
+        Returns
+        -------
+        dict
+            The import result (see import_csv_files).
+        """
+        settings = {
+            "sampleSettings": self._sample_settings(
+                field_mappings, template_id, template_info
+            )
+        }
+        return self.import_csv_files(settings, samples_file=samples_file)
+
+    def import_containers_csv(
+        self, containers_file: BinaryIO, field_mappings: dict
+    ) -> dict:
+        """
+        Imports a CSV file of (LIST) containers.
+
+        Parameters
+        ----------
+        containers_file : an open file
+            An open file stream of the containers CSV file.
+        field_mappings : dict
+            Maps CSV column names to RSpace container field names. Exactly one
+            column must map to "name".
+
+        Returns
+        -------
+        dict
+            The import result (see import_csv_files).
+        """
+        self._require_name_mapping(field_mappings, "container")
+        settings = {"containerSettings": {"fieldMappings": field_mappings}}
+        return self.import_csv_files(settings, containers_file=containers_file)
+
+    def import_subsamples_csv(
+        self, subsamples_file: BinaryIO, field_mappings: dict
+    ) -> dict:
+        """
+        Imports a CSV file of subsamples into pre-existing samples.
+
+        Each subsample must reference its parent sample, so field_mappings must
+        map a column to "parent sample global id" (the Global Id of an existing
+        sample). To import subsamples for samples created in the same operation
+        (via "parent sample import id"), use import_csv_files with both
+        sampleSettings and subSampleSettings instead.
+
+        Parameters
+        ----------
+        subsamples_file : an open file
+            An open file stream of the subsamples CSV file.
+        field_mappings : dict
+            Maps CSV column names to RSpace subsample field names. Exactly one
+            column must map to "name" and one to "parent sample global id".
+
+        Returns
+        -------
+        dict
+            The import result (see import_csv_files).
+        """
+        self._require_name_mapping(field_mappings, "subsample")
+        if "parent sample global id" not in (field_mappings or {}).values():
+            raise ValueError(
+                "subsample field_mappings must map one column to "
+                "'parent sample global id'. To link subsamples to samples "
+                "imported in the same operation, use import_csv_files with "
+                "both sampleSettings and subSampleSettings."
+            )
+        self._require_single_mapping(
+            field_mappings, "parent sample global id", "subsample"
+        )
+        settings = {"subSampleSettings": {"fieldMappings": field_mappings}}
+        return self.import_csv_files(settings, subsamples_file=subsamples_file)
 
     def bulk_create_container(self, *container_posts):
         """
