@@ -1,7 +1,50 @@
 from unittest.mock import patch, MagicMock, ANY
 import unittest
-from rspace_client.eln.fs import path_to_id, GalleryFilesystem
+from rspace_client.eln.fs import (
+    path_to_id,
+    GalleryFilesystem,
+    GallerySectionMismatch,
+    classify_media_section,
+)
+from rspace_client.client_base import ClientBase
 from io import BytesIO
+
+
+def mock_failed_upload_post(url, *args, **kwargs):
+    """A /files upload that the server rejects (e.g. wrong Gallery section)."""
+    mock_response = MagicMock()
+    mock_response.status_code = 400
+    mock_response.headers = {'Content-Type': 'application/json'}
+    mock_response.json.return_value = {
+        'message': 'File type not allowed in this folder', 'errors': []
+    }
+    mock_response.raise_for_status.side_effect = Exception('400 Bad Request')
+    return mock_response
+
+
+def _ok_file_response(parent_folder_id):
+    mock_response = MagicMock()
+    mock_response.status_code = 201
+    mock_response.headers = {'Content-Type': 'application/json'}
+    mock_response.raise_for_status.return_value = None
+    mock_response.json.return_value = {
+        'id': '999', 'globalId': 'GL999', 'name': 'data.pdf',
+        'parentFolderId': parent_folder_id,
+    }
+    return mock_response
+
+
+def mock_reroute_upload_post(url, *args, **kwargs):
+    """Rejects an upload that targets a folder (wrong section), but accepts the
+    retry with no folderId (server auto-routes to the correct section inbox)."""
+    if 'folderId' in kwargs.get('data', {}):
+        return mock_failed_upload_post(url, *args, **kwargs)
+    return _ok_file_response(555)
+
+
+def mock_success_upload_post(url, *args, **kwargs):
+    """An upload the server accepts, landing in the requested folder (123)."""
+    return _ok_file_response(123)
 
 def mock_requests_get(url, *args, **kwargs):
     mock_response = MagicMock()
@@ -38,6 +81,16 @@ def mock_requests_get(url, *args, **kwargs):
             'mediaType': 'Images',
             'pathToRootFolder': None,
             '_links': [{'link': 'http://localhost:8080/api/v1/folders/306', 'rel': 'self'}]
+        }
+    elif url.endswith('/folders/555'):
+        mock_response.json.return_value = {
+            'id': '555',
+            'globalId': 'GF555',
+            'name': 'Api Inbox',
+            'size': 0,
+            'notebook': False,
+            'mediaType': 'Documents',
+            'pathToRootFolder': None,
         }
     elif url.endswith('/folders/456'):
         mock_response.json.return_value = {
@@ -169,7 +222,11 @@ class ElnFilesystemTest(unittest.TestCase):
     @patch('requests.post')
     def test_upload(self, mock_post):
         mock_response = MagicMock()
-        mock_response.json.return_value = {'id': '456'}
+        mock_response.status_code = 201
+        mock_response.headers = {'Content-Type': 'application/json'}
+        mock_response.raise_for_status.return_value = None
+        # no parentFolderId -> no follow-up folder lookup needed
+        mock_response.json.return_value = {'id': '456', 'globalId': 'GL456'}
         mock_post.return_value = mock_response
         file_obj = BytesIO(b'test file content')
         self.fs.upload('/GF123', file_obj)
@@ -179,6 +236,125 @@ class ElnFilesystemTest(unittest.TestCase):
             data={'folderId': 123},
             headers=ANY
         )
+
+    def test_classify_media_section(self):
+        self.assertEqual('Images', classify_media_section('photo.png'))
+        self.assertEqual('Images', classify_media_section('photo.JPG'))
+        self.assertEqual('Audios', classify_media_section('song.mp3'))
+        self.assertEqual('Videos', classify_media_section('clip.mp4'))
+        self.assertEqual('Documents', classify_media_section('report.pdf'))
+        self.assertEqual('Documents', classify_media_section('notes.md'))
+        self.assertEqual('Chemistry', classify_media_section('reaction.cdxml'))
+        # Documents is a fixed set, NOT a catch-all: unlisted extensions and
+        # types not in a specialised section fall through to Miscellaneous
+        self.assertEqual('Miscellaneous', classify_media_section('data.xyz'))
+        self.assertEqual('Miscellaneous', classify_media_section('archive.zip'))
+        self.assertEqual('Miscellaneous', classify_media_section('movie.mkv'))
+        # no filename / no extension -> cannot guess
+        self.assertIsNone(classify_media_section('noextension'))
+        self.assertIsNone(classify_media_section(None))
+
+    @patch('requests.get', side_effect=mock_requests_get)
+    @patch('requests.post', side_effect=mock_failed_upload_post)
+    def test_upload_wrong_section_raises_mismatch(self, mock_post, mock_get):
+        # Folder GF123 is in the 'Images' section (see mock_requests_get);
+        # uploading a PDF there is rejected by the server.
+        file_obj = BytesIO(b'%PDF-1.4 fake')
+        file_obj.name = 'data.pdf'
+        with self.assertRaises(GallerySectionMismatch) as ctx:
+            self.fs.upload('/GF123', file_obj)
+        err = ctx.exception
+        self.assertEqual('Images', err.folder_section)
+        self.assertEqual('GF123', err.folder_global_id)
+        self.assertEqual('Documents', err.file_media_type)
+        self.assertIn('Images', str(err))
+        self.assertIn('data.pdf', str(err))
+        # the original server message is preserved
+        self.assertIn('File type not allowed', str(err))
+
+    @patch('requests.get', side_effect=mock_requests_get)
+    @patch('requests.post', side_effect=mock_failed_upload_post)
+    def test_upload_wrong_section_miscellaneous_file(self, mock_post, mock_get):
+        # A .zip has no specialised section; it belongs in Miscellaneous, so
+        # uploading it into the Images folder is a mismatch.
+        file_obj = BytesIO(b'PK\x03\x04')
+        file_obj.name = 'archive.zip'
+        with self.assertRaises(GallerySectionMismatch) as ctx:
+            self.fs.upload('/GF123', file_obj)
+        err = ctx.exception
+        self.assertEqual('Images', err.folder_section)
+        self.assertEqual('Miscellaneous', err.file_media_type)
+        self.assertIn('Miscellaneous', str(err))
+
+    @patch('requests.post', side_effect=mock_failed_upload_post)
+    def test_upload_no_folder_reraises_original(self, mock_post):
+        # With no target folder the server auto-routes; a failure here is not a
+        # section mismatch and must surface unchanged.
+        file_obj = BytesIO(b'x')
+        with self.assertRaises(ClientBase.ApiError) as ctx:
+            self.fs.upload('', file_obj)
+        self.assertNotIsInstance(ctx.exception, GallerySectionMismatch)
+
+    @patch('requests.get', side_effect=mock_requests_get)
+    @patch('requests.post', side_effect=mock_success_upload_post)
+    def test_upload_success_returns_placement(self, mock_post, mock_get):
+        file_obj = BytesIO(b'x')
+        file_obj.name = 'a.pdf'
+        placement = self.fs.upload('/GF123', file_obj)
+        self.assertFalse(placement.rerouted)
+        self.assertEqual('GL999', placement.file_global_id)
+        self.assertEqual('Images', placement.section)
+        self.assertEqual('GF123', placement.folder_global_id)
+        self.assertEqual('/GF123', placement.requested_path)
+
+    @patch('requests.get', side_effect=mock_requests_get)
+    @patch('requests.post', side_effect=mock_reroute_upload_post)
+    def test_upload_reroute_per_call_override(self, mock_post, mock_get):
+        # self.fs defaults to "raise"; override to "reroute" on the call.
+        file_obj = BytesIO(b'%PDF-1.4 fake')
+        file_obj.name = 'data.pdf'
+        placement = self.fs.upload('/GF123', file_obj, on_mismatch='reroute')
+        self.assertTrue(placement.rerouted)
+        self.assertEqual('GL999', placement.file_global_id)
+        self.assertEqual('Documents', placement.section)
+        self.assertEqual('GF555', placement.folder_global_id)
+        self.assertEqual('/GF123', placement.requested_path)
+        self.assertEqual('Gallery/Documents/Api Inbox', placement.path)
+        # first attempt targets the folder, retry drops folderId
+        self.assertEqual(2, mock_post.call_count)
+        self.assertEqual({'folderId': 123}, mock_post.call_args_list[0].kwargs['data'])
+        self.assertEqual({}, mock_post.call_args_list[1].kwargs['data'])
+
+    @patch('requests.get', side_effect=mock_requests_get)
+    @patch('requests.post', side_effect=mock_reroute_upload_post)
+    def test_upload_reroute_constructor_policy(self, mock_post, mock_get):
+        reroute_fs = GalleryFilesystem('https://example.com', 'api_key', on_mismatch='reroute')
+        file_obj = BytesIO(b'%PDF-1.4 fake')
+        file_obj.name = 'data.pdf'
+        placement = reroute_fs.upload('/GF123', file_obj)
+        self.assertTrue(placement.rerouted)
+        self.assertEqual('Documents', placement.section)
+
+    def test_upload_tolerates_upload_file_returning_none(self):
+        # Galaxy's file source monkeypatches eln_client.upload_file with a
+        # wrapper that captures the response and returns None. upload() must not
+        # crash while building the Placement in that case.
+        self.fs.eln_client.upload_file = MagicMock(return_value=None)
+        placement = self.fs.upload('/GF123', BytesIO(b'x'))
+        self.assertFalse(placement.rerouted)
+        self.assertIsNone(placement.file_global_id)
+        self.assertEqual('Gallery', placement.path)
+        self.fs.eln_client.upload_file.assert_called_once()
+
+    @patch('requests.get', side_effect=mock_requests_get)
+    def test_invalid_constructor_policy_rejected(self, mock_get):
+        with self.assertRaises(ValueError):
+            GalleryFilesystem('https://example.com', 'api_key', on_mismatch='bogus')
+
+    def test_invalid_per_call_policy_rejected(self):
+        with self.assertRaises(ValueError):
+            self.fs.upload('/GF123', BytesIO(b'x'), on_mismatch='bogus')
+
 
 if __name__ == '__main__':
     unittest.main()
