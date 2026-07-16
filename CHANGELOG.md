@@ -8,7 +8,15 @@ All notable changes to this project will be documented in this file
 
 ## Unreleased
 
-- Added support for importing Inventory CSV files (issue #32): `parse_csv_import_file`,
+- Gallery upload routing and section-mismatch handling (PR #56): clearer
+  `GallerySectionMismatch` exception, optional `on_mismatch="reroute"`
+  policy to auto-reroute uploads into the server-chosen section, `upload()` now
+  returns a `Placement` describing where the file landed (including a
+  `rerouted` flag), Galaxy compatibility fixes for callers that return `None`,
+  and a corrected media-type classifier. See `docs/usage-guide.md` and
+  `examples` for usage.
+
+- Added support for importing Inventory CSV files (issue #32 / PR #55): `parse_csv_import_file`,
   `import_csv_files`, `import_samples_csv`, `import_containers_csv` and
   `import_subsamples_csv`, plus a new `ImportRecordType` enum. Supports samples,
   subsamples and LIST containers; Instruments and Instrument Templates cannot be
@@ -146,4 +154,3 @@ Requires RSpace 1.73 or later
 ### Fixed
 
 ### Security
-
