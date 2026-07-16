@@ -19,35 +19,48 @@ ON_MISMATCH_RAISE = "raise"
 ON_MISMATCH_REROUTE = "reroute"
 _ON_MISMATCH_VALUES = (ON_MISMATCH_RAISE, ON_MISMATCH_REROUTE)
 
-# Best-effort mapping of file extension to the RSpace Gallery section that
-# RSpace would classify it into. This mirrors the server's own classification
-# but is NOT authoritative: it is used only to phrase error messages, never to
-# decide whether an upload is allowed. Anything not listed falls through to the
-# "Documents" catch-all, matching the server default.
+# The RSpace Gallery's media-type sections. "Miscellaneous" is the catch-all
+# that accepts any file not matching a more specific section; the others accept
+# only their listed extensions (including "Documents", which is a fixed set, not
+# a catch-all).
+MISCELLANEOUS_SECTION = "Miscellaneous"
+
+# Best-effort mapping of file extension to the Gallery section RSpace classifies
+# it into, taken from the Gallery documentation. This mirrors the server's own
+# classification but is NOT authoritative: it is used only to phrase error
+# messages, never to decide whether an upload is allowed. Any extension not
+# listed falls through to "Miscellaneous", matching the server default.
 _SECTION_BY_EXTENSION = {
     # Images
     "png": "Images", "jpg": "Images", "jpeg": "Images", "gif": "Images",
-    "tif": "Images", "tiff": "Images", "bmp": "Images", "svg": "Images",
-    "webp": "Images", "heic": "Images",
+    "bmp": "Images", "tif": "Images", "tiff": "Images",
     # Audios
-    "mp3": "Audios", "wav": "Audios", "flac": "Audios", "ogg": "Audios",
-    "m4a": "Audios", "aac": "Audios", "wma": "Audios",
+    "mp3": "Audios", "wav": "Audios", "wma": "Audios", "aac": "Audios",
+    "ogg": "Audios",
     # Videos
-    "mp4": "Videos", "mov": "Videos", "avi": "Videos", "mkv": "Videos",
-    "wmv": "Videos", "webm": "Videos", "m4v": "Videos", "flv": "Videos",
-    # Chemistry
-    "mol": "Chemistry", "mol2": "Chemistry", "rxn": "Chemistry",
-    "cdx": "Chemistry", "cdxml": "Chemistry", "smi": "Chemistry",
-    "sdf": "Chemistry", "cml": "Chemistry",
+    "mp4": "Videos", "mov": "Videos", "hdmov": "Videos", "m4v": "Videos",
+    "wmv": "Videos", "avi": "Videos", "mpg": "Videos", "mpeg": "Videos",
+    "flv": "Videos", "3gp": "Videos",
+    # Documents (a fixed set, NOT a catch-all)
+    "doc": "Documents", "docx": "Documents", "rtf": "Documents",
+    "pdf": "Documents", "odt": "Documents", "ods": "Documents",
+    "odp": "Documents", "txt": "Documents", "ppt": "Documents",
+    "pptx": "Documents", "xls": "Documents", "xlsx": "Documents",
+    "csv": "Documents", "pps": "Documents", "md": "Documents",
+    # Chemistry (documented subset; the server accepts more)
+    "skc": "Chemistry", "mrv": "Chemistry", "cxsmiles": "Chemistry",
+    "cxsmarts": "Chemistry", "cdx": "Chemistry", "cdxml": "Chemistry",
+    "csrdf": "Chemistry", "cml": "Chemistry",
 }
 
 
 def classify_media_section(filename: Optional[Text]) -> Optional[Text]:
     """
     Best-effort guess of the Gallery section for a filename, mirroring RSpace's
-    server-side classification. Returns a section name (e.g. "Images"), or
-    "Documents" as the catch-all when the extension is unrecognised, or None
-    when no filename/extension is available to guess from.
+    server-side classification. Returns a section name (e.g. "Images"),
+    "Miscellaneous" as the catch-all when the extension is not one of a specific
+    section's types, or None when no filename/extension is available to guess
+    from.
 
     The server remains the authority on placement; this is only used to make
     error messages and log lines more helpful.
@@ -55,7 +68,7 @@ def classify_media_section(filename: Optional[Text]) -> Optional[Text]:
     if not filename or "." not in filename:
         return None
     ext = filename.rsplit(".", 1)[-1].lower()
-    return _SECTION_BY_EXTENSION.get(ext, "Documents")
+    return _SECTION_BY_EXTENSION.get(ext, MISCELLANEOUS_SECTION)
 
 
 def _filename_for(file: BinaryIO, options: Mapping[Text, Any]) -> Optional[Text]:
@@ -336,9 +349,15 @@ class GalleryFilesystem(FS):
                 "files".format(named=named, path=path, section=section)
             )
             if guessed and guessed != section:
-                message += ", but {named} looks like a '{guessed}' file".format(
-                    named=named, guessed=guessed
-                )
+                if guessed == MISCELLANEOUS_SECTION:
+                    message += (
+                        ", but {named} does not match a specialised section and "
+                        "belongs in 'Miscellaneous'".format(named=named)
+                    )
+                else:
+                    message += ", but {named} looks like a '{guessed}' file".format(
+                        named=named, guessed=guessed
+                    )
             message += (
                 ". Upload it to a folder in the matching section, omit the "
                 "folder path to let RSpace place it in the correct section "

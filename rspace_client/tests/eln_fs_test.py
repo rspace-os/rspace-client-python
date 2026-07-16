@@ -240,11 +240,16 @@ class ElnFilesystemTest(unittest.TestCase):
     def test_classify_media_section(self):
         self.assertEqual('Images', classify_media_section('photo.png'))
         self.assertEqual('Images', classify_media_section('photo.JPG'))
+        self.assertEqual('Audios', classify_media_section('song.mp3'))
         self.assertEqual('Videos', classify_media_section('clip.mp4'))
-        self.assertEqual('Chemistry', classify_media_section('reaction.mol'))
-        # unrecognised extensions fall through to the Documents catch-all
         self.assertEqual('Documents', classify_media_section('report.pdf'))
-        self.assertEqual('Documents', classify_media_section('data.xyz'))
+        self.assertEqual('Documents', classify_media_section('notes.md'))
+        self.assertEqual('Chemistry', classify_media_section('reaction.cdxml'))
+        # Documents is a fixed set, NOT a catch-all: unlisted extensions and
+        # types not in a specialised section fall through to Miscellaneous
+        self.assertEqual('Miscellaneous', classify_media_section('data.xyz'))
+        self.assertEqual('Miscellaneous', classify_media_section('archive.zip'))
+        self.assertEqual('Miscellaneous', classify_media_section('movie.mkv'))
         # no filename / no extension -> cannot guess
         self.assertIsNone(classify_media_section('noextension'))
         self.assertIsNone(classify_media_section(None))
@@ -266,6 +271,20 @@ class ElnFilesystemTest(unittest.TestCase):
         self.assertIn('data.pdf', str(err))
         # the original server message is preserved
         self.assertIn('File type not allowed', str(err))
+
+    @patch('requests.get', side_effect=mock_requests_get)
+    @patch('requests.post', side_effect=mock_failed_upload_post)
+    def test_upload_wrong_section_miscellaneous_file(self, mock_post, mock_get):
+        # A .zip has no specialised section; it belongs in Miscellaneous, so
+        # uploading it into the Images folder is a mismatch.
+        file_obj = BytesIO(b'PK\x03\x04')
+        file_obj.name = 'archive.zip'
+        with self.assertRaises(GallerySectionMismatch) as ctx:
+            self.fs.upload('/GF123', file_obj)
+        err = ctx.exception
+        self.assertEqual('Images', err.folder_section)
+        self.assertEqual('Miscellaneous', err.file_media_type)
+        self.assertIn('Miscellaneous', str(err))
 
     @patch('requests.post', side_effect=mock_failed_upload_post)
     def test_upload_no_folder_reraises_original(self, mock_post):
