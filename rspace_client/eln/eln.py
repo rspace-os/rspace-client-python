@@ -1,7 +1,6 @@
 import datetime
 import time
 import os
-import requests
 import rspace_client.eln.filetree_importer as importer
 from rspace_client.eln.dcs import DocumentCreationStrategy
 
@@ -366,13 +365,7 @@ class ELNClient(ClientBase):
         if caption is not None:
             data["caption"] = caption
 
-        response = requests.post(
-            self._get_api_url() + "/files",
-            files={"file": file},
-            data=data,
-            headers=self._get_headers(),
-        )
-        return self._handle_response(response)
+        return self._post_multipart("/files", files={"file": file}, data=data)
 
     def update_file(self, file, fileId):
         """
@@ -382,12 +375,9 @@ class ELNClient(ClientBase):
         :param fileId: Id of the file to replace
         :return: updated File response as a dictionary
         """
-        response = requests.post(
-            self._get_api_url() + "/files/{}/file".format(fileId),
-            files={"file": file},
-            headers=self._get_headers(),
+        return self._post_multipart(
+            "/files/{}/file".format(fileId), files={"file": file}
         )
-        return self._handle_response(response)
 
     # Activity methods
     def get_activity(
@@ -856,13 +846,7 @@ class ELNClient(ClientBase):
             numeric_imagefolder_id = self._get_numeric_record_id(image_folder_id)
             data["imageFolderId"] = numeric_imagefolder_id
 
-        response = requests.post(
-            self._get_api_url() + "/import/word",
-            files={"file": file},
-            data=data,
-            headers=self._get_headers(),
-        )
-        return self._handle_response(response)
+        return self._post_multipart("/import/word", files={"file": file}, data=data)
 
     # Miscellaneous methods
     def get_status(self):

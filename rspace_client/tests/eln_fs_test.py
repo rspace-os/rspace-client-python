@@ -146,7 +146,7 @@ def mock_requests_post(url, *args, **kwargs):
 
 class ElnFilesystemTest(unittest.TestCase):
 
-    @patch('requests.get', side_effect=mock_requests_get)
+    @patch('requests.Session.get', side_effect=mock_requests_get)
     def setUp(self, mock_get) -> None:
         super().setUp()
         self.fs = GalleryFilesystem("https://example.com", "api_key")
@@ -157,58 +157,62 @@ class ElnFilesystemTest(unittest.TestCase):
         self.assertEqual("456", path_to_id("GF123/GF456"))
         self.assertEqual("456", path_to_id("/GF123/GF456"))
 
-    @patch('requests.get', side_effect=mock_requests_get)
+    @patch('requests.Session.get', side_effect=mock_requests_get)
     def test_get_info_folder(self, mock_get):
         folder_info = self.fs.getinfo("GF123")
         self.assertEqual("GF123", folder_info.raw["basic"]["name"])
         self.assertTrue(folder_info.raw["basic"]["is_dir"])
         self.assertEqual(0, folder_info.raw["details"]["size"])
 
-    @patch('requests.get', side_effect=mock_requests_get)
+    @patch('requests.Session.get', side_effect=mock_requests_get)
     def test_get_info_file(self, mock_get):
         file_info = self.fs.getinfo("GL123")
         self.assertEqual("GL123", file_info.raw["basic"]["name"])
         self.assertFalse(file_info.raw["basic"]["is_dir"])
         self.assertEqual(1024, file_info.raw["details"]["size"])
 
-    @patch('requests.get', side_effect=mock_requests_get)
+    @patch('requests.Session.get', side_effect=mock_requests_get)
     def test_listdir_root(self, mock_list_folder_tree):
         result = self.fs.listdir('/')
         expected = ['GF123', 'GL456', 'GF789', 'GL012']
         self.assertEqual(result, expected)
 
-    @patch('requests.get', side_effect=mock_requests_get)
+    @patch('requests.Session.get', side_effect=mock_requests_get)
     def test_listdir_root_specific_folder(self, mock_list_folder_tree):
         expected = ['GF123', 'GL456', 'GF789', 'GL012']
         result = self.fs.listdir('GF123')
         self.assertEqual(result, expected)
 
-    @patch('requests.request', side_effect=mock_requests_post)
-    @patch('requests.get', side_effect=mock_requests_get)
+    @patch('requests.Session.request', side_effect=mock_requests_post)
+    @patch('requests.Session.get', side_effect=mock_requests_get)
     def test_makedir(self, mock_get, mock_post):
         self.fs.makedir('GF123/newFolder')
         mock_post.assert_called_once_with(
             'POST',
             'https://example.com/api/v1/folders',
             json={'name': 'newFolder', 'parentFolderId': 123, 'notebook': False},
-            headers=ANY
+            headers=ANY,
+            timeout=ANY
         )
 
-    @patch('requests.request', side_effect=mock_requests_post)
-    @patch('requests.get', side_effect=mock_requests_get)
+    @patch('requests.Session.request', side_effect=mock_requests_post)
+    @patch('requests.Session.get', side_effect=mock_requests_get)
     def test_removedir(self, mock_get, mock_post):
         self.fs.removedir('GF456')
         mock_post.assert_called_once_with(
             'DELETE',
             'https://example.com/api/v1/folders/456',
             json=ANY,
-            headers=ANY
+            headers=ANY,
+            timeout=ANY
         )
 
-    @patch('requests.get')
+    @patch('requests.Session.get')
     def test_download(self, mock_get):
         mock_response = MagicMock()
+        mock_response.status_code = 200
         mock_response.iter_content = MagicMock(return_value=[b'chunk1', b'chunk2', b'chunk3'])
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
         mock_get.return_value = mock_response
         file_obj = BytesIO()
         self.fs.download('/GL123', file_obj)
@@ -216,10 +220,12 @@ class ElnFilesystemTest(unittest.TestCase):
         self.assertEqual(file_obj.read(), b'chunk1chunk2chunk3')
         mock_get.assert_called_once_with(
             'https://example.com/api/v1/files/123/file',
-            headers=ANY
+            headers=ANY,
+            stream=True,
+            timeout=ANY
         )
 
-    @patch('requests.post')
+    @patch('requests.Session.post')
     def test_upload(self, mock_post):
         mock_response = MagicMock()
         mock_response.status_code = 201
@@ -234,7 +240,8 @@ class ElnFilesystemTest(unittest.TestCase):
             'https://example.com/api/v1/files',
             files={'file': file_obj},
             data={'folderId': 123},
-            headers=ANY
+            headers=ANY,
+            timeout=ANY
         )
 
     def test_classify_media_section(self):
