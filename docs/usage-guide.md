@@ -92,21 +92,21 @@ matching the one you requested.
 
 To access Inventory attachments construct a `InventoryAttachmentFilesystem` object.
 ```python
-from rspace_client.inv import fs
+from rspace_client.inv.attachment_fs import InventoryAttachmentFilesystem
 
-rspace_inv_fs = fs.InventoryAttachmentFilesystem(os.getenv("RSPACE_URL"), os.getenv("RSPACE_API_KEY"))
+rspace_inv_fs = InventoryAttachmentFilesystem(os.getenv("RSPACE_URL"), os.getenv("RSPACE_API_KEY"))
 
-// list the attachments that an existing record has, in this case a subsample
+# list the attachments that an existing record has, in this case a subsample
 rspace_inv_fs.listdir('/SS123')
 
-// get the metadata for a particular attachment
+# get the metadata for a particular attachment
 rspace_inv_fs.getinfo("IF123")
 
-// or download it
+# or download it
 file_obj = BytesIO()
 rspace_inv_fs.download('/IF123', file_obj)
 
-// or attach a new file
+# or attach a new file
 file_obj_2 = BytesIO(b'test file content')
 rspace_inv_fs.upload('/SS123', file_obj_2)
 ```
