@@ -103,3 +103,5 @@ rspace_client/.spyproject/config/workspace.ini
 
 # mac os
 .DS_Store
+
+.claude/
