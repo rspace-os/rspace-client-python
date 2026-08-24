@@ -1,5 +1,6 @@
 from unittest.mock import patch, MagicMock, ANY
 import unittest
+import requests
 from rspace_client.eln.fs import (
     path_to_id,
     GalleryFilesystem,
@@ -18,7 +19,7 @@ def mock_failed_upload_post(url, *args, **kwargs):
     mock_response.json.return_value = {
         'message': 'File type not allowed in this folder', 'errors': []
     }
-    mock_response.raise_for_status.side_effect = Exception('400 Bad Request')
+    mock_response.raise_for_status.side_effect = requests.HTTPError('400 Bad Request')
     return mock_response
 
 
@@ -261,8 +262,8 @@ class ElnFilesystemTest(unittest.TestCase):
         self.assertIsNone(classify_media_section('noextension'))
         self.assertIsNone(classify_media_section(None))
 
-    @patch('requests.get', side_effect=mock_requests_get)
-    @patch('requests.post', side_effect=mock_failed_upload_post)
+    @patch('requests.Session.get', side_effect=mock_requests_get)
+    @patch('requests.Session.post', side_effect=mock_failed_upload_post)
     def test_upload_wrong_section_raises_mismatch(self, mock_post, mock_get):
         # Folder GF123 is in the 'Images' section (see mock_requests_get);
         # uploading a PDF there is rejected by the server.
@@ -279,8 +280,8 @@ class ElnFilesystemTest(unittest.TestCase):
         # the original server message is preserved
         self.assertIn('File type not allowed', str(err))
 
-    @patch('requests.get', side_effect=mock_requests_get)
-    @patch('requests.post', side_effect=mock_failed_upload_post)
+    @patch('requests.Session.get', side_effect=mock_requests_get)
+    @patch('requests.Session.post', side_effect=mock_failed_upload_post)
     def test_upload_wrong_section_miscellaneous_file(self, mock_post, mock_get):
         # A .zip has no specialised section; it belongs in Miscellaneous, so
         # uploading it into the Images folder is a mismatch.
@@ -293,7 +294,7 @@ class ElnFilesystemTest(unittest.TestCase):
         self.assertEqual('Miscellaneous', err.file_media_type)
         self.assertIn('Miscellaneous', str(err))
 
-    @patch('requests.post', side_effect=mock_failed_upload_post)
+    @patch('requests.Session.post', side_effect=mock_failed_upload_post)
     def test_upload_no_folder_reraises_original(self, mock_post):
         # With no target folder the server auto-routes; a failure here is not a
         # section mismatch and must surface unchanged.
@@ -302,8 +303,8 @@ class ElnFilesystemTest(unittest.TestCase):
             self.fs.upload('', file_obj)
         self.assertNotIsInstance(ctx.exception, GallerySectionMismatch)
 
-    @patch('requests.get', side_effect=mock_requests_get)
-    @patch('requests.post', side_effect=mock_success_upload_post)
+    @patch('requests.Session.get', side_effect=mock_requests_get)
+    @patch('requests.Session.post', side_effect=mock_success_upload_post)
     def test_upload_success_returns_placement(self, mock_post, mock_get):
         file_obj = BytesIO(b'x')
         file_obj.name = 'a.pdf'
@@ -314,8 +315,8 @@ class ElnFilesystemTest(unittest.TestCase):
         self.assertEqual('GF123', placement.folder_global_id)
         self.assertEqual('/GF123', placement.requested_path)
 
-    @patch('requests.get', side_effect=mock_requests_get)
-    @patch('requests.post', side_effect=mock_reroute_upload_post)
+    @patch('requests.Session.get', side_effect=mock_requests_get)
+    @patch('requests.Session.post', side_effect=mock_reroute_upload_post)
     def test_upload_reroute_per_call_override(self, mock_post, mock_get):
         # self.fs defaults to "raise"; override to "reroute" on the call.
         file_obj = BytesIO(b'%PDF-1.4 fake')
@@ -332,8 +333,8 @@ class ElnFilesystemTest(unittest.TestCase):
         self.assertEqual({'folderId': 123}, mock_post.call_args_list[0].kwargs['data'])
         self.assertEqual({}, mock_post.call_args_list[1].kwargs['data'])
 
-    @patch('requests.get', side_effect=mock_requests_get)
-    @patch('requests.post', side_effect=mock_reroute_upload_post)
+    @patch('requests.Session.get', side_effect=mock_requests_get)
+    @patch('requests.Session.post', side_effect=mock_reroute_upload_post)
     def test_upload_reroute_constructor_policy(self, mock_post, mock_get):
         reroute_fs = GalleryFilesystem('https://example.com', 'api_key', on_mismatch='reroute')
         file_obj = BytesIO(b'%PDF-1.4 fake')
@@ -353,7 +354,7 @@ class ElnFilesystemTest(unittest.TestCase):
         self.assertEqual('Gallery', placement.path)
         self.fs.eln_client.upload_file.assert_called_once()
 
-    @patch('requests.get', side_effect=mock_requests_get)
+    @patch('requests.Session.get', side_effect=mock_requests_get)
     def test_invalid_constructor_policy_rejected(self, mock_get):
         with self.assertRaises(ValueError):
             GalleryFilesystem('https://example.com', 'api_key', on_mismatch='bogus')
