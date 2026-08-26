@@ -22,6 +22,10 @@ All notable changes to this project will be documented in this file
   subsamples and LIST containers; Instruments and Instrument Templates cannot be
   imported from CSV. See `examples/import_inventory_csv.py`.
 
+## 2.7.4 2026-08-26
+
+- reliability improvements, more robust error handling, increased test coverage
+
 ## 2.7.2 2026-07-13
 
 - Added support for the Inventory "Link" extra-field type (server PR #803 /
