@@ -16,6 +16,8 @@ All notable changes to this project will be documented in this file
   `filename=`; `list_folder_tree` takes `page_size=`; new `get_workbench_by_id`; Inventory
   CSV import uses the shared session.
 - Removed a stray debug print from `InventoryClient.upload_attachment_by_global_id`.
+- Added `rspace_client/tests/mock_rspace`, an offline mock of the ELN and Inventory REST
+  endpoints the PyFilesystem classes use, shared by the unit suite. Not installed.
 
 ## Unreleased
 
