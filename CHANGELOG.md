@@ -6,6 +6,17 @@ All notable changes to this project will be documented in this file
  - replace naming of classes and methods using 'Workbench' to 'Bench'
  - replace create_sample, create_container long argument lists with new XXXPost objects
 
+## 2.8.0 (unreleased)
+
+- Security: the client never follows an HTTP redirect, since `requests` would carry the
+  `apiKey` header to the new host.
+- Client-level changes: `_links` URLs are rebased onto the configured host so paging and
+  download links work behind a proxy; `doDelete` tolerates a leading slash (fixes
+  `delete_document`); `upload_file` and `upload_attachment_by_global_id` take an optional
+  `filename=`; `list_folder_tree` takes `page_size=`; new `get_workbench_by_id`; Inventory
+  CSV import uses the shared session.
+- Removed a stray debug print from `InventoryClient.upload_attachment_by_global_id`.
+
 ## Unreleased
 
 - Gallery upload routing and section-mismatch handling (PR #56): clearer
