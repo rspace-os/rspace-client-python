@@ -23,6 +23,12 @@ code calls `/workbenches`, the Inventory files endpoints and `/folders/tree`.
   `details.size/created/modified` populated, and listings stream page by page. A
   `rspace://host` opener is registered; the key comes from `RSPACE_API_KEY`, never the URL.
   `print_tree`/`format_tree` render the tree. See `docs/usage-guide.md`.
+- Deprecated `rspace_client.eln.fs.GalleryFilesystem` and
+  `rspace_client.inv.attachment_fs.InventoryAttachmentFilesystem` in favour of
+  `rspace_client.fs`. They remain as shims with their historical behaviour and emit a
+  `DeprecationWarning`. Galaxy's own `rspace` file source (shipped since Galaxy 25.1) imports
+  the first of them, so removal follows an update of that plugin: no earlier than 3.0. Added
+  `rspace_client.inv.fs` so the documented import works (GitHub #57).
 - Inventory attachments uploaded through the filesystem are now Gallery files linked to the
   record, as the web interface's "link from Gallery" produces; `via_gallery=False` restores
   the older Inventory-only file. `RSpaceFilesystem.copy` links a Gallery file into an
@@ -43,6 +49,7 @@ code calls `/workbenches`, the Inventory files endpoints and `/folders/tree`.
   `delete_document`); `upload_file` and `upload_attachment_by_global_id` take an optional
   `filename=`; `list_folder_tree` takes `page_size=`; new `get_workbench_by_id`; Inventory
   CSV import uses the shared session.
+- Fixed `InventoryAttachmentFilesystem.getinfo` reporting the full path as the entry name.
 - Removed a stray debug print from `InventoryClient.upload_attachment_by_global_id`.
 - Added `rspace_client/tests/mock_rspace`, an offline mock of the endpoints the filesystems
   use, plus a harness that shows what Galaxy's file browser would display. Not installed.
