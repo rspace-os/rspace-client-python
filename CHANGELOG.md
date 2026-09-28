@@ -67,6 +67,12 @@ All notable changes to this project will be documented in this file
 
 ## Unreleased
 
+- Packaging: migrated `pyproject.toml` to the standard PEP 621 `[project]`
+  table with Poetry 2.x as the build backend.
+
+  Potentially breaking:
+  - Python 3.9 is no longer supported; the minimum is now 3.10.
+
 - Gallery upload routing and section-mismatch handling (PR #56): clearer
   `GallerySectionMismatch` exception, optional `on_mismatch="reroute"`
   policy to auto-reroute uploads into the server-chosen section, `upload()` now

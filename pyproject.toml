@@ -1,16 +1,17 @@
-[tool.poetry]
+[project]
 name = "rspace-client"
 version = "2.7.4"
 description = "A client for calling RSpace ELN and Inventory APIs"
 license = "Apache-2.0"
-authors = ["Research Innovations Ltd <support@researchspace.com>"]
+authors = [
+  { name = "Research Innovations Ltd", email = "support@researchspace.com" },
+]
 maintainers = [
-  "Matthias Kowalski <matthias@researchspace.com>",
-  "Robert Lamacraft <robert.lamacraft@researchspace.com>"
+  { name = "Matthias Kowalski", email = "matthias@researchspace.com" },
+  { name = "Robert Lamacraft", email = "robert.lamacraft@researchspace.com" },
 ]
 readme = "README.md"
-repository = "https://github.com/rspace-os/rspace-client-python"
-documentation = "https://github.com/rspace-os/rspace-client-python"
+requires-python = ">=3.10"
 keywords = ["RSpace", "ResearchSpace", "ELN", "Inventory"]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -18,29 +19,37 @@ classifiers = [
   "Intended Audience :: Science/Research",
   "Topic :: Software Development :: Libraries",
 ]
-exclude = ["examples/*", "rspace_client/tests/*"]
-
-[tool.poetry.dependencies]
-python = "^3.9"
-requests = "^2.25.1"
-beautifulsoup4 = "^4.9.3"
-fs = "^2.4.16"           # deprecated PyFilesystem2 classes only (rspace_client.eln.fs, rspace_client.inv.attachment_fs); removed in 3.0
-setuptools = "<82"       # fs 2.4.16 imports pkg_resources; goes with fs
-fsspec = ">=2024.3.0"   # rspace_client.fs
+dependencies = [
+  "requests>=2.25.1,<3",
+  "beautifulsoup4>=4.9.3,<5",
+  "fs>=2.4.16,<3",           # deprecated PyFilesystem2 classes only (rspace_client.eln.fs, rspace_client.inv.attachment_fs); removed in 3.0
+  "setuptools<82",            # fs 2.4.16 imports pkg_resources; goes with fs
+  "fsspec>=2024.3.0",         # rspace_client.fs
+]
 
 # lets fsspec.filesystem("rspace") and rspace:// URLs work before rspace_client.fs is imported
-[tool.poetry.plugins."fsspec.specs"]
+[project.entry-points."fsspec.specs"]
 rspace = "rspace_client.fs:RSpaceFilesystem"
 
-[tool.poetry.group.dev.dependencies]
-python-dotenv = "^1.1.1"
-black = "^21.6b0"
-pytest = "^8.0.0"
-responses = "^0.26.2"
-universal-pathlib = ">=0.2"
+[project.urls]
+Repository = "https://github.com/rspace-os/rspace-client-python"
+Documentation = "https://github.com/rspace-os/rspace-client-python"
+
+[tool.poetry]
+packages = [{ include = "rspace_client" }]
+exclude = ["examples/*", "rspace_client/tests/*"]
+
+[dependency-groups]
+dev = [
+  "python-dotenv>=1.1.1,<2",
+  "pytest>=8.0.0,<9",
+  "black>=21.6b0",
+  "responses>=0.26.2,<0.27",
+  "universal-pathlib>=0.2",
+]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=2.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]

@@ -1,17 +1,17 @@
 ## Development
 
-Python 3.9 or later is required. We aim to support only active versions of Python.
+Python 3.10 or later is required. We aim to support only active versions of Python.
 
 ### Setup
 
-Create a virtual environment with python 3.7 installed. If you use `conda`, you can do this
+Create a virtual environment with a supported Python version installed. If you use `conda`, you can do this
 
 ```
 conda env create -f environment.yaml
 conda activate rspace-client
 ``` 
 
-We use `poetry` for dependency management. [Install Poetry] (https://python-poetry.org/docs/#installation)
+We use `poetry` (2.x) for dependency management. [Install Poetry](https://python-poetry.org/docs/#installation)
 
 From this directory, run 
 

@@ -56,7 +56,7 @@ Full worked examples for every feature above are in the **[Usage Guide](docs/usa
 
 |                      |                                     |
 | -------------------- | ----------------------------------- |
-| Python               | 3.9 or later (see `pyproject.toml`) |
+| Python               | 3.10 or later (see `pyproject.toml`) |
 | RSpace ELN API       | 1.69 or later                       |
 | RSpace Inventory API | 1.73  or later                      |
 
