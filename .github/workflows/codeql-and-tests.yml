@@ -39,11 +39,46 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
 
+  lint:
+    name: lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 2.4.1
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Install dependencies
+        run: poetry install --no-interaction
+
+      - name: Ruff check
+        run: poetry run ruff check rspace_client examples
+
+      - name: Ruff format check
+        run: poetry run ruff format --check rspace_client examples
+
+      - name: mypy
+        run: poetry run mypy rspace_client
+
   test:
     name: unit test
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    needs: analyze
+    needs: [analyze, lint]
     permissions:
       contents: read
     strategy:
@@ -70,7 +105,10 @@ jobs:
         run: poetry install --no-interaction
 
       - name: Run unit tests
-        run: poetry run pytest -m "not integration"
+        run: |
+          poetry run pytest -m "not integration" \
+            --cov=rspace_client --cov-report=term-missing --cov-report=xml \
+            --cov-fail-under=55
 
   integration-test:
     name: integration test

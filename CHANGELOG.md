@@ -101,6 +101,9 @@ All notable changes to this project will be documented in this file
 - Fixed the error raised when an ELN export job fails: the server's error
   detail was dropped, leaving only "Export job failed: ".
 
+- CI: added a lint job (ruff check, ruff format --check, mypy) and unit test
+  coverage reporting with a 55% floor.
+
 - Gallery upload routing and section-mismatch handling (PR #56): clearer
   `GallerySectionMismatch` exception, optional `on_mismatch="reroute"`
   policy to auto-reroute uploads into the server-chosen section, `upload()` now
