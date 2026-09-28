@@ -167,17 +167,24 @@ jobs:
           rm -rf "$RS_FILE_BASE"
           mkdir -p "$RS_FILE_BASE"
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable corepack
+        run: corepack enable
+
       - name: Seed dev deployment.properties
         working-directory: rspace-web
         run: |
           cp -f src/main/resources/deployments/dev/deployment.properties.example \
             src/main/resources/deployments/dev/deployment.properties
 
-      # Backend only - no -DgenerateReactDist, so no Node/pnpm/Vite build.
-      # The Python client only exercises the REST API, not the UI.
-      - name: Build RSpace backend
+
+      - name: Build RSpace
         working-directory: rspace-web
-        run: ./mvnw clean package -DskipTests -Dtimestamp=${{ github.run_id }} -Djava-version=17 -Djava-vendor=temurin
+        run: ./mvnw clean package -DgenerateReactDist -DskipTests -Dtimestamp=${{ github.run_id }} -Djava-version=17 -Djava-vendor=temurin
 
       - name: Start RSpace and wait for readiness
         working-directory: rspace-web
