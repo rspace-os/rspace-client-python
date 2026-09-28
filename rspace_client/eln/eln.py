@@ -548,8 +548,9 @@ class ELNClient(ClientBase):
                 self.download_link_to_file(download_url, file_path)
                 return file_path
             elif status_response["status"] == "FAILED":
-                msg = "Export job failed: "
-                + self._get_formated_error_message(status_response["result"])
+                msg = "Export job failed: " + self._get_formated_error_message(
+                    status_response["result"]
+                )
                 self._log_progress(progress_log, msg)
                 raise ClientBase.ApiError(msg)
             elif status_response["status"] == "ABANDONED":

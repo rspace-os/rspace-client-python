@@ -98,6 +98,9 @@ All notable changes to this project will be documented in this file
   f-string prefix and printed the literal placeholders; it also no longer
   catches unrelated exceptions with a bare `except`.
 
+- Fixed the error raised when an ELN export job fails: the server's error
+  detail was dropped, leaving only "Export job failed: ".
+
 - Gallery upload routing and section-mismatch handling (PR #56): clearer
   `GallerySectionMismatch` exception, optional `on_mismatch="reroute"`
   policy to auto-reroute uploads into the server-chosen section, `upload()` now
