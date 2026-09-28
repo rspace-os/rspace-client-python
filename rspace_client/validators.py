@@ -39,8 +39,8 @@ class URL(AbsValidator):
         if isinstance(item, str):
             try:
                 urlparse(item)
-            except:
-                raise TypeError("{type(item)} {item!r} could not be parsed")
+            except ValueError as e:
+                raise TypeError(f"{type(item)} {item!r} could not be parsed") from e
 
         else:
             self.raise_type_error(item, "a URI string")

@@ -94,6 +94,10 @@ All notable changes to this project will be documented in this file
 - Fixed `ListContainer.is_list()` raising `TypeError` when called on an
   instance (missing `self`).
 
+- Fixed the `URL` field validator's error message, which was missing its
+  f-string prefix and printed the literal placeholders; it also no longer
+  catches unrelated exceptions with a bare `except`.
+
 - Gallery upload routing and section-mismatch handling (PR #56): clearer
   `GallerySectionMismatch` exception, optional `on_mismatch="reroute"`
   policy to auto-reroute uploads into the server-chosen section, `upload()` now
