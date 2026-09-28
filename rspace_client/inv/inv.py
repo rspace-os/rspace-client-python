@@ -959,10 +959,14 @@ class ItemPost:
         self,
         name: str,
         itemType: str,
-        tags: List[Tag] = [],
+        tags: List[Tag] = None,
         description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        extra_fields: Optional[Sequence] = None,
     ):
+        if tags is None:
+            tags = []
+        if extra_fields is None:
+            extra_fields = []
         self.data = {}
         self.data["type"] = itemType
         self.data["name"] = name
@@ -981,9 +985,9 @@ class SamplePost(ItemPost):
     def __init__(
         self,
         name: str,
-        tags: List[Tag] = [],
+        tags: List[Tag] = None,
         description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        extra_fields: Optional[Sequence] = None,
         sample_template_id=None,
         fields=None,
         storage_temperature_min: StorageTemperature = None,
@@ -1029,9 +1033,9 @@ class InstrumentPost(ItemPost):
     def __init__(
         self,
         name: str,
-        tags: List[Tag] = [],
+        tags: List[Tag] = None,
         description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        extra_fields: Optional[Sequence] = None,
         instrument_template_id=None,
         fields=None,
         attachments=None,
@@ -1145,13 +1149,15 @@ class ContainerPost(ItemPost):
     def __init__(
         self,
         name: str,
-        tags: List[Tag] = [],
+        tags: List[Tag] = None,
         description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        extra_fields: Optional[Sequence] = None,
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TopLevelTargetLocation(),
+        location: TargetLocation = None,
     ):
+        if location is None:
+            location = TopLevelTargetLocation()
         super().__init__(name, "CONTAINER", tags, description, extra_fields)
         if not can_store_containers and not can_store_samples:
             raise ValueError(
@@ -1174,12 +1180,12 @@ class ListContainerPost(ContainerPost):
     def __init__(
         self,
         name: str,
-        tags: List[Tag] = [],
+        tags: List[Tag] = None,
         description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        extra_fields: Optional[Sequence] = None,
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TopLevelTargetLocation(),
+        location: TargetLocation = None,
     ):
         super().__init__(
             name,
@@ -1206,13 +1212,13 @@ class ImageContainerPost(ContainerPost):
         self,
         name: str,
         image_file: Union[str, io.BufferedReader],
-        locations: Optional[Sequence] = [],
-        tags: List[Tag] = [],
+        locations: Optional[Sequence] = None,
+        tags: List[Tag] = None,
         description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        extra_fields: Optional[Sequence] = None,
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TopLevelTargetLocation(),
+        location: TargetLocation = None,
     ):
         """
         Parameters
@@ -1250,7 +1256,7 @@ class ImageContainerPost(ContainerPost):
                 self._setencoded(img_file)
         elif isinstance(image_file, io.BufferedReader):
             self._setencoded(image_file)
-        locs = [{"coordX": p[0], "coordY": p[1]} for p in locations]
+        locs = [{"coordX": p[0], "coordY": p[1]} for p in (locations or [])]
         self.data["locations"] = locs
         self.data["cType"] = "IMAGE"
 
@@ -1265,12 +1271,12 @@ class GridContainerPost(ContainerPost):
         name: str,
         row_count: int,
         column_count: int,
-        tags: List[Tag] = [],
+        tags: List[Tag] = None,
         description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        extra_fields: Optional[Sequence] = None,
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TopLevelTargetLocation(),
+        location: TargetLocation = None,
     ):
         super().__init__(
             name,
@@ -1336,9 +1342,9 @@ class InventoryClient(ClientBase):
     def create_sample(
         self,
         name: str,
-        tags: List[Tag] = [],
+        tags: List[Tag] = None,
         description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        extra_fields: Optional[Sequence] = None,
         sample_template_id=None,
         fields=None,
         storage_temperature_min: StorageTemperature = None,
@@ -1405,7 +1411,7 @@ class InventoryClient(ClientBase):
         return self.retrieve_api_results(f"/subSamples/{ss_id.as_id()}")
 
     def list_samples(
-        self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
+        self, pagination: Pagination = None, sample_filter: SearchFilter = None
     ) -> dict:
         """
         Parameters
@@ -1419,7 +1425,7 @@ class InventoryClient(ClientBase):
         return self._do_simple_list("samples", pagination, sample_filter)
 
     def list_top_level_containers(
-        self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
+        self, pagination: Pagination = None, sample_filter: SearchFilter = None
     ) -> dict:
         """
         Parameters
@@ -1433,7 +1439,7 @@ class InventoryClient(ClientBase):
         return self._do_simple_list("containers", pagination, sample_filter)
 
     def list_subsamples(
-        self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
+        self, pagination: Pagination = None, sample_filter: SearchFilter = None
     ) -> dict:
         """
         Parameters
@@ -1447,6 +1453,8 @@ class InventoryClient(ClientBase):
         return self._do_simple_list("subSamples", pagination, sample_filter)
 
     def _do_simple_list(self, endpoint, pagination, sample_filter):
+        if pagination is None:
+            pagination = Pagination()
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
         return self.retrieve_api_results(
@@ -1456,7 +1464,7 @@ class InventoryClient(ClientBase):
         )
 
     def stream_samples(
-        self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
+        self, pagination: Pagination = None, sample_filter: SearchFilter = None
     ):
         """
         Streams all samples. Pagination argument sets batch size and ordering.
@@ -1468,12 +1476,14 @@ class InventoryClient(ClientBase):
         ------
         item : One Sample at a time
         """
+        if pagination is None:
+            pagination = Pagination()
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
         return self._stream("samples", pagination)
 
     def stream_top_level_containers(
-        self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
+        self, pagination: Pagination = None, sample_filter: SearchFilter = None
     ):
         """
         Streams all containers. Pagination argument sets batch size and ordering.
@@ -1485,6 +1495,8 @@ class InventoryClient(ClientBase):
         ------
         item : One Container at a time
         """
+        if pagination is None:
+            pagination = Pagination()
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
         return self._stream("containers", pagination)
@@ -1548,9 +1560,9 @@ class InventoryClient(ClientBase):
     def create_instrument(
         self,
         name: str,
-        tags: List[Tag] = [],
+        tags: List[Tag] = None,
         description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        extra_fields: Optional[Sequence] = None,
         instrument_template_id=None,
         fields=None,
         attachments=None,
@@ -1600,7 +1612,7 @@ class InventoryClient(ClientBase):
         return self.retrieve_api_results(f"/instruments/{i_id.as_id()}")
 
     def list_instruments(
-        self, pagination: Pagination = Pagination(), search_filter: SearchFilter = None
+        self, pagination: Pagination = None, search_filter: SearchFilter = None
     ) -> dict:
         """
         Parameters
@@ -1961,7 +1973,7 @@ class InventoryClient(ClientBase):
         return rc
 
     def search(
-        self, query: str, pagination=Pagination(), result_type: ResultType = None
+        self, query: str, pagination=None, result_type: ResultType = None
     ) -> dict:
         """
         Searches by a query, optionally paginated or restricted to a particular type (container,
@@ -1981,6 +1993,8 @@ class InventoryClient(ClientBase):
             Search result summary and first page of results.
 
         """
+        if pagination is None:
+            pagination = Pagination()
         params = {"query": query}
         params.update(pagination.data)
         if result_type is not None:
@@ -2369,12 +2383,12 @@ class InventoryClient(ClientBase):
     def create_list_container(
         self,
         name: str,
-        tags: List[Tag] = [],
+        tags: List[Tag] = None,
         description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        extra_fields: Optional[Sequence] = None,
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TopLevelTargetLocation(),
+        location: TargetLocation = None,
     ) -> dict:
         """
         Creates a single List Container, either 'top-level',  on the Workbench,
@@ -2405,12 +2419,12 @@ class InventoryClient(ClientBase):
         name: str,
         row_count: int,
         column_count: int,
-        tags: List[Tag] = [],
+        tags: List[Tag] = None,
         description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        extra_fields: Optional[Sequence] = None,
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TopLevelTargetLocation(),
+        location: TargetLocation = None,
     ) -> dict:
         """
         Parameters
@@ -2838,7 +2852,7 @@ class InventoryClient(ClientBase):
         )
 
     def list_sample_templates(
-        self, pagination: Pagination = Pagination(), search_filter: SearchFilter = None
+        self, pagination: Pagination = None, search_filter: SearchFilter = None
     ):
         """
         Paginated listing of SampleTemplates, optionally filtering by username (owner) or deletion status
@@ -2998,7 +3012,7 @@ class InventoryClient(ClientBase):
         )
 
     def list_instrument_templates(
-        self, pagination: Pagination = Pagination(), search_filter: SearchFilter = None
+        self, pagination: Pagination = None, search_filter: SearchFilter = None
     ):
         """
         Paginated listing of InstrumentTemplates, optionally filtering by username

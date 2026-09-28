@@ -76,6 +76,11 @@ All notable changes to this project will be documented in this file
 - Development tooling: added `ruff` (lint + format, replacing `black`),
   `mypy`, `pre-commit` and `pytest-cov` configuration.
 
+- Fixed shared mutable default arguments (`Pagination()`, `tags=[]`,
+  `extra_fields=[]`, `TopLevelTargetLocation()`, `item_ids=[]`,
+  `typesToInclude=[]`) in several `inv` and `eln` methods, which could leak
+  state across calls made without an explicit argument.
+
 - Gallery upload routing and section-mismatch handling (PR #56): clearer
   `GallerySectionMismatch` exception, optional `on_mismatch="reroute"`
   policy to auto-reroute uploads into the server-chosen section, `upload()` now

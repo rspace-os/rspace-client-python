@@ -44,7 +44,7 @@ class ELNClient(ClientBase):
 
         return self.retrieve_api_results("/documents", params)
 
-    def stream_documents(self, pagination: Pagination = Pagination()):
+    def stream_documents(self, pagination: Pagination = None):
         return self._stream("documents", pagination)
 
     def get_documents_advanced_query(
@@ -450,7 +450,7 @@ class ELNClient(ClientBase):
 
     # Export selection
     def start_export_selection(
-        self, export_format, item_ids=[], include_revisions=False
+        self, export_format, item_ids=None, include_revisions=False
     ):
         """
         Starts an asynchronous of  selection of items.
@@ -462,7 +462,7 @@ class ELNClient(ClientBase):
         :return: job id
         """
         self._check_export_format(export_format)
-        itemsToExport = ",".join(map(str, item_ids))
+        itemsToExport = ",".join(map(str, item_ids or []))
         request_url = (
             self._get_api_url()
             + f"/export/{export_format}/selection?selections={itemsToExport}&includeRevisionHistory={include_revisions}"
@@ -512,7 +512,7 @@ class ELNClient(ClientBase):
         self,
         export_format,
         file_path,
-        item_ids=[],
+        item_ids=None,
         include_revision_history=False,
         wait_between_requests=30,
     ):
@@ -795,7 +795,7 @@ class ELNClient(ClientBase):
         numeric_folder_id = self._get_numeric_record_id(folder_id)
         return self.retrieve_api_results("/folders/{}".format(numeric_folder_id))
 
-    def list_folder_tree(self, folder_id=None, typesToInclude=[], page_size=None):
+    def list_folder_tree(self, folder_id=None, typesToInclude=None, page_size=None):
         """
         Lists contents of a folder by its ID.
         :param folder_id. Optional folderId. If none, will return listing of Home Folder
@@ -805,6 +805,7 @@ class ELNClient(ClientBase):
          follow the response's 'next' link for further pages
         :return a paginated folder listing
         """
+        typesToInclude = typesToInclude or []
         url = ""
         if folder_id is not None:
             url = "/folders/tree/{}".format(folder_id)
