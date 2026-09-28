@@ -2,9 +2,9 @@ name: codeQL and Test
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
   workflow_dispatch:  # allow manual trigger
 
 permissions:
