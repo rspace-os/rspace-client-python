@@ -73,6 +73,9 @@ All notable changes to this project will be documented in this file
   Potentially breaking:
   - Python 3.9 is no longer supported; the minimum is now 3.10.
 
+- Development tooling: added `ruff` (lint + format, replacing `black`),
+  `mypy`, `pre-commit` and `pytest-cov` configuration.
+
 - Gallery upload routing and section-mismatch handling (PR #56): clearer
   `GallerySectionMismatch` exception, optional `on_mismatch="reroute"`
   policy to auto-reroute uploads into the server-chosen section, `upload()` now

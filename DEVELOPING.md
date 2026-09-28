@@ -17,7 +17,23 @@ From this directory, run
 
 `poetry install` 
 
-to install all project dependencies into your virtual environment. 
+to install all project dependencies, including the dev tools below, into your virtual environment.
+
+### Linting, formatting and type checking
+
+We use [ruff](https://docs.astral.sh/ruff/) for linting and formatting, and [mypy](https://mypy-lang.org/) for type checking.
+
+```
+poetry run ruff check rspace_client examples
+poetry run ruff format rspace_client examples
+poetry run mypy rspace_client
+```
+
+A [pre-commit](https://pre-commit.com/) config is provided to run these automatically on each commit:
+
+```
+poetry run pre-commit install
+```
 
 ### Running tests
 
