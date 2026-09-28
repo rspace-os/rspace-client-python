@@ -91,6 +91,9 @@ All notable changes to this project will be documented in this file
   Potentially breaking: grid containers created via `GridContainerPost` are
   now sent to the server with `cType: "GRID"`.
 
+- Fixed `ListContainer.is_list()` raising `TypeError` when called on an
+  instance (missing `self`).
+
 - Gallery upload routing and section-mismatch handling (PR #56): clearer
   `GallerySectionMismatch` exception, optional `on_mismatch="reroute"`
   policy to auto-reroute uploads into the server-chosen section, `upload()` now

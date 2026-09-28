@@ -388,7 +388,7 @@ class ListContainer(Container):
         super().__init__(list_container)
         self._validate_type(list_container, "LIST")
 
-    def is_list() -> bool:
+    def is_list(self) -> bool:
         return True
 
     def capacity(self) -> int:
