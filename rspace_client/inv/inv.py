@@ -92,7 +92,7 @@ class Sample:
         for ss in self.data["subSamples"]:
             b_crumb = " -> ".join([x["name"] for x in ss["parentContainers"]][::-1])
             bcumbs.add(b_crumb)
-        return bcumbs
+        return list(bcumbs)
 
     def __repr__(self):
         return f"Sample: id = {self.data['id']}, name = {self.data['name']}, creationDate = {self.data['created']}"

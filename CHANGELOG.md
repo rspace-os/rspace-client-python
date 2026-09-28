@@ -81,6 +81,11 @@ All notable changes to this project will be documented in this file
   `typesToInclude=[]`) in several `inv` and `eln` methods, which could leak
   state across calls made without an explicit argument.
 
+- Fixed `Sample.wherep()` returning a `set` instead of the documented `list`.
+
+  Potentially breaking: code that calls `.add()` on the result, uses set
+  operators on it, or compares it with `== {...}` needs updating.
+
 - Gallery upload routing and section-mismatch handling (PR #56): clearer
   `GallerySectionMismatch` exception, optional `on_mismatch="reroute"`
   policy to auto-reroute uploads into the server-chosen section, `upload()` now
