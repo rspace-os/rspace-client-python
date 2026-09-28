@@ -1,26 +1,25 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Fri Jan 28 20:04:29 2022
 
 @author: richardadams
 """
 
-#%%
-import sys, time
+# %%
+import sys
+import time
+
 import rspace_client
 
 cli = rspace_client.utils.createInventoryClient()
 from rspace_client.inv.inv import (
-    GridContainer,
-    InventoryClient,
-    ByRow,
     ByColumn,
-    SamplePost,
+    ByRow,
     GridContainerPost,
+    SamplePost,
 )
 
-#%%
+# %%
 
 
 class FreezerCreator:
@@ -103,7 +102,7 @@ class FreezerCreator:
             self.cli.add_items_to_grid_container(parents[j], br)
 
 
-#%%
+# %%
 ### Configure the size of the freezer here ( or ask for input)
 print(
     "Please enter the number of shelves, racks, trays and boxes to create. Boxes are 12 x 8"
@@ -132,7 +131,7 @@ freezerFactory = FreezerCreator(
 freezer = freezerFactory.create_freezer(freezer_name)
 
 
-#%%
+# %%
 samples_created = 0
 total_samples_to_create = len(freezer["boxes"]) * box_cols
 print(f"Creating {total_samples_to_create} samples...", file=sys.stderr)
@@ -144,7 +143,8 @@ for box in freezer["boxes"]:
     col = 1
     samples_created = samples_created + box_cols
     print(
-        f" created {box_cols} samples / {total_samples_to_create}", file=sys.stderr,
+        f" created {box_cols} samples / {total_samples_to_create}",
+        file=sys.stderr,
     )
 
     ## we can move 12 samples at a time

@@ -1,14 +1,14 @@
-# -*- coding: utf-8 -*-
 """
 Define SampleTemplates and InstrumentTemplates using a Builder pattern
 """
-from typing import Optional, Sequence, Union, List
-from urllib.parse import urlparse
-import numbers
-import datetime as dt
 
-from rspace_client.inv.quantity_unit import QuantityUnit
+import datetime as dt
+import numbers
+from typing import Union
+from urllib.parse import urlparse
+
 from rspace_client.inv.inv import RelationType
+from rspace_client.inv.quantity_unit import QuantityUnit
 
 
 class FieldDefinitionBuilder:
@@ -27,7 +27,7 @@ class FieldDefinitionBuilder:
             raise ValueError("Name cannot be empty or None")
         return {"name": name, "type": f_type}
 
-    def radio(self, name: str, options: List, selected: str = None):
+    def radio(self, name: str, options: list, selected: str = None):
         """
         Parameters
         ----------
@@ -49,7 +49,7 @@ class FieldDefinitionBuilder:
         self.fields.append(f)
         return self
 
-    def choice(self, name: str, options: List, selected: List = None):
+    def choice(self, name: str, options: list, selected: list = None):
         """
         Parameters
         ----------
@@ -119,7 +119,7 @@ class FieldDefinitionBuilder:
 
     ## TODO date, time, URI, attachment?
 
-    def date(self, name: str, isodate: Union[dt.date, dt.datetime, str] = None):
+    def date(self, name: str, isodate: dt.date | dt.datetime | str = None):
         """
 
         Parameters
@@ -155,7 +155,7 @@ class FieldDefinitionBuilder:
         self.fields.append(f)
         return self
 
-    def time(self, name: str, isotime: Union[dt.date, dt.time, str] = None):
+    def time(self, name: str, isotime: dt.date | dt.time | str = None):
         """
 
         Parameters
@@ -236,7 +236,7 @@ class FieldDefinitionBuilder:
     def link(
         self,
         name: str,
-        allowed_relation_types: List = None,
+        allowed_relation_types: list = None,
         mandatory: bool = False,
     ):
         """

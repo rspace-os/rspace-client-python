@@ -23,6 +23,7 @@ Behavioural notes that mirror the real client's expectations:
     templates) and emit absolute _links (self/next/prev) on the request's origin,
     which ClientBase._stream follows.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -30,8 +31,8 @@ import json
 import re
 import sys
 import threading
+from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Callable, Dict, List, Optional, Tuple
 from urllib.parse import parse_qs, urlencode, urlparse
 
 try:  # package import (python -m rspace_client.tests.mock_rspace.server, or from tests)
@@ -42,22 +43,24 @@ except ImportError:  # run as a plain script from its own directory
 ELN_PREFIX = "/api/v1"
 INV_PREFIX = "/api/inventory/v1"
 
-Route = Tuple[str, "re.Pattern[str]", Callable]
+Route = tuple[str, "re.Pattern[str]", Callable]
 
 
 class ApiError(Exception):
-    def __init__(self, status: int, message: str, errors: Optional[List[str]] = None):
+    def __init__(self, status: int, message: str, errors: list[str] | None = None):
         super().__init__(message)
         self.status, self.message, self.errors = status, message, errors or []
 
 
-def parse_multipart(content_type: str, body: bytes) -> Dict[str, Tuple[Optional[str], bytes, str]]:
+def parse_multipart(
+    content_type: str, body: bytes
+) -> dict[str, tuple[str | None, bytes, str]]:
     """Byte-exact multipart/form-data parser. Returns name -> (filename, bytes, part content-type)."""
     m = re.search(r'boundary="?([^";]+)"?', content_type or "")
     if not m:
         raise ApiError(400, "multipart/form-data with boundary expected")
     delim = b"--" + m.group(1).encode()
-    parts: Dict[str, Tuple[Optional[str], bytes, str]] = {}
+    parts: dict[str, tuple[str | None, bytes, str]] = {}
     for chunk in body.split(delim):
         if chunk.startswith(b"\r\n"):
             chunk = chunk[2:]
@@ -66,7 +69,7 @@ def parse_multipart(content_type: str, body: bytes) -> Dict[str, Tuple[Optional[
         header_blob, _, payload = chunk.partition(b"\r\n\r\n")
         if payload.endswith(b"\r\n"):
             payload = payload[:-2]
-        headers: Dict[str, str] = {}
+        headers: dict[str, str] = {}
         for line in header_blob.split(b"\r\n"):
             k, _, v = line.partition(b":")
             headers[k.strip().lower().decode()] = v.strip().decode(errors="replace")
@@ -74,8 +77,10 @@ def parse_multipart(content_type: str, body: bytes) -> Dict[str, Tuple[Optional[
         name = re.search(r'name="([^"]*)"', disp)
         filename = re.search(r'filename="([^"]*)"', disp)
         parts[name.group(1) if name else ""] = (
-            filename.group(1) if filename else None, payload,
-            headers.get("content-type", "application/octet-stream"))
+            filename.group(1) if filename else None,
+            payload,
+            headers.get("content-type", "application/octet-stream"),
+        )
     return parts
 
 
@@ -88,12 +93,17 @@ class MockRSpaceServer(ThreadingHTTPServer):
     #: so the mock does the same and clients have to cope with it.
     advertised_base = "http://rspace.advertised.example:8080"
 
-    def __init__(self, address: Tuple[str, int], data: Optional[fx.MockData] = None, verbose: bool = False):
+    def __init__(
+        self,
+        address: tuple[str, int],
+        data: fx.MockData | None = None,
+        verbose: bool = False,
+    ):
         super().__init__(address, MockRSpaceHandler)
         self.data = data or fx.MockData()
         self.verbose = verbose
         self.stats_lock = threading.Lock()
-        self.stats: Dict = {"requests": 0, "by_path": {}}
+        self.stats: dict = {"requests": 0, "by_path": {}}
 
     @property
     def url(self) -> str:
@@ -129,12 +139,16 @@ class MockRSpaceHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _send_bytes(self, data: bytes, content_type: str, filename: Optional[str] = None) -> None:
+    def _send_bytes(
+        self, data: bytes, content_type: str, filename: str | None = None
+    ) -> None:
         self.send_response(200)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(data)))
         if filename:
-            self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+            self.send_header(
+                "Content-Disposition", f'attachment; filename="{filename}"'
+            )
         self.end_headers()
         self.wfile.write(data)
 
@@ -158,7 +172,9 @@ class MockRSpaceHandler(BaseHTTPRequestHandler):
         with self.server.stats_lock:
             self.server.stats["requests"] += 1
             key = re.sub(r"/\d+", "/{id}", path)
-            self.server.stats["by_path"][key] = self.server.stats["by_path"].get(key, 0) + 1
+            self.server.stats["by_path"][key] = (
+                self.server.stats["by_path"].get(key, 0) + 1
+            )
 
     # ------------------------------------------------------------ dispatch
 
@@ -185,7 +201,7 @@ class MockRSpaceHandler(BaseHTTPRequestHandler):
                 raise ApiError(401, "Unauthorized: apiKey header is missing")
             for prefix, routes in ((INV_PREFIX, INV_ROUTES), (ELN_PREFIX, ELN_ROUTES)):
                 if path.startswith(prefix + "/") or path == prefix:
-                    sub = path[len(prefix):] or "/"
+                    sub = path[len(prefix) :] or "/"
                     for m, pattern, handler in routes:
                         match = pattern.fullmatch(sub)
                         if m == method and match:
@@ -194,9 +210,14 @@ class MockRSpaceHandler(BaseHTTPRequestHandler):
                     raise ApiError(404, f"no mock route for {method} {path}")
             raise ApiError(404, f"unknown path {path}")
         except ApiError as e:
-            self._send_json({"status": e.status, "message": e.message, "errors": e.errors}, e.status)
+            self._send_json(
+                {"status": e.status, "message": e.message, "errors": e.errors}, e.status
+            )
         except KeyError as e:
-            self._send_json({"status": 404, "message": f"resource not found: {e}", "errors": []}, 404)
+            self._send_json(
+                {"status": 404, "message": f"resource not found: {e}", "errors": []},
+                404,
+            )
         except ValueError as e:
             self._send_json({"status": 400, "message": str(e), "errors": []}, 400)
 
@@ -211,12 +232,14 @@ class MockRSpaceHandler(BaseHTTPRequestHandler):
 
     # ------------------------------------------------------------ helpers
 
-    def _paginate(self, items: List[dict], query: dict, base: str, endpoint: str, key: str) -> dict:
+    def _paginate(
+        self, items: list[dict], query: dict, base: str, endpoint: str, key: str
+    ) -> dict:
         page = int(query.get("pageNumber", 0))
         size = max(1, int(query.get("pageSize", 20)))
         total = len(items)
         start = page * size
-        chunk = items[start:start + size]
+        chunk = items[start : start + size]
 
         def link(p: int, rel: str) -> dict:
             q = dict(query)
@@ -232,6 +255,7 @@ class MockRSpaceHandler(BaseHTTPRequestHandler):
 
 
 # ================================================================ ELN routes
+
 
 def eln_status(h: MockRSpaceHandler, base, query):
     h._send_json({"message": "OK", "rspaceVersion": "mock-0.1"})
@@ -264,7 +288,9 @@ def eln_create_folder(h: MockRSpaceHandler, base, query):
     if not body.get("name"):
         raise ApiError(400, "name is required", ["name: must not be empty"])
     with h.server.data.lock:
-        f = h.server.data.add_folder(body["name"], body.get("parentFolderId"), bool(body.get("notebook")))
+        f = h.server.data.add_folder(
+            body["name"], body.get("parentFolderId"), bool(body.get("notebook"))
+        )
     h._send_json(fx.ser_folder(f, base), 201)
 
 
@@ -273,7 +299,9 @@ def eln_delete_folder(h: MockRSpaceHandler, base, query, id):
     with data.lock:
         f = data.folders[int(id)]
         if f.get("system"):
-            raise ApiError(403, f"{f['globalId']} is a system folder and cannot be deleted")
+            raise ApiError(
+                403, f"{f['globalId']} is a system folder and cannot be deleted"
+            )
         data.remove_folder(int(id))
     h._send_no_content()
 
@@ -297,8 +325,13 @@ def eln_upload_file(h: MockRSpaceHandler, base, query):
     caption = parts["caption"][1].decode() if "caption" in parts else ""
     with h.server.data.lock:
         name = filename or f"upload-{h.server.data.new_id()}.bin"
-        g = h.server.data.add_gallery_file(name, folder_id, content,
-                                           None if ctype == "application/octet-stream" else ctype, caption)
+        g = h.server.data.add_gallery_file(
+            name,
+            folder_id,
+            content,
+            None if ctype == "application/octet-stream" else ctype,
+            caption,
+        )
     h._send_json(fx.ser_gallery_file(g, base), 201)
 
 
@@ -314,7 +347,7 @@ def eln_update_document(h: MockRSpaceHandler, base, query, id):
     h._send_json(fx.ser_document(d, h.server.data, base))
 
 
-ELN_ROUTES: List[Route] = [
+ELN_ROUTES: list[Route] = [
     ("GET", re.compile(r"/status"), eln_status),
     ("GET", re.compile(r"/folders/tree"), eln_folder_tree),
     ("GET", re.compile(r"/folders/tree/(?P<id>\d+)"), eln_folder_tree),
@@ -331,18 +364,29 @@ ELN_ROUTES: List[Route] = [
 
 # ============================================================ Inventory routes
 
-def _truthy(v: Optional[str]) -> bool:
+
+def _truthy(v: str | None) -> bool:
     return str(v).lower() in ("true", "1", "yes")
 
 
 def inv_workbenches(h: MockRSpaceHandler, base, query):
     data = h.server.data
-    h._send_json({"containers": [fx.ser_container(b, data, base, include_content=False) for b in data.benches()]})
+    h._send_json(
+        {
+            "containers": [
+                fx.ser_container(b, data, base, include_content=False)
+                for b in data.benches()
+            ]
+        }
+    )
 
 
 def inv_list_containers(h: MockRSpaceHandler, base, query):
     data = h.server.data
-    items = [fx.ser_container(c, data, base, include_content=False) for c in data.top_level_containers()]
+    items = [
+        fx.ser_container(c, data, base, include_content=False)
+        for c in data.top_level_containers()
+    ]
     h._send_json(h._paginate(items, query, base, "containers", "containers"))
 
 
@@ -350,8 +394,14 @@ def inv_get_container(h: MockRSpaceHandler, base, query, id):
     data = h.server.data
     container = data.containers[int(id)]
     if container["cType"] == "WORKBENCH":  # mirrors the real server
-        raise ApiError(422, f"Container with id {id} is a workbench", [f"Container with id {id} is a workbench"])
-    h._send_json(fx.ser_container(container, data, base, _truthy(query.get("includeContent"))))
+        raise ApiError(
+            422,
+            f"Container with id {id} is a workbench",
+            [f"Container with id {id} is a workbench"],
+        )
+    h._send_json(
+        fx.ser_container(container, data, base, _truthy(query.get("includeContent")))
+    )
 
 
 def inv_get_workbench(h: MockRSpaceHandler, base, query, id):
@@ -359,7 +409,9 @@ def inv_get_workbench(h: MockRSpaceHandler, base, query, id):
     bench = data.containers[int(id)]
     if bench["cType"] != "WORKBENCH":
         raise ApiError(404, f"no workbench with id {id}")
-    h._send_json(fx.ser_container(bench, data, base, _truthy(query.get("includeContent"))))
+    h._send_json(
+        fx.ser_container(bench, data, base, _truthy(query.get("includeContent")))
+    )
 
 
 def inv_list_samples(h: MockRSpaceHandler, base, query):
@@ -417,8 +469,12 @@ def inv_upload_file(h: MockRSpaceHandler, base, query):
         raise ApiError(400, "fileSettings.parentGlobalId is required")
     with h.server.data.lock:
         name = filename or f"upload-{h.server.data.new_id()}.bin"
-        a = h.server.data.add_inv_file(parent, name, content,
-                                       None if ctype == "application/octet-stream" else ctype)
+        a = h.server.data.add_inv_file(
+            parent,
+            name,
+            content,
+            None if ctype == "application/octet-stream" else ctype,
+        )
     h._send_json(fx.ser_inv_file(a, base), 201)
 
 
@@ -441,7 +497,7 @@ def inv_delete_file(h: MockRSpaceHandler, base, query, id):
     h._send_no_content()
 
 
-INV_ROUTES: List[Route] = [
+INV_ROUTES: list[Route] = [
     ("GET", re.compile(r"/workbenches"), inv_workbenches),
     ("GET", re.compile(r"/workbenches/(?P<id>\d+)"), inv_get_workbench),
     ("GET", re.compile(r"/containers"), inv_list_containers),
@@ -462,14 +518,21 @@ INV_ROUTES: List[Route] = [
 
 # ================================================================ entry points
 
-def make_server(host: str = "127.0.0.1", port: int = 8765, verbose: bool = False) -> MockRSpaceServer:
+
+def make_server(
+    host: str = "127.0.0.1", port: int = 8765, verbose: bool = False
+) -> MockRSpaceServer:
     return MockRSpaceServer((host, port), verbose=verbose)
 
 
-def run_in_thread(host: str = "127.0.0.1", port: int = 0, verbose: bool = False) -> Tuple[MockRSpaceServer, str]:
+def run_in_thread(
+    host: str = "127.0.0.1", port: int = 0, verbose: bool = False
+) -> tuple[MockRSpaceServer, str]:
     """Start the server on a background daemon thread. port=0 picks a free port. Returns (server, url)."""
     server = make_server(host, port, verbose)
-    threading.Thread(target=server.serve_forever, name="mock-rspace", daemon=True).start()
+    threading.Thread(
+        target=server.serve_forever, name="mock-rspace", daemon=True
+    ).start()
     return server, server.url
 
 
@@ -480,7 +543,9 @@ def main(argv=None) -> int:
     ap.add_argument("--verbose", "-v", action="store_true", help="log every request")
     args = ap.parse_args(argv)
     server = make_server(args.host, args.port, args.verbose)
-    print(f"Mock RSpace listening on {server.url}  (ELN: {ELN_PREFIX}, Inventory: {INV_PREFIX})")
+    print(
+        f"Mock RSpace listening on {server.url}  (ELN: {ELN_PREFIX}, Inventory: {INV_PREFIX})"
+    )
     print("Use any non-empty apiKey. Ctrl-C to stop.")
     try:
         server.serve_forever()

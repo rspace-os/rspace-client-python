@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Thu Nov  4 20:56:36 2021
 
 @author: richard
 """
+
 import os
 import re
 
@@ -57,9 +57,9 @@ class TreeImporter:
         path2Id = {}
 
         def _is_subfolder_tree_required(sf, doc_creation):
-            return (sf not in path2Id.keys()) and (
-                (DCS.DOC_PER_FILE == doc_creation)
-                or (DCS.DOC_PER_SUBFOLDER == doc_creation)
+            return (sf not in path2Id) and (
+                (doc_creation == DCS.DOC_PER_FILE)
+                or (doc_creation == DCS.DOC_PER_SUBFOLDER)
             )
 
         # maintain mapping of local directory paths to RSpace folder Ids
@@ -79,7 +79,6 @@ class TreeImporter:
                 _filter_dot_files(subdirList)
                 _filter_dot_files(fileList)
             for sf in subdirList:
-
                 if _is_subfolder_tree_required(sf, doc_creation):
                     rs_folder = self.cli.create_folder(
                         _sanitize(os.path.basename(sf)), path2Id[dirName]
@@ -94,7 +93,7 @@ class TreeImporter:
                         rs_file = self.cli.upload_file(reader)
                         all_rs_files.append((f, rs_file))
                         rs_files_in_subdir.append((f, rs_file))
-                except IOError as x:
+                except OSError as x:
                     if halt_on_error:
                         self.cli.serr(
                             f"{x} raised while opening {f} - halting on error"
@@ -107,13 +106,13 @@ class TreeImporter:
                 doc_name = os.path.splitext(f)[0]
 
                 ## just puts link to the document
-                if DCS.DOC_PER_FILE == doc_creation:
+                if doc_creation == DCS.DOC_PER_FILE:
                     parent_folder_id = path2Id[dirName]
                     content_string = f"<fileId={rs_file['id']}>"
                     self._create_file_linking_doc(
                         content_string, parent_folder_id, doc_name, path2Id
                     )
-            if (DCS.DOC_PER_SUBFOLDER == doc_creation) and (
+            if (doc_creation == DCS.DOC_PER_SUBFOLDER) and (
                 len(rs_files_in_subdir) > 0
             ):
                 parent_folder_id = path2Id[dirName]
@@ -122,7 +121,7 @@ class TreeImporter:
                 self._create_file_linking_doc(
                     content, parent_folder_id, summary_name, path2Id
                 )
-        if (DCS.SUMMARY_DOC == doc_creation) and (len(all_rs_files) > 0):
+        if (doc_creation == DCS.SUMMARY_DOC) and (len(all_rs_files) > 0):
             content = self._generate_summary_content(all_rs_files)
             summary_name = f"Summary-doc{all_rs_files[0][1]['created']}"
             self._create_file_linking_doc(content, folder["id"], summary_name, path2Id)

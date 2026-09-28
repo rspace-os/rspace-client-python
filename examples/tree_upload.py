@@ -1,11 +1,12 @@
-import os
-import rspace_client
 import argparse
-import xml.etree.ElementTree as ET
-import tempfile
-import zipfile
-import time
+import os
 import re
+import tempfile
+import time
+import xml.etree.ElementTree as ET
+import zipfile
+
+import rspace_client
 
 """
 This code imports to RSpace an eCAT export that has already had its .odt files converted to .docx files.
@@ -107,11 +108,7 @@ def log_api_success(workspace_or_shared, rspaceId, localPath="none"):
         )
 
     with open(log_file_path, "a+") as folder_log:
-        folder_log.write(
-            "{ftype}|{rspace_id}|{localPath}\n".format(
-                ftype=workspace_or_shared, rspace_id=rspaceId, localPath=localPath
-            )
-        )
+        folder_log.write(f"{workspace_or_shared}|{rspaceId}|{localPath}\n")
 
 
 ## writes header used to identify active log file
@@ -120,7 +117,7 @@ def initialiseLogFile():
     if ResumeMode:
         raise ValueError("Resume mode must not initialise new log file")
     with open(log_file_path, "a+") as folder_log:
-        folder_log.write("{}\n".format(LOG_FILE_HEADER))
+        folder_log.write(f"{LOG_FILE_HEADER}\n")
 
 
 ## parses log file into array of triples (type, RSpaceId, localPath | none)
@@ -133,7 +130,7 @@ def parse_log_file():
     if not os.path.exists(log_file_path):
         raise ValueError("Log path {} does not exist".format("log_file_path"))
     logFileData = {}
-    with open(log_file_path, "r") as folder_log:
+    with open(log_file_path) as folder_log:
         lines = folder_log.readlines()
         ## quick  check on contents, is this a likely log file??
         if len(lines) == 0:
@@ -201,7 +198,7 @@ def api_call(callname, apiCall):
     else:
         returnval = apiCall()
     finish = time.time()
-    print("API call {} took {:.1f} seconds".format(callname, finish - start))
+    print(f"API call {callname} took {finish - start:.1f} seconds")
     if not api_simulate:
         time.sleep(0.5)
     return returnval
@@ -215,11 +212,7 @@ def create_dir_and_ancestors(fdict, directory, galleryType):
         fdict, parent, galleryType
     )  # recurse, on return ancestor will exist
     # create folder for dir in parent and store id in dictionary
-    print(
-        "creating folder for {child} in {par} ({parentid})".format(
-            child=directory, par=parent, parentid=fdict[parent]
-        )
-    )
+    print(f"creating folder for {directory} in {parent} ({fdict[parent]})")
     response = api_call(
         "create_folder",
         lambda: client.create_folder(
@@ -231,12 +224,8 @@ def create_dir_and_ancestors(fdict, directory, galleryType):
 
 
 def share_document(docId, groupId, folderId, origFilePath="None"):
-    if not origFilePath in shared_sdocs:
-        print(
-            "Sharing document {} with group {} into folder {}".format(
-                docId, groupId, folderId
-            )
-        )
+    if origFilePath not in shared_sdocs:
+        print(f"Sharing document {docId} with group {groupId} into folder {folderId}")
         shared = api_call(
             "shareDocuments",
             lambda: client.shareDocuments([docId], groupId, sharedFolderId=folderId),
@@ -307,7 +296,7 @@ client = rspace_client.Client(args.server, args.apiKey)
 
 if ResumeMode == True:
     sharingGroupId = int(toResume[1][1])
-    print("Resuming with group {}".format(sharingGroupId))
+    print(f"Resuming with group {sharingGroupId}")
 elif not api_simulate:
     groups = client.get_groups()
     if len(groups) == 0:
@@ -342,9 +331,7 @@ fileCount = 0
 for dirName, subdirList, fileList in os.walk(args.srcDir):
     print("Found directory: %s" % dirName)
     print(
-        "Processed (folders/instances): Docs {}/{}; Images {}/{}; Files {}/{}".format(
-            len(wfolders), docCount, len(gifolders), imgCount, len(gdfolders), fileCount
-        )
+        f"Processed (folders/instances): Docs {len(wfolders)}/{docCount}; Images {len(gifolders)}/{imgCount}; Files {len(gdfolders)}/{fileCount}"
     )
     # always create w and s folders, only creat gd and gi as needed
     # "images" folders specially treated
@@ -352,7 +339,7 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
     if os.path.basename(dirName) != "images":
         dirname = os.path.basename(dirName)
         parname = os.path.dirname(dirName)
-        if not dirName in wfolders:  # folders does not exist yet
+        if dirName not in wfolders:  # folders does not exist yet
             response = api_call(
                 "create_folder",
                 lambda: client.create_folder(
@@ -361,16 +348,11 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
             )
             wfolders[dirName] = response["id"]
             print(
-                "Created workspacefolder {dir} ({dirnum}) in {par} ({parnum})".format(
-                    dir=dirname,
-                    dirnum=wfolders[dirName],
-                    par=os.path.basename(parname),
-                    parnum=wfolders[parname],
-                )
+                f"Created workspacefolder {dirname} ({wfolders[dirName]}) in {os.path.basename(parname)} ({wfolders[parname]})"
             )
             log_api_success("FLW", response["id"], dirName)
 
-        if not dirName in sfolders:  # folder does not exist yet
+        if dirName not in sfolders:  # folder does not exist yet
             response = api_call(
                 "create_folder",
                 lambda: client.create_folder(
@@ -379,12 +361,7 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
             )
             sfolders[dirName] = response["id"]
             print(
-                "Created shared folder {dir} ({dirnum}) in {par} ({parnum})".format(
-                    dir=dirname,
-                    dirnum=sfolders[dirName],
-                    par=os.path.basename(parname),
-                    parnum=sfolders[parname],
-                )
+                f"Created shared folder {dirname} ({sfolders[dirName]}) in {os.path.basename(parname)} ({sfolders[parname]})"
             )
             log_api_success("FLS", response["id"], dirName)
         for filename in fileList:
@@ -406,7 +383,7 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                     with open(docxname, "rb") as f:
                         # if not already created
                         docId = -1
-                        if not docxname in sdocs:
+                        if docxname not in sdocs:
                             new_document = api_call(
                                 "import_word",
                                 lambda: client.import_word(
@@ -428,10 +405,10 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                         else:
                             docId = sdocs[docxname]
                             print(
-                                "{} was ready uploaded".format(sdocs[docxname])
+                                f"{sdocs[docxname]} was ready uploaded"
                             )  ## resume mode
 
-                        print("sharing into {}".format(sfolders[dirName]))
+                        print(f"sharing into {sfolders[dirName]}")
                         share_document(
                             docId, sharingGroupId, sfolders[dirName], docxname
                         )
@@ -446,7 +423,7 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                 print("uploading %s to Gallery Docs" % galleryItemPath)
                 with open(galleryItemPath, "rb") as f:
                     new_file_id = -1
-                    if not galleryItemPath in glfiles:
+                    if galleryItemPath not in glfiles:
                         new_file = api_call(
                             "upload_file",
                             lambda: client.upload_file(
@@ -464,16 +441,14 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                         fileCount += 1
                     else:
                         new_file_id = glfiles[galleryItemPath]
-                        print("File  {} was already uploaded".format(galleryItemPath))
+                        print(f"File  {galleryItemPath} was already uploaded")
                     if new_file_id == -1:
                         print("ERROR - file ID not determined")
                         exit
                     # create a basic document with the same name and a link to the uploaded gallery file.
-                    if not new_file_id in sdocs:
+                    if new_file_id not in sdocs:
                         print(
-                            "creating basic document, should be in {}".format(
-                                wfolders[dirName]
-                            )
+                            f"creating basic document, should be in {wfolders[dirName]}"
                         )
                         new_document = api_call(
                             "create_document",
@@ -482,9 +457,7 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                                 parent_folder_id=wfolders[dirName],
                                 fields=[
                                     {
-                                        "content": "Link to the gallery file: <fileId={}>".format(
-                                            new_file_id
-                                        )
+                                        "content": f"Link to the gallery file: <fileId={new_file_id}>"
                                     }
                                 ],
                             ),
@@ -499,7 +472,7 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                             )
                         )
 
-                        print("sharing into {}".format(sfolders[dirName]))
+                        print(f"sharing into {sfolders[dirName]}")
                         share_document(
                             new_document["id"],
                             sharingGroupId,
@@ -507,11 +480,7 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                             new_file_id,
                         )
                     else:
-                        print(
-                            "Document linking to {} was already created".format(
-                                new_file_id
-                            )
-                        )
+                        print(f"Document linking to {new_file_id} was already created")
 
     else:  # images folder
         ## TODO complete resume code
@@ -524,7 +493,7 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
             # upload filename to gifolders[parentDir]
             print("uploading %s to GalleryImages" % filename)
             galleryItemPath = os.path.join(dirName, filename)
-            if not galleryItemPath in glfiles:
+            if galleryItemPath not in glfiles:
                 with open(galleryItemPath, "rb") as f:
                     new_file = api_call(
                         "upload_file",
@@ -539,20 +508,16 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                     log_api_success("GL", new_file["id"], galleryItemPath)
                     glfiles[galleryItemPath] = new_file["id"]
             else:
-                print("Image '{}' was already uploaded".format(galleryItemPath))
+                print(f"Image '{galleryItemPath}' was already uploaded")
         # create imageDoc = "eCAT gallery images" basic document in wfolders[parentDir]
 
         print(
-            "creating basic document for link to gallery images folder, should be in {}".format(
-                wfolders[parentDir]
-            )
+            f"creating basic document for link to gallery images folder, should be in {wfolders[parentDir]}"
         )
         docname = "eCAT gallery images for documents in " + os.path.basename(parentDir)
-        folder_link = "Gallery Images in Documents in this folder:\n<docId={}>\n".format(
-            gifolders[parentDir]
-        )
+        folder_link = f"Gallery Images in Documents in this folder:\n<docId={gifolders[parentDir]}>\n"
         new_document_id = -1
-        if not dirName in sdocs:
+        if dirName not in sdocs:
             new_document = api_call(
                 "create_document",
                 lambda: client.create_document(
@@ -565,20 +530,16 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
             log_api_success("SD", new_document_id, dirName)
             sdocs[dirName] = new_document_id
             print(
-                "New document was successfully created with global ID {}".format(
-                    new_document_id
-                )
+                f"New document was successfully created with global ID {new_document_id}"
             )
         else:
             new_document_id = sdocs[dirName]
             print("Folder link doc was already created")
-        print("sharing into {}".format(sfolders[parentDir]))
+        print(f"sharing into {sfolders[parentDir]}")
         share_document(new_document_id, sharingGroupId, sfolders[parentDir], dirName)
 
 print("Done!")
 print(
-    "Processed (folders/instances): Docs {}/{}; Images {}/{}; Files {}/{}".format(
-        len(wfolders), docCount, len(gifolders), imgCount, len(gdfolders), fileCount
-    )
+    f"Processed (folders/instances): Docs {len(wfolders)}/{docCount}; Images {len(gifolders)}/{imgCount}; Files {len(gdfolders)}/{fileCount}"
 )
 ## TODO check resume of shared docs and conditionals.

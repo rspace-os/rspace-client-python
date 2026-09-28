@@ -26,6 +26,7 @@ Provides, so that every branch (Gallery, Inventory, Workspace) behaves the same:
 * a ``glob`` that understands the ``<dir>/*<text>*`` pattern Galaxy's search sends, with
   the escaping Galaxy applies, so that a segment carrying ``[GL83]`` can be found.
 """
+
 from __future__ import annotations
 
 import errno
@@ -33,18 +34,24 @@ import functools
 import io
 import os
 import re
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import (Any, BinaryIO, Callable, Dict, Iterable, Iterator, List, Mapping, Optional,
-                    Tuple)
+from typing import (
+    Any,
+    BinaryIO,
+)
 
 from fsspec.spec import AbstractBufferedFile, AbstractFileSystem
 
 from rspace_client.client_base import ClientBase
-from rspace_client.exceptions import ApiError, AuthenticationError, RSpaceConnectionError
+from rspace_client.exceptions import (
+    ApiError,
+    AuthenticationError,
+    RSpaceConnectionError,
+)
 
 from . import paths
-
 
 # ------------------------------------------------------------------ errors
 #
@@ -69,9 +76,11 @@ class ReadOnlyError(PermissionError):
     """A write was refused because of the filesystem's posture, not by the server."""
 
 
-def os_error_for(exc: Exception, path: str) -> Optional[OSError]:
+def os_error_for(exc: Exception, path: str) -> OSError | None:
     """The ``OSError`` that stands for a client exception, or None to re-raise as it is."""
-    if getattr(exc, "fs_passthrough", False):  # e.g. GallerySectionMismatch: already explained
+    if getattr(
+        exc, "fs_passthrough", False
+    ):  # e.g. GallerySectionMismatch: already explained
         return None
     if isinstance(exc, RSpaceConnectionError):
         return ConnectionError(f"{path!r}: {exc}")
@@ -82,7 +91,11 @@ def os_error_for(exc: Exception, path: str) -> Optional[OSError]:
         return FileNotFoundError(errno.ENOENT, f"{path!r}: {exc}", path)
     if status in (401, 403):
         return PermissionError(errno.EACCES, f"{path!r}: {exc}", path)
-    if status in (502, 503, 504):  # the server or a proxy in front of it is not answering
+    if status in (
+        502,
+        503,
+        504,
+    ):  # the server or a proxy in front of it is not answering
         return ConnectionError(f"{path!r}: {exc}")
     if isinstance(exc, ApiError):
         # a 500 included: RSpace answers one for a request it understood but could not
@@ -92,9 +105,27 @@ def os_error_for(exc: Exception, path: str) -> Optional[OSError]:
 
 
 #: Public methods whose first argument is a path and which may call the server.
-_TRANSLATED_METHODS = ("ls", "scandir", "info", "cat_file", "get_file", "put_file", "_open",
-                       "download_fileobj", "upload_fileobj", "mkdir", "makedirs", "rmdir",
-                       "rm_file", "link", "glob", "cp_file", "mv", "created", "modified")
+_TRANSLATED_METHODS = (
+    "ls",
+    "scandir",
+    "info",
+    "cat_file",
+    "get_file",
+    "put_file",
+    "_open",
+    "download_fileobj",
+    "upload_fileobj",
+    "mkdir",
+    "makedirs",
+    "rmdir",
+    "rm_file",
+    "link",
+    "glob",
+    "cp_file",
+    "mv",
+    "created",
+    "modified",
+)
 
 
 _CLIENT_ERRORS = (ApiError, AuthenticationError, RSpaceConnectionError)
@@ -144,26 +175,30 @@ def translate_class(cls) -> None:
 
 def writes(method):
     """Mark a method that changes the server: it is refused unless ``writable=True``."""
+
     @functools.wraps(method)
     def wrapper(self, path, *args, **kwargs):
         self._require_writable(path)
         return method(self, path, *args, **kwargs)
+
     return wrapper
 
 
 def deletes(method):
     """Mark a method that removes something: it is refused unless ``allow_delete=True``."""
+
     @functools.wraps(method)
     def wrapper(self, path, *args, **kwargs):
         self._require_delete(path)
         return method(self, path, *args, **kwargs)
+
     return wrapper
 
 
 # ------------------------------------------------------------------ entries
 
 
-def to_epoch(value: Any) -> Optional[float]:
+def to_epoch(value: Any) -> float | None:
     """Convert an RSpace timestamp (ISO-8601 string, or epoch millis/seconds) to epoch seconds."""
     if value is None or value == "":
         return None
@@ -181,8 +216,15 @@ def to_epoch(value: Any) -> Optional[float]:
     return parsed.timestamp()
 
 
-def make_entry(segment: str, is_dir: bool, raw: Optional[Mapping] = None, size: Optional[int] = None,
-               created: Any = None, modified: Any = None, writable: Optional[bool] = None) -> dict:
+def make_entry(
+    segment: str,
+    is_dir: bool,
+    raw: Mapping | None = None,
+    size: int | None = None,
+    created: Any = None,
+    modified: Any = None,
+    writable: bool | None = None,
+) -> dict:
     """Build an entry dict. ``segment`` is the entry's own path segment; ``ls`` prefixes the
     parent path later.
 
@@ -190,7 +232,7 @@ def make_entry(segment: str, is_dir: bool, raw: Optional[Mapping] = None, size: 
     is locked). Left None, the key is absent, which means "unknown" rather than a guess: a
     record shared read-only with you is equally unwritable and looks no different from here.
     """
-    entry: Dict[str, Any] = {
+    entry: dict[str, Any] = {
         "name": segment,
         "type": "directory" if is_dir else "file",
         "size": size,
@@ -215,14 +257,15 @@ class Target:
     belongs to (an Inventory record, an ELN document), ``field_gid`` the field a file was
     reached through, and ``section`` the Inventory root section the path went through.
     """
+
     kind: str
-    gid: Optional[str] = None
-    parent_gid: Optional[str] = None
-    field_gid: Optional[str] = None
-    section: Optional[str] = None
+    gid: str | None = None
+    parent_gid: str | None = None
+    field_gid: str | None = None
+    section: str | None = None
 
 
-def client_or_new(client, factory, server: Optional[str], api_key: Optional[str], what: str):
+def client_or_new(client, factory, server: str | None, api_key: str | None, what: str):
     """The client that was passed in, or a new one from ``server`` and ``api_key``."""
     if client is not None:
         return client
@@ -252,7 +295,9 @@ def stream_pages(client: ClientBase, first_page: Mapping, key: str) -> Iterator[
             return
         next_link = client.get_link(page, "next")
         if next_link in followed:
-            raise OSError(errno.EIO, f"RSpace listing 'next' links form a loop: {next_link}")
+            raise OSError(
+                errno.EIO, f"RSpace listing 'next' links form a loop: {next_link}"
+            )
         followed.add(next_link)
         page = client.get_link_contents(page, "next")
 
@@ -297,9 +342,9 @@ class RSpaceFSBase(AbstractFileSystem):
     #: top-down reuse the same handful of entries, so a small bound is plenty.
     NAME_CACHE_LIMIT = 4096
     #: ``Target.kind`` values that are files: listing one raises ``NotADirectoryError``.
-    FILE_KINDS: Tuple[str, ...] = ()
+    FILE_KINDS: tuple[str, ...] = ()
     #: Field types (lower case) that can hold a file; other fields are not browsable.
-    FILE_BEARING_FIELD_TYPES: Tuple[str, ...] = ()
+    FILE_BEARING_FIELD_TYPES: tuple[str, ...] = ()
     #: False where the RSpace API cannot delete a file (the Gallery): a move is then refused
     #: before anything is copied, since the second half could never happen.
     CAN_DELETE_FILES = True
@@ -312,15 +357,23 @@ class RSpaceFSBase(AbstractFileSystem):
         # branch cannot forget it
         translate_class(cls)
 
-    def __init__(self, *, writable: bool = False, allow_delete: bool = False,
-                 path_style: str = "name", **storage_options: Any) -> None:
+    def __init__(
+        self,
+        *,
+        writable: bool = False,
+        allow_delete: bool = False,
+        path_style: str = "name",
+        **storage_options: Any,
+    ) -> None:
         # fsspec caches directory listings by default and never expires them; this
         # filesystem's own name cache is cleared on every write, so leave listings uncached
         # unless the caller (Galaxy's cache options, say) asks for them
         storage_options.setdefault("use_listings_cache", False)
         super().__init__(**storage_options)
         if path_style not in paths.PATH_STYLES:
-            raise ValueError(f"path_style must be one of {paths.PATH_STYLES}, got {path_style!r}")
+            raise ValueError(
+                f"path_style must be one of {paths.PATH_STYLES}, got {path_style!r}"
+            )
         self.writable = writable
         self.allow_delete = allow_delete
         #: "name" -> segments look like 'Images'; "labelled" -> 'Images [GF12]'; "id" -> 'GF12'.
@@ -329,7 +382,7 @@ class RSpaceFSBase(AbstractFileSystem):
         #: (parent path, segment) -> global ID, for segments written as a plain name. A name
         #: can only be resolved against its parent's listing, so without this every operation
         #: on a deep path would re-list every directory above it.
-        self._name_cache: Dict[Tuple[str, str], str] = {}
+        self._name_cache: dict[tuple[str, str], str] = {}
 
     # ------------------------------------------------------------ paths
 
@@ -348,13 +401,15 @@ class RSpaceFSBase(AbstractFileSystem):
         """Path segment for a record, in this filesystem's path style."""
         return paths.segment_for(self.path_style, name, gid)
 
-    def _upload_target(self, path: str) -> Tuple[str, str]:
+    def _upload_target(self, path: str) -> tuple[str, str]:
         """Split an upload path into the container to put the file in and the name to give
         it: the last segment is the name of the file to create and its parent is the
         container (a Gallery folder, an Inventory record, a document field)."""
         name = paths.last_segment(path)
         if not name or paths.is_root(path):
-            raise IsADirectoryError(errno.EISDIR, f"{path!r}: a file path is needed to upload to", path)
+            raise IsADirectoryError(
+                errno.EISDIR, f"{path!r}: a file path is needed to upload to", path
+            )
         return self._parent(path), name
 
     @staticmethod
@@ -367,13 +422,19 @@ class RSpaceFSBase(AbstractFileSystem):
     def _require_writable(self, path: str) -> None:
         if not self.writable:
             raise ReadOnlyError(
-                errno.EROFS, f"{path!r}: this filesystem was opened read-only; pass writable=True "
-                             f"to allow writes", str(path))
+                errno.EROFS,
+                f"{path!r}: this filesystem was opened read-only; pass writable=True "
+                f"to allow writes",
+                str(path),
+            )
 
     def _require_delete(self, path: str) -> None:
         if not self.allow_delete:
             raise ReadOnlyError(
-                errno.EROFS, f"{path!r}: deletion is disabled; pass allow_delete=True to allow it", str(path))
+                errno.EROFS,
+                f"{path!r}: deletion is disabled; pass allow_delete=True to allow it",
+                str(path),
+            )
 
     @property
     def read_only(self) -> bool:
@@ -390,7 +451,9 @@ class RSpaceFSBase(AbstractFileSystem):
         path = self._strip_protocol(path)
         return self._listing(path)
 
-    def ls(self, path: str, detail: bool = True, refresh: bool = False, **kwargs) -> list:
+    def ls(
+        self, path: str, detail: bool = True, refresh: bool = False, **kwargs
+    ) -> list:
         path = self._strip_protocol(path)
         out = None if refresh else self.dircache.get(path)
         if out is None:
@@ -459,16 +522,22 @@ class RSpaceFSBase(AbstractFileSystem):
         """The raw RSpace record that owns fields (an Inventory record, an ELN document)."""
         raise NotImplementedError(f"{type(self).__name__} does not implement _record")
 
-    def _file_fields(self, record: Mapping) -> List[dict]:
+    def _file_fields(self, record: Mapping) -> list[dict]:
         """The record's fields that can hold a file. Other field types are not browsable."""
-        return [f for f in record.get("fields") or []
-                if str(f.get("type", "")).lower() in self.FILE_BEARING_FIELD_TYPES and f.get("globalId")]
+        return [
+            f
+            for f in record.get("fields") or []
+            if str(f.get("type", "")).lower() in self.FILE_BEARING_FIELD_TYPES
+            and f.get("globalId")
+        ]
 
-    def _field(self, owner_gid: str, field_gid: str, record: Optional[Mapping] = None) -> dict:
+    def _field(
+        self, owner_gid: str, field_gid: str, record: Mapping | None = None
+    ) -> dict:
         record = record if record is not None else self._record(owner_gid)
         return self._find_field(self._file_fields(record), field_gid, owner_gid)
 
-    def _gids(self, segments: List[str], start: int = 0) -> Iterator[Tuple[int, str]]:
+    def _gids(self, segments: list[str], start: int = 0) -> Iterator[tuple[int, str]]:
         """``(index, global id)`` for each segment from ``start`` on. A segment carrying a
         global ID says what it addresses; a bare name is looked up in its parent's listing."""
         for index in range(start, len(segments)):
@@ -477,20 +546,34 @@ class RSpaceFSBase(AbstractFileSystem):
                 gid = self._lookup("/".join(segments[:index]), segments[index])
             yield index, gid
 
-    def _entry(self, record: Mapping, is_dir: bool, gid: Optional[str] = None,
-               name: Optional[str] = None, **extra: Any) -> dict:
+    def _entry(
+        self,
+        record: Mapping,
+        is_dir: bool,
+        gid: str | None = None,
+        name: str | None = None,
+        **extra: Any,
+    ) -> dict:
         """The entry for an RSpace record, named after it in this filesystem's path style."""
         gid = gid or record["globalId"]
-        return make_entry(self._segment(record.get("name") if name is None else name, gid), is_dir,
-                          raw=record, size=record.get("size"), created=record.get("created"),
-                          modified=record.get("lastModified"), **extra)
+        return make_entry(
+            self._segment(record.get("name") if name is None else name, gid),
+            is_dir,
+            raw=record,
+            size=record.get("size"),
+            created=record.get("created"),
+            modified=record.get("lastModified"),
+            **extra,
+        )
 
     @staticmethod
     def _find_field(fields: Iterable[Mapping], field_gid: str, owner: str) -> dict:
         for field in fields:
             if field.get("globalId") == field_gid:
                 return field
-        raise FileNotFoundError(errno.ENOENT, f"no field {field_gid} on {owner}", f"{owner}/{field_gid}")
+        raise FileNotFoundError(
+            errno.ENOENT, f"no field {field_gid} on {owner}", f"{owner}/{field_gid}"
+        )
 
     def _is_empty(self, path: str) -> bool:
         """True if the directory has no children, without listing all of them."""
@@ -511,8 +594,11 @@ class RSpaceFSBase(AbstractFileSystem):
                 if key in self._name_cache:
                     break
             else:
-                raise FileNotFoundError(errno.ENOENT, f"{self._join(parent, segment)!r} not found",
-                                        self._join(parent, segment))
+                raise FileNotFoundError(
+                    errno.ENOENT,
+                    f"{self._join(parent, segment)!r} not found",
+                    self._join(parent, segment),
+                )
         return self._name_cache[key]
 
     def _gid_at(self, path: str) -> str:
@@ -526,7 +612,7 @@ class RSpaceFSBase(AbstractFileSystem):
         filesystem; call it yourself if records are renamed elsewhere while it is open."""
         self._name_cache.clear()
 
-    def invalidate_cache(self, path: Optional[str] = None) -> None:
+    def invalidate_cache(self, path: str | None = None) -> None:
         """Drop cached listings (fsspec's) and resolved names (ours).
 
         fsspec's default does nothing to the listings cache, so a write through this
@@ -549,14 +635,18 @@ class RSpaceFSBase(AbstractFileSystem):
         """The entry for a resolved path. Branches implement it."""
         raise NotImplementedError(f"{type(self).__name__} does not implement _info_of")
 
-    def _stamp(self, path: str, key: str) -> Optional[datetime]:
+    def _stamp(self, path: str, key: str) -> datetime | None:
         stamp = self.info(path).get(key)
-        return datetime.fromtimestamp(stamp, tz=timezone.utc) if stamp is not None else None
+        return (
+            datetime.fromtimestamp(stamp, tz=timezone.utc)
+            if stamp is not None
+            else None
+        )
 
-    def created(self, path: str) -> Optional[datetime]:
+    def created(self, path: str) -> datetime | None:
         return self._stamp(path, "created")
 
-    def modified(self, path: str) -> Optional[datetime]:
+    def modified(self, path: str) -> datetime | None:
         return self._stamp(path, "mtime")
 
     # ------------------------------------------------------------ search
@@ -565,7 +655,7 @@ class RSpaceFSBase(AbstractFileSystem):
     #: is allowed, which is how Galaxy sends a ``[``).
     _GALAXY_SEARCH = re.compile(r"^(?P<dir>[^*?]*?)/?\*(?P<text>[^*?/]+)\*$", re.S)
 
-    def glob(self, path: str, maxdepth: Optional[int] = None, **kwargs):
+    def glob(self, path: str, maxdepth: int | None = None, **kwargs):
         """fsspec glob, with one special case: the ``<dir>/*<text>*`` pattern a search box
         sends (Galaxy builds exactly this) is answered by one listing of ``<dir>`` and a
         case-insensitive substring match on the last segment, in listing order. fsspec's
@@ -575,12 +665,18 @@ class RSpaceFSBase(AbstractFileSystem):
         # Galaxy wraps a query as ``*<query>*``, so a query that itself starts or ends with a
         # star ("*.csv") arrives as ``**.csv*``, which fsspec refuses because ``**`` only means
         # something as a whole path component. Inside a segment the user meant a single star.
-        path = "/".join(seg if seg == "**" else re.sub(r"\*{2,}", "*", seg) for seg in path.split("/"))
+        path = "/".join(
+            seg if seg == "**" else re.sub(r"\*{2,}", "*", seg)
+            for seg in path.split("/")
+        )
         match = self._GALAXY_SEARCH.match(path)
         if match and maxdepth in (None, 1):
             needle = re.sub(r"\\(.)", r"\1", match.group("text")).lower()
-            found = {entry["name"]: entry for entry in self._listing(match.group("dir"))
-                     if needle in paths.last_segment(entry["name"]).lower()}
+            found = {
+                entry["name"]: entry
+                for entry in self._listing(match.group("dir"))
+                if needle in paths.last_segment(entry["name"]).lower()
+            }
             return found if kwargs.get("detail") else list(found)
         return super().glob(path, maxdepth=maxdepth, **kwargs)
 
@@ -601,13 +697,17 @@ class RSpaceFSBase(AbstractFileSystem):
     def _placed_file(self, path: str, target: Target) -> dict:
         """The record of the file ``target`` as the directory ``path`` reaches it through holds
         it; ``FileNotFoundError`` when that directory does not hold it. Branches implement it."""
-        raise NotImplementedError(f"{type(self).__name__} does not implement _placed_file")
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement _placed_file"
+        )
 
     def _download(self, file_id: str, file: BinaryIO, chunk_size: int) -> None:
         """The client call that streams file ``file_id`` into ``file``. Branches implement it."""
         raise NotImplementedError(f"{type(self).__name__} does not implement _download")
 
-    def download_fileobj(self, path: str, file: BinaryIO, chunk_size: int = 128) -> None:
+    def download_fileobj(
+        self, path: str, file: BinaryIO, chunk_size: int = 128
+    ) -> None:
         """Stream the file at ``path`` into the open binary ``file``."""
         self._download(self._file_id(self._strip_protocol(path)), file, chunk_size)
 
@@ -616,13 +716,17 @@ class RSpaceFSBase(AbstractFileSystem):
         to give it and its parent is the container to put it in. Branches implement it."""
         raise NotImplementedError(f"{type(self).__name__} cannot upload")
 
-    def cat_file(self, path: str, start: Optional[int] = None, end: Optional[int] = None, **kwargs) -> bytes:
+    def cat_file(
+        self, path: str, start: int | None = None, end: int | None = None, **kwargs
+    ) -> bytes:
         buffer = io.BytesIO()
         self.download_fileobj(path, buffer)
         data = buffer.getvalue()
         return data[start:end] if (start is not None or end is not None) else data
 
-    def get_file(self, rpath: str, lpath, callback=None, outfile=None, **kwargs) -> None:
+    def get_file(
+        self, rpath: str, lpath, callback=None, outfile=None, **kwargs
+    ) -> None:
         """Download straight into the local file, without the whole-file buffer ``open`` needs."""
         if isinstance(lpath, (str, bytes)) or hasattr(lpath, "__fspath__"):
             rpath = self._strip_protocol(rpath)
@@ -634,7 +738,9 @@ class RSpaceFSBase(AbstractFileSystem):
         else:
             self.download_fileobj(rpath, lpath)
 
-    def put_file(self, lpath, rpath: str, callback=None, mode: str = "overwrite", **kwargs) -> None:
+    def put_file(
+        self, lpath, rpath: str, callback=None, mode: str = "overwrite", **kwargs
+    ) -> None:
         """Upload the local file as the RSpace file at ``rpath``."""
         if os.path.isdir(lpath):
             # fsspec's put() hands directories through put_file as well, and relies on the
@@ -644,8 +750,15 @@ class RSpaceFSBase(AbstractFileSystem):
         with open(lpath, "rb") as handle:
             self.upload_fileobj(rpath, handle, **kwargs)
 
-    def _open(self, path: str, mode: str = "rb", block_size=None, autocommit: bool = True,
-              cache_options=None, **kwargs):
+    def _open(
+        self,
+        path: str,
+        mode: str = "rb",
+        block_size=None,
+        autocommit: bool = True,
+        cache_options=None,
+        **kwargs,
+    ):
         """Reads buffer the whole file (RSpace serves no byte ranges). Writes buffer until the
         file is closed, or until the transaction commits, and upload in one request."""
         path = self._strip_protocol(path)
@@ -657,13 +770,15 @@ class RSpaceFSBase(AbstractFileSystem):
                 raise IsADirectoryError(errno.EISDIR, f"{path!r} is a directory", path)
             if mode.startswith("x") and self.exists(path):
                 raise FileExistsError(errno.EEXIST, f"{path!r} exists", path)
-            return RSpaceWriteFile(self, path, mode="wb", block_size=2 ** 62, autocommit=autocommit)
+            return RSpaceWriteFile(
+                self, path, mode="wb", block_size=2**62, autocommit=autocommit
+            )
         raise ValueError(f"mode {mode!r} is not supported; use 'rb' or 'wb'")
 
     # ------------------------------------------------------------ folders (templates)
 
     @staticmethod
-    def _new_folder(path: str) -> Tuple[str, str]:
+    def _new_folder(path: str) -> tuple[str, str]:
         """``(parent path, folder name)`` for mkdir. 'New [GF1]' creates 'New', as does
         'New'; a bare global ID is refused because it names nothing to create."""
         segment = paths.last_segment(path)
@@ -672,9 +787,15 @@ class RSpaceFSBase(AbstractFileSystem):
             raise ValueError(f"{path!r}: mkdir takes a folder name, not a global ID")
         return RSpaceFSBase._parent(path), label if gid is not None else segment
 
-    def _create_folder(self, path: str, name: str, siblings: Iterable[Mapping],
-                       create: Callable[[], Mapping], folder_prefixes: Tuple[str, ...],
-                       exist_ok: bool) -> str:
+    def _create_folder(
+        self,
+        path: str,
+        name: str,
+        siblings: Iterable[Mapping],
+        create: Callable[[], Mapping],
+        folder_prefixes: tuple[str, ...],
+        exist_ok: bool,
+    ) -> str:
         """Create ``name`` unless a folder of that name is already among ``siblings``. RSpace
         would happily make a second folder with the same name; the filesystem contract says
         to refuse instead (or, with ``exist_ok``, to return the existing one). Returns the
@@ -690,8 +811,13 @@ class RSpaceFSBase(AbstractFileSystem):
         self.invalidate_cache()
         return self._join(parent, self._segment(name, gid))
 
-    def _remove_folder(self, path: str, folder_gid: Optional[str], delete: Callable[[str], Any],
-                       not_a_folder: Exception) -> None:
+    def _remove_folder(
+        self,
+        path: str,
+        folder_gid: str | None,
+        delete: Callable[[str], Any],
+        not_a_folder: Exception,
+    ) -> None:
         """Delete the empty folder at ``path``. ``folder_gid`` is its global ID, or None when
         the path is not a removable folder, in which case ``not_a_folder`` is raised."""
         if paths.is_root(path):
@@ -713,7 +839,9 @@ class RSpaceFSBase(AbstractFileSystem):
         path = self._strip_protocol(path)
         if exist_ok and self.exists(path):
             if not self.isdir(path):
-                raise FileExistsError(errno.EEXIST, f"{path!r} exists and is not a directory", path)
+                raise FileExistsError(
+                    errno.EEXIST, f"{path!r} exists and is not a directory", path
+                )
             return
         self.mkdir(path, create_parents=False, exist_ok=exist_ok)
 
@@ -723,12 +851,12 @@ class RSpaceFSBase(AbstractFileSystem):
     def rm_file(self, path: str) -> None:
         raise NotImplementedError(f"{type(self).__name__} cannot delete files")
 
-    def rm(self, path, recursive: bool = False, maxdepth: Optional[int] = None) -> None:
+    def rm(self, path, recursive: bool = False, maxdepth: int | None = None) -> None:
         """Remove files and empty directories. Recursive removal is refused: RSpace records
         are not something a filesystem should delete wholesale."""
         if recursive:
             raise NotImplementedError("recursive removal is not supported on RSpace")
-        for one in ([path] if isinstance(path, str) else path):
+        for one in [path] if isinstance(path, str) else path:
             one = self._strip_protocol(one)
             if self._resolve(one).kind in self.FILE_KINDS:
                 self.rm_file(one)
@@ -737,7 +865,9 @@ class RSpaceFSBase(AbstractFileSystem):
 
     def link(self, path: str, media_file_gid: str) -> dict:
         """Attach a Gallery file by reference. Only the branches with ``CAN_LINK`` can."""
-        raise NotImplementedError(f"{path!r}: the Gallery holds the files, it cannot link to them")
+        raise NotImplementedError(
+            f"{path!r}: the Gallery holds the files, it cannot link to them"
+        )
 
     def cp_file(self, path1: str, path2: str, **kwargs) -> None:
         """Copy a file within this filesystem by downloading and uploading it."""
@@ -753,12 +883,19 @@ class RSpaceFSBase(AbstractFileSystem):
         if not self.CAN_DELETE_FILES:
             raise NotImplementedError(
                 f"{path1!r} cannot be moved: the RSpace API cannot delete a Gallery file, so only "
-                f"a copy is possible")
+                f"a copy is possible"
+            )
         if recursive:
             raise NotImplementedError("recursive move is not supported on RSpace")
 
-    def mv(self, path1: str, path2: str, recursive: bool = False, maxdepth: Optional[int] = None,
-           **kwargs) -> None:
+    def mv(
+        self,
+        path1: str,
+        path2: str,
+        recursive: bool = False,
+        maxdepth: int | None = None,
+        **kwargs,
+    ) -> None:
         self._require_writable(path2)
         self._require_movable(path1, recursive)
         self.cp_file(path1, path2)

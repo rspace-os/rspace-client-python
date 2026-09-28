@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-from __future__ import print_function
-import rspace_client
-import time
 import re
+import time
+
+import rspace_client
 
 
 def print_users(response):
@@ -23,28 +23,29 @@ def delete_users():
             if re.match("^FAILED", line):
                 failedId = line.split(sep=" ")[1]
                 failedIds.append(failedId.rstrip("\r\n"))
-    print("Will ignore these userids that are known to fail: {}".format(failedIds))
+    print(f"Will ignore these userids that are known to fail: {failedIds}")
 
-    with open("toDelete-8087.txt", "r") as toDelete, open(
-        "log-delete.txt", "a+"
-    ) as deletelog:
+    with (
+        open("toDelete-8087.txt") as toDelete,
+        open("log-delete.txt", "a+") as deletelog,
+    ):
         lines = toDelete.readlines()
         for line in lines:
             userId = line.rstrip("\r\n")
             if userId in failedIds:
-                print("Id {} has previously failed, skipping".format(userId))
+                print(f"Id {userId} has previously failed, skipping")
                 continue
-            print("Deleting user {}".format(userId))
+            print(f"Deleting user {userId}")
             try:
                 resp = client.deleteTempUser(userId)
                 if resp.status_code == 204:
-                    deletelog.write("Deleted {0}\n".format(userId))
+                    deletelog.write(f"Deleted {userId}\n")
                     deletelog.flush()
-                    print("Deleted {}\n".format(userId))
+                    print(f"Deleted {userId}\n")
             except:
-                deletelog.write("FAILED {0}\n".format(userId))
+                deletelog.write(f"FAILED {userId}\n")
                 deletelog.flush()
-                print("FAILED {}\n".format(userId))
+                print(f"FAILED {userId}\n")
                 time.sleep(1)
         print("Finished")
         deletelog.close()

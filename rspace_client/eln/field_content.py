@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Thu Jun  3 09:50:47 2021
 
 @author: richard
 """
 
-from bs4 import BeautifulSoup
 import re
+
+from bs4 import BeautifulSoup
 
 
 class FieldContent:

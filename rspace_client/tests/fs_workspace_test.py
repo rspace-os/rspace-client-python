@@ -1,5 +1,6 @@
 """The ELN Workspace as folders, notebooks, documents and text fields holding files, and the
 signed-document lock, against the embedded mock server."""
+
 import threading
 import time
 import unittest
@@ -8,12 +9,18 @@ from itertools import islice
 from unittest.mock import patch
 
 from rspace_client.eln.eln import ELNClient
-from rspace_client.fs import GalleryFilesystem, ReadOnlyError, RSpaceFilesystem, WorkspaceFilesystem, format_tree
-from rspace_client.fs import workspace
+from rspace_client.fs import (
+    GalleryFilesystem,
+    ReadOnlyError,
+    RSpaceFilesystem,
+    WorkspaceFilesystem,
+    format_tree,
+    workspace,
+)
 from rspace_client.fs.paths import last_segment
 from rspace_client.fs.workspace import strip_file_references
-from .mock_server_case import MockServerTestCase, names
 
+from .mock_server_case import MockServerTestCase, names
 
 ATTACHMENT_HTML = (
     '<p>fs test</p>\n<div class="attachmentDiv mceNonEditable">\n <a href="/Streamfile/216" target="_blank"> '
@@ -24,8 +31,6 @@ ATTACHMENT_HTML = (
     'src="/thumbnail/data?sourceType=IMAGE&amp;sourceId=227&amp;sourceParentId=247&amp;width=1&amp;height=1&amp;'
     'rotation=0&amp;time=1" alt="image i.png" width="1" height="1" data-size="1-1" data-rotation="0" /></p>\n&#xa0;'
 )  # verbatim shape recorded from a real RSpace 2.27 server
-
-
 
 
 class StripFileReferencesTest(unittest.TestCase):
@@ -44,8 +49,12 @@ class StripFileReferencesTest(unittest.TestCase):
         self.assertIn("attachOnText_216", out)  # the csv block stays
 
     def test_field_id_is_not_mistaken_for_a_file_id(self):
-        self.assertIsNone(strip_file_references(ATTACHMENT_HTML, 247))  # sourceParentId=247 is the field
-        self.assertIsNone(strip_file_references(ATTACHMENT_HTML, 21))   # prefix of 216, not a match
+        self.assertIsNone(
+            strip_file_references(ATTACHMENT_HTML, 247)
+        )  # sourceParentId=247 is the field
+        self.assertIsNone(
+            strip_file_references(ATTACHMENT_HTML, 21)
+        )  # prefix of 216, not a match
         self.assertIsNone(strip_file_references(ATTACHMENT_HTML, 999))
 
     def test_literal_token_is_removed_too(self):
@@ -53,7 +62,6 @@ class StripFileReferencesTest(unittest.TestCase):
 
 
 class WorkspaceTest(MockServerTestCase):
-
     def fs(self, **kw):
         return WorkspaceFilesystem(self.url, "k", **kw)
 
@@ -62,29 +70,47 @@ class WorkspaceTest(MockServerTestCase):
         before = self.calls()
         listed = fs.ls("", detail=False)
         self.assertEqual(1, self.calls() - before)
-        self.assertEqual(["Shared", "Api Inbox", "Imports", "Project Alpha", "Project Beta"], listed)
+        self.assertEqual(
+            ["Shared", "Api Inbox", "Imports", "Project Alpha", "Project Beta"], listed
+        )
         with patch.object(workspace, "HIDDEN_ROOT_FOLDERS", ()):
             unhidden = self.fs(page_size=50).ls("", detail=False)
         self.assertEqual(["Templates"], [n for n in unhidden if n not in listed])
-        self.assertFalse(any("[GF" in n for n in unhidden))  # the Gallery root is always hidden here
-        shared = next(e for e in self.fs().scandir("") if last_segment(e["name"]) == "Shared")
-        self.assertTrue(shared["rspace"]["systemFolder"])  # flag comes with the tree listing
+        self.assertFalse(
+            any("[GF" in n for n in unhidden)
+        )  # the Gallery root is always hidden here
+        shared = next(
+            e for e in self.fs().scandir("") if last_segment(e["name"]) == "Shared"
+        )
+        self.assertTrue(
+            shared["rspace"]["systemFolder"]
+        )  # flag comes with the tree listing
 
     def test_folders_notebooks_documents_fields_files(self):
         fs = self.fs()
-        self.assertEqual(["Lab notebook 2026", "Alpha protocol", "Signed protocol"],
-                         names(fs, "Project Alpha"))
-        self.assertEqual(["2026-09-15 entry", "2026-09-16 entry"],
-                         names(fs, "Project Alpha/Lab notebook 2026"))
+        self.assertEqual(
+            ["Lab notebook 2026", "Alpha protocol", "Signed protocol"],
+            names(fs, "Project Alpha"),
+        )
+        self.assertEqual(
+            ["2026-09-15 entry", "2026-09-16 entry"],
+            names(fs, "Project Alpha/Lab notebook 2026"),
+        )
         before = self.calls()
         fields = list(fs.scandir("Project Alpha [FL20]/Alpha protocol [SD42]"))
         self.assertEqual(1, self.calls() - before)
-        self.assertEqual(["Objective", "Results"], [last_segment(f["name"]) for f in fields])  # text fields only
+        self.assertEqual(
+            ["Objective", "Results"], [last_segment(f["name"]) for f in fields]
+        )  # text fields only
         self.assertTrue(all(f["type"] == "directory" for f in fields))
         doc = fs.info("Project Alpha/Alpha protocol")
-        self.assertEqual(5, doc["rspace"]["hiddenFields"])  # attachment, number, date, string, choice
+        self.assertEqual(
+            5, doc["rspace"]["hiddenFields"]
+        )  # attachment, number, date, string, choice
         files = fs.ls("FL20/SD42/Results", detail=True)
-        self.assertEqual(["data.csv", "plate1.png"], [last_segment(f["name"]) for f in files])
+        self.assertEqual(
+            ["data.csv", "plate1.png"], [last_segment(f["name"]) for f in files]
+        )
         self.assertTrue(all(f["type"] == "file" for f in files))
         self.assertEqual(27, files[0]["size"])
         self.assertIsNotNone(files[0]["created"])
@@ -111,7 +137,9 @@ class WorkspaceTest(MockServerTestCase):
         and counted like any other field that cannot hold a file.
         """
         fs = self.fs()
-        self.assertNotIn("Raw data", names(fs, "FL20/SD42"))   # FD422 is an ATTACHMENT field
+        self.assertNotIn(
+            "Raw data", names(fs, "FL20/SD42")
+        )  # FD422 is an ATTACHMENT field
         self.assertEqual(5, fs.info("FL20/SD42")["rspace"]["hiddenFields"])
         with self.assertRaises(FileNotFoundError):
             fs.ls("FL20/SD42/FD422")
@@ -130,15 +158,23 @@ class WorkspaceTest(MockServerTestCase):
         gid = next(iter(fs.scandir(field)))["rspace"]["globalId"]
         self.assertEqual(uploaded["globalId"], gid)
         content = ELNClient(self.url, "k").get_document(41)["fields"][0]["content"]
-        self.assertIn(f'attachOnText_{gid[2:]}"', content)  # the mock renders the token like the server
+        self.assertIn(
+            f'attachOnText_{gid[2:]}"', content
+        )  # the mock renders the token like the server
         self.assertNotIn("<fileId=", content)
         fs.rm_file(f"{field}/{linked}")
         self.assertEqual([], fs.ls(field, detail=False))
-        self.assertEqual(f"{gid[2:]}", str(ELNClient(self.url, "k").get_file_info(gid[2:])["id"]))  # Gallery file kept
+        self.assertEqual(
+            f"{gid[2:]}", str(ELNClient(self.url, "k").get_file_info(gid[2:])["id"])
+        )  # Gallery file kept
         with self.assertRaises(FileNotFoundError):
-            fs.upload_fileobj("FL20/SD42/FD422/x.txt", BytesIO(b"x"))  # ATTACHMENT field: not browsable
+            fs.upload_fileobj(
+                "FL20/SD42/FD422/x.txt", BytesIO(b"x")
+            )  # ATTACHMENT field: not browsable
         with self.assertRaises(NotImplementedError):
-            fs.upload_fileobj("FL20/SD42/x.txt", BytesIO(b"x"))  # a document is not an upload target
+            fs.upload_fileobj(
+                "FL20/SD42/x.txt", BytesIO(b"x")
+            )  # a document is not an upload target
 
     def test_a_locked_document_says_so_before_you_try_to_write(self):
         """Signing locks a document. Listing its fields already fetches it, so the lock can
@@ -146,7 +182,9 @@ class WorkspaceTest(MockServerTestCase):
         folder-tree endpoint does not carry the flag."""
         fs = self.fs()
         self.assertEqual(["Data (signed)"], names(fs, "Project Alpha/Signed protocol"))
-        self.assertEqual(["Objective", "Results"], names(fs, "Project Alpha/Alpha protocol"))
+        self.assertEqual(
+            ["Objective", "Results"], names(fs, "Project Alpha/Alpha protocol")
+        )
 
     def test_the_lock_is_in_the_access_namespace_too(self):
         """A marker in a name is for people. A tool asking for permissions gets an answer:
@@ -167,8 +205,10 @@ class WorkspaceTest(MockServerTestCase):
         """The marker changes a segment, so the lookup has to accept both spellings or every
         saved path into a document would break the day it was signed."""
         fs = self.fs()
-        both = [fs.info(f"Project Alpha/Signed protocol/{n}")["rspace"]["globalId"]
-                for n in ("Data", "Data (signed)")]
+        both = [
+            fs.info(f"Project Alpha/Signed protocol/{n}")["rspace"]["globalId"]
+            for n in ("Data", "Data (signed)")
+        ]
         self.assertEqual(["FD440", "FD440"], both)
 
     def test_the_marker_is_only_for_the_name_style(self):
@@ -191,7 +231,9 @@ class WorkspaceTest(MockServerTestCase):
         self.assertIn("Nothing was uploaded", str(ctx.exception))
         self.assertIsInstance(ctx.exception, PermissionError)
         gallery.clear_name_cache()
-        self.assertEqual(gallery_before, sum(len(files) for _, _, files in gallery.walk("")))
+        self.assertEqual(
+            gallery_before, sum(len(files) for _, _, files in gallery.walk(""))
+        )
 
     def test_link_accepts_only_a_gallery_file_id(self):
         # the id is written into the document's HTML, so it must be a real one
@@ -203,9 +245,13 @@ class WorkspaceTest(MockServerTestCase):
         self.assertEqual([], fs.ls(field, detail=False))
         linked = fs.link(field, "102")  # a bare number is fine, as is 'GL102'
         self.assertEqual("GL102", linked["globalId"])
-        self.assertEqual(["GL102"], [e["rspace"]["globalId"] for e in fs.scandir(field)])
+        self.assertEqual(
+            ["GL102"], [e["rspace"]["globalId"] for e in fs.scandir(field)]
+        )
         with self.assertRaises(NotImplementedError):
-            fs.link("Project Alpha/Alpha protocol", "GL102")  # a document is not a link target
+            fs.link(
+                "Project Alpha/Alpha protocol", "GL102"
+            )  # a document is not a link target
 
     def test_link_and_remove_refuse_a_signed_document_too(self):
         # the same lock check for every field write, not only upload
@@ -259,8 +305,11 @@ class WorkspaceTest(MockServerTestCase):
         must not reach it, and a missing id is "not found" rather than a server error."""
         fs = self.fs()
         self.assertEqual(27, fs.info("FL20/SD42/FD421/GL111")["size"])  # linked: fine
-        for path in ("FL20/SD42/FD421/GL100", "FL20/SD42/FD421/elsewhere [GL100].png",
-                     "FL20/SD42/FD421/GL999999"):
+        for path in (
+            "FL20/SD42/FD421/GL100",
+            "FL20/SD42/FD421/elsewhere [GL100].png",
+            "FL20/SD42/FD421/GL999999",
+        ):
             with self.assertRaises(FileNotFoundError, msg=path):
                 fs.cat_file(path)
             with self.assertRaises(FileNotFoundError, msg=path):
@@ -277,7 +326,9 @@ class WorkspaceTest(MockServerTestCase):
         def slow_update(fs, document, fld, content):
             in_flight[0] += 1
             most[0] = max(most[0], in_flight[0])
-            time.sleep(0.02)  # wide enough for the other threads to read the same content
+            time.sleep(
+                0.02
+            )  # wide enough for the other threads to read the same content
             try:
                 real(fs, document, fld, content)
             finally:
@@ -287,7 +338,9 @@ class WorkspaceTest(MockServerTestCase):
 
         def upload(i):
             try:
-                self.fs(writable=True).upload_fileobj(f"{field}/c{i}.txt", BytesIO(b"x"))
+                self.fs(writable=True).upload_fileobj(
+                    f"{field}/c{i}.txt", BytesIO(b"x")
+                )
             except Exception as exc:  # reported below; a thread swallows it otherwise
                 errors.append(exc)
 
@@ -299,7 +352,9 @@ class WorkspaceTest(MockServerTestCase):
                 t.join()
         self.assertEqual([], errors)
         self.assertEqual(1, most[0], "field edits of one document must not overlap")
-        self.assertEqual([f"c{i}.txt" for i in range(6)], sorted(names(self.fs(), field)))
+        self.assertEqual(
+            [f"c{i}.txt" for i in range(6)], sorted(names(self.fs(), field))
+        )
 
     def test_a_link_lost_to_another_writer_is_applied_again(self):
         """A writer in another process can still replace the field between our read and our
@@ -314,7 +369,9 @@ class WorkspaceTest(MockServerTestCase):
         def update_then_clobber(*args, **kwargs):
             calls.append(kwargs)
             result = real(*args, **kwargs)
-            if len(calls) == 1:  # the other process writes the content it read before us
+            if (
+                len(calls) == 1
+            ):  # the other process writes the content it read before us
                 real(41, fields=[{"id": kwargs["fields"][0]["id"], "content": stale}])
             return result
 
@@ -326,7 +383,9 @@ class WorkspaceTest(MockServerTestCase):
     def test_a_field_that_keeps_being_overwritten_gives_up_with_an_error(self):
         fs = self.fs(writable=True)
         field = "FL20/NB30/SD41/FD410"
-        with patch.object(fs.eln_client, "update_document") as update:  # nothing ever sticks
+        with patch.object(
+            fs.eln_client, "update_document"
+        ) as update:  # nothing ever sticks
             with self.assertRaises(OSError) as ctx:
                 fs.link(field, "GL100")
         self.assertEqual(workspace.FIELD_EDIT_ATTEMPTS, update.call_count)

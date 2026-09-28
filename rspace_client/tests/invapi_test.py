@@ -1,21 +1,19 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Sat Oct  2 22:09:40 2021
 
 @author: richard
 """
-import sys, os
-import io
-import json
+
 import datetime as dt
-import pprint
+import io
+import os
 import unittest
 
 import pytest
 
 import rspace_client.tests.base_test as base
-from rspace_client.inv import inv, template_builder, sample_builder2
+from rspace_client.inv import inv, sample_builder2, template_builder
 from rspace_client.inv import quantity_unit as qu
 
 
@@ -415,13 +413,17 @@ class InventoryApiTest(base.BaseApiTest):
 
         ## create in Bench
         ct_in_wb = self.invapi.create_list_container(
-            name, tags=inv.gen_tags(["ab", "cd", "ef"]), location=inv.BenchTargetLocation()
+            name,
+            tags=inv.gen_tags(["ab", "cd", "ef"]),
+            location=inv.BenchTargetLocation(),
         )
         self.assertEqual("BE", ct_in_wb["parentContainers"][0]["globalId"][0:2])
 
         ## create in parent list container
         ct_sub_container = self.invapi.create_list_container(
-            name, tags=inv.gen_tags(["ab", "cd", "ef"]), location=inv.TargetLocation(ct["id"])
+            name,
+            tags=inv.gen_tags(["ab", "cd", "ef"]),
+            location=inv.TargetLocation(ct["id"]),
         )
         self.assertEqual(
             ct["globalId"], ct_sub_container["parentContainers"][0]["globalId"]
@@ -494,7 +496,9 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertTrue(result.is_ok())
         self.assertEqual(3, len(result.success_results()))
         ## reload:
-        image_c = inv.ImageContainer(self.invapi.get_container_by_id(image_c, include_content = True))
+        image_c = inv.ImageContainer(
+            self.invapi.get_container_by_id(image_c, include_content=True)
+        )
         self.assertEqual(0, image_c.free_locations())
         self.assertEqual(3, image_c.capacity())
 
@@ -527,7 +531,9 @@ class InventoryApiTest(base.BaseApiTest):
         )
 
         ## now reload the container, which should show subsamples
-        updated_container_json = self.invapi.get_container_by_id(grid_c["id"], include_content = True)
+        updated_container_json = self.invapi.get_container_by_id(
+            grid_c["id"], include_content=True
+        )
         container = inv.Container.of(updated_container_json)
         self.assertEqual(6, container.capacity())
         self.assertEqual(5, container.free())
@@ -574,7 +580,9 @@ class InventoryApiTest(base.BaseApiTest):
         )
         self.assertTrue(result.is_ok())
         ## get container
-        updated_container_json = self.invapi.get_container_by_id(grid_c["id"], include_content = True)
+        updated_container_json = self.invapi.get_container_by_id(
+            grid_c["id"], include_content=True
+        )
         container = inv.Container.of(updated_container_json)
         self.assertEqual(10, container.capacity())
         self.assertEqual(5, container.in_use())
@@ -608,7 +616,9 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(10, len(rc.data["results"]))
 
         ## now reload the container, which should show subsamples
-        updated_container_json = self.invapi.get_container_by_id(grid_c["id"], include_content = True)
+        updated_container_json = self.invapi.get_container_by_id(
+            grid_c["id"], include_content=True
+        )
         container = inv.Container.of(updated_container_json)
         self.assertEqual(21, container.capacity())
         self.assertEqual(11, container.free())
@@ -870,9 +880,7 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_delete_restore_instrument_template(self):
         it_json = (
-            template_builder.InstrumentTemplateBuilder("toTest")
-            .text("Notes")
-            .build()
+            template_builder.InstrumentTemplateBuilder("toTest").text("Notes").build()
         )
         it = self.invapi.create_instrument_template(it_json)
 
@@ -945,10 +953,7 @@ class InventoryApiTest(base.BaseApiTest):
     def test_create_instrument_from_template(self):
         builder = template_builder.InstrumentTemplateBuilder("MyMicroscope")
         it_json = (
-            builder.string("Serial Number")
-            .number("Calibration")
-            .uri("Manual")
-            .build()
+            builder.string("Serial Number").number("Calibration").uri("Manual").build()
         )
         it = self.invapi.create_instrument_template(it_json)
 
@@ -999,7 +1004,7 @@ class InventoryApiTest(base.BaseApiTest):
                 server_url=server_url,
                 username=username,
                 password=password,
-                repository_prefix=repository_prefix
+                repository_prefix=repository_prefix,
             )
 
             # Verify the response structure
@@ -1018,7 +1023,7 @@ class InventoryApiTest(base.BaseApiTest):
                     server_url=original_settings.get("serverUrl", ""),
                     username=original_settings.get("username", ""),
                     password=original_settings.get("password", ""),
-                    repository_prefix=original_settings.get("repositoryPrefix", "")
+                    repository_prefix=original_settings.get("repositoryPrefix", ""),
                 )
             else:
                 self.invapi.update_datacite_settings(enabled=False)
@@ -1045,7 +1050,7 @@ class InventoryApiTest(base.BaseApiTest):
                     server_url=original_settings.get("serverUrl", ""),
                     username=original_settings.get("username", ""),
                     password=original_settings.get("password", ""),
-                    repository_prefix=original_settings.get("repositoryPrefix", "")
+                    repository_prefix=original_settings.get("repositoryPrefix", ""),
                 )
             else:
                 self.invapi.update_datacite_settings(enabled=False)
@@ -1064,7 +1069,7 @@ class InventoryApiTest(base.BaseApiTest):
                 server_url="https://api.test.datacite.org",
                 username="test_user",
                 password="test_password",
-                repository_prefix="10.12345"
+                repository_prefix="10.12345",
             )
 
             # Test the connection - this should return a boolean
@@ -1083,7 +1088,7 @@ class InventoryApiTest(base.BaseApiTest):
                     server_url=original_settings.get("serverUrl", ""),
                     username=original_settings.get("username", ""),
                     password=original_settings.get("password", ""),
-                    repository_prefix=original_settings.get("repositoryPrefix", "")
+                    repository_prefix=original_settings.get("repositoryPrefix", ""),
                 )
             else:
                 self.invapi.update_datacite_settings(enabled=False)
@@ -1102,7 +1107,7 @@ class InventoryApiTest(base.BaseApiTest):
                 server_url="https://invalid-nonexistent-datacite-server-12345.com",
                 username="definitely_invalid_user",
                 password="definitely_invalid_password",
-                repository_prefix="99.99999"
+                repository_prefix="99.99999",
             )
 
             # Test the connection with invalid settings
@@ -1119,7 +1124,7 @@ class InventoryApiTest(base.BaseApiTest):
                     server_url=original_settings.get("serverUrl", ""),
                     username=original_settings.get("username", ""),
                     password=original_settings.get("password", ""),
-                    repository_prefix=original_settings.get("repositoryPrefix", "")
+                    repository_prefix=original_settings.get("repositoryPrefix", ""),
                 )
             else:
                 self.invapi.update_datacite_settings(enabled=False)
@@ -1146,12 +1151,12 @@ class InventoryApiTest(base.BaseApiTest):
         )
         updated = self.invapi.add_extra_fields(source["globalId"], link_ef)
         link_fields = [
-            f for f in updated["extraFields"] if f["type"] == inv.ExtraFieldType.LINK.value
+            f
+            for f in updated["extraFields"]
+            if f["type"] == inv.ExtraFieldType.LINK.value
         ]
         self.assertEqual(1, len(link_fields))
-        self.assertEqual(
-            target["globalId"], link_fields[0]["link"]["targetGlobalId"]
-        )
+        self.assertEqual(target["globalId"], link_fields[0]["link"]["targetGlobalId"])
 
     def test_create_sample_with_link_extra_field(self):
         target = self.invapi.create_sample(base.random_string())
@@ -1162,7 +1167,9 @@ class InventoryApiTest(base.BaseApiTest):
             name=base.random_string(), extra_fields=[link_ef]
         )
         link_fields = [
-            f for f in sample["extraFields"] if f["type"] == inv.ExtraFieldType.LINK.value
+            f
+            for f in sample["extraFields"]
+            if f["type"] == inv.ExtraFieldType.LINK.value
         ]
         self.assertEqual(1, len(link_fields))
 
@@ -1266,9 +1273,7 @@ class InventoryApiTest(base.BaseApiTest):
         global_id = sample["globalId"]
         result = self.invapi.import_subsamples_csv(
             self._csv(
-                "Name,Parent sample\n"
-                f"SubSample1,{global_id}\n"
-                f"SubSample2,{global_id}"
+                f"Name,Parent sample\nSubSample1,{global_id}\nSubSample2,{global_id}"
             ),
             field_mappings={
                 "Name": "name",

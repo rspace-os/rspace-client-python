@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Unit tests for the HTTP layer of ClientBase: session construction, retry
 policy, timeout propagation and exception mapping.
@@ -8,6 +7,7 @@ The retry loop itself runs inside urllib3 (below the adapter layer that the
 responses library mocks), so the retry *policy* is tested directly on
 _RSpaceRetry while request/response behavior is tested through responses.
 """
+
 import unittest
 from io import BytesIO
 from unittest import mock
@@ -16,9 +16,7 @@ import requests
 import responses
 
 import rspace_client
-
 from rspace_client.client_base import (
-    ClientBase,
     DEFAULT_MAX_RETRIES,
     DEFAULT_TIMEOUT,
     RETRY_STATUSES,
@@ -50,7 +48,7 @@ class RetryPolicyTest(unittest.TestCase):
             for status in RETRY_STATUSES:
                 self.assertTrue(
                     retry.is_retry(method, status),
-                    "{} {} should be retried".format(method, status),
+                    f"{method} {status} should be retried",
                 )
 
     def test_post_retries_only_when_server_rejected_before_processing(self):
@@ -60,8 +58,8 @@ class RetryPolicyTest(unittest.TestCase):
         for status in (500, 502, 504):
             self.assertFalse(
                 retry.is_retry("POST", status),
-                "POST {} must not be retried: the server may have processed "
-                "the request, so a replay could create duplicates".format(status),
+                f"POST {status} must not be retried: the server may have processed "
+                "the request, so a replay could create duplicates",
             )
 
     def test_success_statuses_are_not_retried(self):
@@ -106,7 +104,9 @@ class TimeoutPropagationTest(unittest.TestCase):
     def test_constructor_timeout_passed_to_non_get(self):
         with ELNClient(RSPACE_URL, "fake-api-key", timeout=(5, 120)) as client:
             with mock.patch.object(
-                client._session, "request", return_value=make_response(200, json_body={})
+                client._session,
+                "request",
+                return_value=make_response(200, json_body={}),
             ) as mocked_request:
                 client.retrieve_api_results("/forms", request_type="POST")
             self.assertEqual((5, 120), mocked_request.call_args.kwargs["timeout"])
@@ -168,9 +168,7 @@ class MultipartHelperTest(unittest.TestCase):
 
     @responses.activate
     def test_upload_success_returns_parsed_json(self):
-        responses.add(
-            responses.POST, API_URL + "/files", json={"id": 123}, status=200
-        )
+        responses.add(responses.POST, API_URL + "/files", json={"id": 123}, status=200)
         result = self.client._post_multipart(
             "/files", files={"file": ("f.txt", b"content")}, data={"folderId": 1}
         )
@@ -219,9 +217,7 @@ class RawResponseHelperTest(unittest.TestCase):
 
     @responses.activate
     def test_binary_get_error_maps_to_api_error(self):
-        responses.add(
-            responses.GET, API_URL + "/barcodes", body="nope", status=404
-        )
+        responses.add(responses.GET, API_URL + "/barcodes", body="nope", status=404)
         with self.assertRaises(ApiError) as cm:
             self.client._get_raw_response(API_URL + "/barcodes")
         self.assertEqual(404, cm.exception.response_status_code)
@@ -324,7 +320,10 @@ class RebaseAdvertisedLinksTest(unittest.TestCase):
         c = self.client()
         self.assertEqual(
             "https://rspace.example.com/api/v1/folders/tree/215?pageSize=5&pageNumber=1",
-            c._rebase_url("http://localhost:8080/api/v1/folders/tree/215?pageSize=5&pageNumber=1"))
+            c._rebase_url(
+                "http://localhost:8080/api/v1/folders/tree/215?pageSize=5&pageNumber=1"
+            ),
+        )
 
     def test_matching_host_is_untouched(self):
         c = self.client()
@@ -333,50 +332,69 @@ class RebaseAdvertisedLinksTest(unittest.TestCase):
 
     def test_scheme_and_port_differences_are_rebased(self):
         c = self.client("http://192.168.1.5:8080")
-        self.assertEqual("http://192.168.1.5:8080/api/v1/status",
-                         c._rebase_url("https://rspace.internal/api/v1/status"))
+        self.assertEqual(
+            "http://192.168.1.5:8080/api/v1/status",
+            c._rebase_url("https://rspace.internal/api/v1/status"),
+        )
 
     def test_following_a_link_requests_our_host(self):
         c = self.client()
         with mock.patch.object(c, "_session") as session:
             session.get.return_value = mock.MagicMock(
-                status_code=200, headers={"Content-Type": "application/json"},
-                json=mock.MagicMock(return_value={}))
-            c.retrieve_api_results("http://elsewhere.invalid:9999/api/v1/folders/tree/1?pageNumber=2")
+                status_code=200,
+                headers={"Content-Type": "application/json"},
+                json=mock.MagicMock(return_value={}),
+            )
+            c.retrieve_api_results(
+                "http://elsewhere.invalid:9999/api/v1/folders/tree/1?pageNumber=2"
+            )
         called = session.get.call_args[0][0]
-        self.assertEqual("https://rspace.example.com/api/v1/folders/tree/1?pageNumber=2", called)
+        self.assertEqual(
+            "https://rspace.example.com/api/v1/folders/tree/1?pageNumber=2", called
+        )
 
     def test_our_path_prefix_is_kept(self):
         # client reaches RSpace through a proxy at /rspace; the server does not know about it
         c = self.client("https://proxy.example.com/rspace/")
         self.assertEqual(
             "https://proxy.example.com/rspace/api/v1/folders/tree/1?pageNumber=2",
-            c._rebase_url("http://localhost:8080/api/v1/folders/tree/1?pageNumber=2"))
+            c._rebase_url("http://localhost:8080/api/v1/folders/tree/1?pageNumber=2"),
+        )
 
     def test_server_path_prefix_is_replaced_by_ours(self):
         c = self.client()
-        self.assertEqual("https://rspace.example.com/api/inventory/v1/files/3/file",
-                         c._rebase_url("http://internal:8080/rspace/api/inventory/v1/files/3/file"))
+        self.assertEqual(
+            "https://rspace.example.com/api/inventory/v1/files/3/file",
+            c._rebase_url("http://internal:8080/rspace/api/inventory/v1/files/3/file"),
+        )
 
     def test_prefixes_on_both_sides(self):
         c = self.client("https://proxy.example.com/eln")
-        self.assertEqual("https://proxy.example.com/eln/api/v1/status",
-                         c._rebase_url("http://internal/rspace/api/v1/status"))
+        self.assertEqual(
+            "https://proxy.example.com/eln/api/v1/status",
+            c._rebase_url("http://internal/rspace/api/v1/status"),
+        )
 
     def test_same_host_with_unprefixed_link_gains_our_prefix(self):
         c = self.client("https://proxy.example.com/rspace")
-        self.assertEqual("https://proxy.example.com/rspace/api/v1/status",
-                         c._rebase_url("https://proxy.example.com/api/v1/status"))
+        self.assertEqual(
+            "https://proxy.example.com/rspace/api/v1/status",
+            c._rebase_url("https://proxy.example.com/api/v1/status"),
+        )
 
     def test_link_outside_the_api_keeps_its_path(self):
         c = self.client("https://proxy.example.com/rspace")
-        self.assertEqual("https://proxy.example.com/public/apiDocs",
-                         c._rebase_url("http://localhost:8080/public/apiDocs"))
+        self.assertEqual(
+            "https://proxy.example.com/public/apiDocs",
+            c._rebase_url("http://localhost:8080/public/apiDocs"),
+        )
 
     def test_relative_requests_and_followed_links_agree(self):
         c = self.client("https://proxy.example.com/rspace")
-        self.assertEqual(c._get_api_url() + "/documents",
-                         c._rebase_url("http://localhost:8080/api/v1/documents"))
+        self.assertEqual(
+            c._get_api_url() + "/documents",
+            c._rebase_url("http://localhost:8080/api/v1/documents"),
+        )
 
 
 class RedirectRefusalTest(unittest.TestCase):
@@ -390,9 +408,18 @@ class RedirectRefusalTest(unittest.TestCase):
 
     @responses.activate
     def test_a_redirect_is_an_api_error_and_is_not_followed(self):
-        responses.add(responses.GET, API_URL + "/status", status=302,
-                      headers={"Location": "https://elsewhere.example/api/v1/status"})
-        responses.add(responses.GET, "https://elsewhere.example/api/v1/status", json={}, status=200)
+        responses.add(
+            responses.GET,
+            API_URL + "/status",
+            status=302,
+            headers={"Location": "https://elsewhere.example/api/v1/status"},
+        )
+        responses.add(
+            responses.GET,
+            "https://elsewhere.example/api/v1/status",
+            json={},
+            status=200,
+        )
         with self.assertRaises(ApiError) as cm:
             self.client.retrieve_api_results("/status")
         self.assertEqual(302, cm.exception.response_status_code)
@@ -401,9 +428,11 @@ class RedirectRefusalTest(unittest.TestCase):
 
     def test_every_session_call_disables_redirects(self):
         ok = make_response(200, json_body={})
-        with mock.patch.object(self.client._session, "get", return_value=ok) as g, \
-                mock.patch.object(self.client._session, "request", return_value=ok) as r, \
-                mock.patch.object(self.client._session, "post", return_value=ok) as p:
+        with (
+            mock.patch.object(self.client._session, "get", return_value=ok) as g,
+            mock.patch.object(self.client._session, "request", return_value=ok) as r,
+            mock.patch.object(self.client._session, "post", return_value=ok) as p,
+        ):
             self.client.retrieve_api_results("/status")
             self.client.retrieve_api_results("/forms", request_type="POST")
             self.client._post_multipart("/files", files={"file": ("f.txt", b"x")})
@@ -411,4 +440,3 @@ class RedirectRefusalTest(unittest.TestCase):
         for mocked in (g, r, p):
             for call in mocked.call_args_list:
                 self.assertFalse(call.kwargs["allow_redirects"])
-

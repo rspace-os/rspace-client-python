@@ -55,7 +55,7 @@ class OneOf(AbsValidator):
         self.options = options
 
     def validate(self, value: str):
-        if not isinstance(value, str) or not value in self.options:
+        if not isinstance(value, str) or value not in self.options:
             self.raise_type_error(value, f"to be one of [{', '.join(self.options)}]")
 
 

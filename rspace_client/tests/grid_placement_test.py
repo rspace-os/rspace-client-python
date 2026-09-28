@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Mon Oct  4 19:10:42 2021
 
 @author: richard
 """
+
 import unittest
+
 import rspace_client.inv.inv as inv
 
 
