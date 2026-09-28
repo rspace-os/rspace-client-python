@@ -81,8 +81,11 @@ Galaxy ships an `rspace` file source built on this library's deprecated `rspace_
  
 ### Making a release
 
-- Get a clean test run 
-- Update version in README.md and pyproject.toml
-- update changelog to include the new version and required RSpace version
-- tag with syntax like 'v2.2.0'    
-- Build and submit to Pypi using `poetry publish`
+- Get a clean test run
+- Update the version in `pyproject.toml` (`poetry version <new-version>`); the README's PyPI badge
+  and the package's `__version__` are both resolved dynamically, so nothing else needs the version hardcoded
+- Update the changelog to include the new version and required RSpace version
+- Commit, then tag with syntax like `v2.2.0` and push the tag
+- Pushing a `v*` tag triggers `.github/workflows/release.yml`, which runs the unit tests, builds the
+  sdist/wheel, and publishes to PyPI via [Trusted Publishing](https://docs.pypi.org/trusted-publishers/)
+  (no API token needed). The workflow fails fast if the tag doesn't match the `pyproject.toml` version.

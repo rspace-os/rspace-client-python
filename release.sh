@@ -1,23 +1,25 @@
 #!/bin/bash
 
+set -euo pipefail
 
-old=$1
-new=$2
-if [[ -z "$old" || -z "$new" ]] ; then
-  echo "Usage: $0 oldversion newversion"
+new=${1:-}
+if [[ -z "$new" ]] ; then
+  echo "Usage: $0 newversion"
   exit 1
 fi
 reldate=$(date +%Y-%m-%d)
+
 echo "Updating changelog"
-sed -ibk -e "s/Unreleased/$new  $reldate/" CHANGELOG.md
+sed -ibk -e "s/## Unreleased/## $new  $reldate/" CHANGELOG.md
 
-echo "updating README and pyproject.toml"
-sed -ibk -e "s/==$old/==$new/" README.md  
-sed -ibk -e "s/\"$old\"/\"$new\"/" pyproject.toml
+echo "Bumping pyproject.toml version"
+poetry version "$new"
 
-black rspace_client
-echo "committing and tagging"
-git ci -am "Release $new"
-git tag -m"$new" -a "v$new" 
+poetry run ruff format rspace_client examples
 
-echo "now run poetry shell, poetry build && poetry publish and push to Github"
+echo "Committing and tagging"
+git commit -am "Release $new"
+git tag -m "$new" -a "v$new"
+
+echo "Now run: git push && git push --tags"
+echo "Pushing the tag triggers .github/workflows/release.yml, which builds and publishes to PyPI."

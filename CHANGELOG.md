@@ -104,6 +104,11 @@ All notable changes to this project will be documented in this file
 - CI: added a lint job (ruff check, ruff format --check, mypy) and unit test
   coverage reporting with a 55% floor.
 
+- Releases: tagging `v*` now builds and publishes to PyPI via a Trusted
+  Publishing GitHub Actions workflow; `release.sh` bumps the version with
+  `poetry version` and no longer publishes. Added Dependabot for pip and
+  GitHub Actions updates.
+
 - Gallery upload routing and section-mismatch handling (PR #56): clearer
   `GallerySectionMismatch` exception, optional `on_mismatch="reroute"`
   policy to auto-reroute uploads into the server-chosen section, `upload()` now
