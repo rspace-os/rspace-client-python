@@ -86,6 +86,11 @@ All notable changes to this project will be documented in this file
   Potentially breaking: code that calls `.add()` on the result, uses set
   operators on it, or compares it with `== {...}` needs updating.
 
+- Fixed `GridContainerPost` sending `cType: "LIST"` instead of `"GRID"`.
+
+  Potentially breaking: grid containers created via `GridContainerPost` are
+  now sent to the server with `cType: "GRID"`.
+
 - Gallery upload routing and section-mismatch handling (PR #56): clearer
   `GallerySectionMismatch` exception, optional `on_mismatch="reroute"`
   policy to auto-reroute uploads into the server-chosen section, `upload()` now

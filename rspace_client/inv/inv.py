@@ -1287,7 +1287,7 @@ class GridContainerPost(ContainerPost):
             can_store_samples,
             location,
         )
-        self.data["cType"] = "LIST"
+        self.data["cType"] = "GRID"
         self.data["gridLayout"] = {
             "columnsNumber": column_count,
             "rowsNumber": row_count,
