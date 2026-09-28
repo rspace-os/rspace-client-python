@@ -822,11 +822,7 @@ class ELNClient(ClientBase):
         :return a paginated folder listing
         """
         typesToInclude = typesToInclude or []
-        url = ""
-        if folder_id is not None:
-            url = f"/folders/tree/{folder_id}"
-        else:
-            url = "/folders/tree"
+        url = f"/folders/tree/{folder_id}" if folder_id is not None else "/folders/tree"
         params = {}
         if len(typesToInclude) > 0:
             if (

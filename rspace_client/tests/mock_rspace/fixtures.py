@@ -651,7 +651,7 @@ class MockData:
                     fld["type"] == "text"
                 ):  # like the server: tokens become attachment markup on save
                     content = FILE_ID_TOKEN.sub(
-                        lambda m: (
+                        lambda m, fld=fld: (
                             render_attachment(
                                 self.gallery_files[int(m.group(1))], fld["id"]
                             )

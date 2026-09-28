@@ -8,7 +8,7 @@ import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
-from typing import BinaryIO, Optional, TypedDict, Union
+from typing import Any, BinaryIO, Optional, TypedDict, Union
 
 import requests
 
@@ -28,9 +28,9 @@ class BarcodeFormat(str, Enum):
 
 class Tag(TypedDict):
     value: str
-    uri: str
-    ontologyName: str
-    ontologyVersion: str
+    uri: str | None
+    ontologyName: str | None
+    ontologyVersion: str | None
 
 
 @dataclass
@@ -106,7 +106,15 @@ class GridPlacement:
     Superclass of all grid placement strategies
     """
 
-    def __init__(self, items_to_move: str, filling_strategy: FillingStrategy):
+    # Set by AutoFit subclasses (BY_ROW / BY_COLUMN strategies)
+    column_index: int | None = None
+    row_index: int | None = None
+    total_columns: int | None = None
+    total_rows: int | None = None
+    # Set by ByLocation (EXACT strategy)
+    locations: "list[GridLocation] | None" = None
+
+    def __init__(self, items_to_move: Sequence, filling_strategy: FillingStrategy):
         ids = []
         for item in items_to_move:
             toMove = Id(item)
@@ -345,7 +353,7 @@ class Container:
 
     @staticmethod
     def _is_valid_container(container):
-        if "cType" not in container.keys():
+        if "cType" not in container:
             raise ValueError(
                 "no 'cType' container type entry - is this really a container?"
             )
@@ -373,13 +381,13 @@ class Container:
         return False
 
     def accept_subsamples(self) -> bool:
-        return self.data["canStoreSamples"] == True
+        return self.data["canStoreSamples"]
 
     def accept_containers(self) -> bool:
-        return self.data["canStoreContainers"] == True
+        return self.data["canStoreContainers"]
 
     def capacity(self) -> int:
-        pass
+        raise NotImplementedError
 
 
 class ListContainer(Container):
@@ -532,7 +540,7 @@ class SearchFilter:
     def __init__(
         self, deleted_item_filter=DeletedItemFilter.EXCLUDE, owned_by: str = None
     ):
-        self.data = {}
+        self.data: dict[str, Any] = {}
         if deleted_item_filter is not None:
             self.data["deletedItems"] = deleted_item_filter.name
         if owned_by is not None and len(owned_by) > 0:
@@ -618,14 +626,14 @@ class Id:
             self.prefix = "IC"
             self.id = value.data["id"]
         elif isinstance(value, dict):
-            if "id" in value.keys():
+            if "id" in value:
                 self.id = value["id"]
             else:
                 raise TypeError(
                     "Could not interpet dict as an identifiable Inventory item."
                 )
 
-            if "globalId" in value.keys():
+            if "globalId" in value:
                 self.prefix = value["globalId"][0:2]
 
         elif isinstance(value, int):
@@ -654,11 +662,9 @@ class Id:
             return False
         pref_s = hasattr(self, "prefix")
         pref_o = hasattr(o, "prefix")
-        if (pref_s and pref_o and self.prefix == o.prefix) or (
+        return (pref_s and pref_o and self.prefix == o.prefix) or (
             not pref_s and not pref_o
-        ):
-            return True
-        return False
+        )
 
     def as_id(self) -> int:
         return self.id
@@ -805,7 +811,7 @@ class InventoryLink:
         self.version_pin = version_pin
 
     def _toDict(self) -> dict:
-        d = {
+        d: dict[str, Any] = {
             "relationType": self.relation_type,
             "targetGlobalId": self.target_global_id,
         }
@@ -972,7 +978,7 @@ class ItemPost:
             tags = []
         if extra_fields is None:
             extra_fields = []
-        self.data = {}
+        self.data: dict[str, Any] = {}
         self.data["type"] = itemType
         self.data["name"] = name
         self.data["tags"] = tags
@@ -1054,9 +1060,8 @@ class InstrumentPost(ItemPost):
         if fields is not None:
             self.data["fields"] = fields
         ## fail early
-        if attachments is not None:
-            if not isinstance(attachments, list):
-                raise ValueError("attachments must be a list of open files")
+        if attachments is not None and not isinstance(attachments, list):
+            raise ValueError("attachments must be a list of open files")
         if barcodes is not None:
             self.data["barcodes"] = [barcode.to_dict() for barcode in barcodes]
 
@@ -1081,7 +1086,7 @@ class TargetLocation:
         TypeError
             If type is not supported
         """
-        self.data = {}
+        self.data: dict[str, Any] = {}
         if target_container == "t":
             self.data["removeFromParentContainerRequest"] = True
         elif target_container == "w":
@@ -1830,7 +1835,10 @@ class InventoryClient(ClientBase):
         self.doDelete("files", attachment_id)
 
     def download_attachment_by_id(
-        self, attachment_id: str | int, file_path: str | BinaryIO, chunk_size=128
+        self,
+        attachment_id: str | int,
+        file_path: str | BinaryIO,
+        chunk_size=128,
     ) -> None:
         url_base = self._get_api_url()
         return self.download_link_to_file(
@@ -1984,7 +1992,7 @@ class InventoryClient(ClientBase):
         return rc
 
     def search(
-        self, query: str, pagination=None, result_type: ResultType = None
+        self, query: str, pagination: Pagination = None, result_type: ResultType = None
     ) -> dict:
         """
         Searches by a query, optionally paginated or restricted to a particular type (container,
@@ -2197,7 +2205,7 @@ class InventoryClient(ClientBase):
         self,
         samples_file: BinaryIO,
         field_mappings: dict,
-        template_id: str | int = None,
+        template_id: str | int | None = None,
         template_info: dict = None,
     ) -> dict:
         """
@@ -2342,7 +2350,7 @@ class InventoryClient(ClientBase):
         self,
         image_container: int | str | Container | dict,
         *locations: Sequence[tuple],
-    ) -> dict:
+    ) -> dict | None:
         """
         Adds 1 or more new locations to an existing image container.
         If locations are empty, this  method has no effect.
@@ -2359,7 +2367,7 @@ class InventoryClient(ClientBase):
             The updated image container.
         """
         if len(locations) == 0:
-            return
+            return None
         image_c_id = self._id_as_container_id(image_container)
         loci = [
             {"newLocationRequest": True, "coordX": p[0], "coordY": p[1]}
@@ -2578,7 +2586,8 @@ class InventoryClient(ClientBase):
         self._id_as_container_id(target_container_id)
 
         loci = []
-        for item, loc_id in zip(items_to_move, location_ids):
+        # deliberately zip-truncates: unequal-length inputs are documented above
+        for item, loc_id in zip(items_to_move, location_ids, strict=False):
             item_id = Id(item)
             loci.append(
                 {
@@ -2613,11 +2622,12 @@ class InventoryClient(ClientBase):
         list
             A list of updated items showing their current position
         """
-        if isinstance(target_container_id, GridContainer):
-            if target_container_id.free() < len(grid_placement.items_to_move):
-                raise ValueError(
-                    f"not enough space in {target_container_id.data['globalId']} to store {len(grid_placement.items_to_move)} - only {target_container_id.free()} spaces free."
-                )
+        if isinstance(
+            target_container_id, GridContainer
+        ) and target_container_id.free() < len(grid_placement.items_to_move):
+            raise ValueError(
+                f"not enough space in {target_container_id.data['globalId']} to store {len(grid_placement.items_to_move)} - only {target_container_id.free()} spaces free."
+            )
         id_target = self._id_as_container_id(target_container_id)
         ## assert there are no invalid global ids (things that are not subsamples)
 
@@ -2641,7 +2651,8 @@ class InventoryClient(ClientBase):
         coords = []  # array of x,y coords
         ##
         if gp.filling_strategy == FillingStrategy.EXACT:
-            for item, coord in zip(gp.items_to_move, gp.locations):
+            assert gp.locations is not None
+            for item, coord in zip(gp.items_to_move, gp.locations, strict=True):
                 coords.append(
                     {
                         "type": item.get_type(),
@@ -2710,13 +2721,16 @@ class InventoryClient(ClientBase):
 
         """
         id_list = [Id(item) for item in materials]
-        materials = []
-        for item_id in id_list:
-            materials.append(
-                {"invRec": {"id": item_id.as_id(), "type": item_id.get_type()}}
-            )
+        material_records = [
+            {"invRec": {"id": item_id.as_id(), "type": item_id.get_type()}}
+            for item_id in id_list
+        ]
 
-        to_post = {"name": name, "elnFieldId": eln_field_id, "materials": materials}
+        to_post = {
+            "name": name,
+            "elnFieldId": eln_field_id,
+            "materials": material_records,
+        }
         if description is not None:
             to_post["description"] = description
         return self.retrieve_api_results(
@@ -3129,8 +3143,7 @@ class InventoryClient(ClientBase):
         dict
             The updated sample.
         """
-        sample_id = Id(sample_id)
-        return self._do_transfer_owner("samples", sample_id, new_owner)
+        return self._do_transfer_owner("samples", Id(sample_id), new_owner)
 
     def _do_transfer_owner(self, endpoint, item_id, new_owner):
         return self.retrieve_api_results(

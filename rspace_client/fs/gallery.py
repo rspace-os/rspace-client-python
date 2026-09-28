@@ -25,6 +25,7 @@ section and reports where it landed (``on_mismatch="reroute"``).
 
 from __future__ import annotations
 
+import contextlib
 import errno
 import logging
 from collections.abc import Iterator, Mapping
@@ -232,10 +233,8 @@ def placement(
     folder: Mapping[str, Any] = {}
     parent_id = response.get("parentFolderId")
     if parent_id is not None:
-        try:
+        with contextlib.suppress(RSpaceError):
             folder = eln_client.get_folder(parent_id)
-        except RSpaceError:
-            pass
     return Placement(
         file_global_id=response.get("globalId"),
         folder_global_id=folder.get("globalId"),
@@ -499,10 +498,8 @@ class GalleryFilesystem(RSpaceFSBase):
             guessed = classify_media_section(filename)
 
             if policy == ON_MISMATCH_REROUTE:
-                try:
+                with contextlib.suppress(AttributeError, OSError, ValueError):
                     file.seek(0)
-                except (AttributeError, OSError, ValueError):
-                    pass
                 response = self.eln_client.upload_file(
                     file, None, **self._upload_kwargs(name)
                 )

@@ -45,7 +45,7 @@ class InventoryApiTest(base.BaseApiTest):
             expiry_date=expiry_date,
             total_quantity=amount,
             subsample_count=12,
-            attachments=[open(base.get_any_datafile(), "rb")],
+            attachments=[open(base.get_any_datafile(), "rb")],  # noqa: SIM115
         )
         self.assertEqual(sample_name, sample["name"])
         self.assertEqual(2, len(sample["extraFields"]))
@@ -54,7 +54,7 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(12, sample["subSamplesCount"])
         self.assertEqual(expiry_date.isoformat(), sample["expiryDate"])
         self.assertEqual(1, len(sample["attachments"]))
-        s_ob = inv.Sample(sample)
+        inv.Sample(sample)
 
     def test_set_image_sample(self):
         sample = self.invapi.create_sample(base.random_string(5))
@@ -63,9 +63,9 @@ class InventoryApiTest(base.BaseApiTest):
             updated_sample = self.invapi.set_image(sample, f)
 
         links = updated_sample["_links"]
-        for l in links:
-            if l["rel"] == "image":
-                self.assertFalse(l["link"].endswith("-1"))
+        for link in links:
+            if link["rel"] == "image":
+                self.assertFalse(link["link"].endswith("-1"))
 
     def test_set_image_container(self):
         sample = self.invapi.create_list_container(base.random_string(5))
@@ -74,9 +74,9 @@ class InventoryApiTest(base.BaseApiTest):
             updated_c = self.invapi.set_image(sample, f)
 
         links = updated_c["_links"]
-        for l in links:
-            if l["rel"] == "image":
-                self.assertFalse(l["link"].endswith("-1"))
+        for link in links:
+            if link["rel"] == "image":
+                self.assertFalse(link["link"].endswith("-1"))
 
     def test_create_sample_name_only(self):
         sample = self.invapi.create_sample(base.random_string(5))
@@ -182,7 +182,7 @@ class InventoryApiTest(base.BaseApiTest):
         sample_filter = inv.SearchFilter(owned_by=unknown_user)
         gen = self.invapi.stream_samples(onePerPage, sample_filter)
         result_count = 0
-        for sample in gen:
+        for _sample in gen:
             result_count += 1
         self.assertEqual(0, result_count)
 
@@ -219,7 +219,7 @@ class InventoryApiTest(base.BaseApiTest):
     def test_search_sample(self):
         name = base.random_string()
         tag = base.random_string()
-        sample = self.invapi.create_sample(name, tags=inv.gen_tags([tag]))
+        self.invapi.create_sample(name, tags=inv.gen_tags([tag]))
         results = self.invapi.search(query=name)
         ## sample and its subsample
         self.assertEqual(2, results["totalHits"])
@@ -488,7 +488,7 @@ class InventoryApiTest(base.BaseApiTest):
     def test_add_items_to_image_container(self):
         image_post = self._createImageContainerPost()
         image_c = self.invapi.create_image_container(image_post)
-        loci = [l["id"] for l in image_c["locations"]]
+        loci = [loc["id"] for loc in image_c["locations"]]
         sample = self.invapi.create_sample("in-image", subsample_count=3)
         result = self.invapi.add_items_to_image_container(
             image_c, sample["subSamples"], loci
@@ -718,9 +718,7 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_delete_samples(self):
         new_sample = self.invapi.create_sample("to_delete")
-        total_samples = self.invapi.list_samples()
 
-        total_samples_count = total_samples["totalHits"]
         total_deleted = self.invapi.list_samples(
             sample_filter=inv.SearchFilter(
                 deleted_item_filter=inv.DeletedItemFilter.DELETED_ONLY
@@ -940,9 +938,9 @@ class InventoryApiTest(base.BaseApiTest):
             updated_instrument = self.invapi.set_image(instrument, f)
 
         links = updated_instrument["_links"]
-        for l in links:
-            if l["rel"] == "image":
-                self.assertFalse(l["link"].endswith("-1"))
+        for link in links:
+            if link["rel"] == "image":
+                self.assertFalse(link["link"].endswith("-1"))
 
     def test_duplicate_instrument(self):
         instrument = self.invapi.create_instrument(base.random_string(5))

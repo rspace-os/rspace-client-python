@@ -77,7 +77,10 @@ class InventoryAttachmentFilesystem(FS):
         raise errors.ResourceNotFound(path)
 
     def makedir(
-        self, path: str, permissions: Permissions | None = None, recreate: bool = False
+        self,
+        path: str,
+        permissions: Permissions | None = None,
+        recreate: bool = False,
     ) -> SubFS[FS]:
         raise NotImplementedError()
 
@@ -113,7 +116,7 @@ class InventoryAttachmentFilesystem(FS):
                 file.seek(0)
                 self.upload(path, file)
 
-            file.close = upload_callback
+            file.close = upload_callback  # type: ignore[method-assign]
             return file
 
         raise errors.Unsupported(f"mode {_mode!r}")
@@ -131,7 +134,11 @@ class InventoryAttachmentFilesystem(FS):
         raise NotImplementedError()
 
     def download(
-        self, path: str, file: BinaryIO, chunk_size: int | None = None, **options: Any
+        self,
+        path: str,
+        file: BinaryIO,
+        chunk_size: int | None = None,
+        **options: Any,
     ) -> None:
         is_attachment = path.split("/")[-1][:2] == "IF"
         if not is_attachment:
@@ -144,7 +151,11 @@ class InventoryAttachmentFilesystem(FS):
             self.inv_client.download_attachment_by_id(path_to_id(path), file)
 
     def upload(
-        self, path: str, file: BinaryIO, chunk_size: int | None = None, **options: Any
+        self,
+        path: str,
+        file: BinaryIO,
+        chunk_size: int | None = None,
+        **options: Any,
     ) -> None:
         global_id_prefix = path.split("/")[-1][:2]
         if global_id_prefix not in ["IC", "SS", "SA", "IT"]:

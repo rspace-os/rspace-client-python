@@ -1,6 +1,7 @@
 import inspect
 import logging
 import re
+from typing import Any
 from urllib.parse import urlparse, urlunparse
 
 import requests
@@ -76,10 +77,10 @@ class Pagination:
         self,
         page_number: int = 0,
         page_size: int = 10,
-        order_by: str = None,
+        order_by: str | None = None,
         sort_order: str = "asc",
     ):
-        self.data = {
+        self.data: dict[str, Any] = {
             "pageNumber": page_number,
             "pageSize": page_size,
         }
@@ -113,6 +114,10 @@ class ClientBase:
         self.api_key = api_key
         self.timeout = timeout
         self._session = self._build_session(max_retries, backoff_factor)
+
+    def _get_api_url(self) -> str:
+        """Implemented by each API-specific subclass (ELNClient, InventoryClient)."""
+        raise NotImplementedError
 
     def _build_session(self, max_retries, backoff_factor):
         session = requests.Session()
@@ -257,12 +262,12 @@ class ClientBase:
 
         try:
             response.raise_for_status()
-        except requests.HTTPError:
+        except requests.HTTPError as e:
             raise ApiError(
                 f"Error code: {response.status_code}, {ClientBase._get_error_detail(response)}",
                 response_status_code=response.status_code,
                 response=response,
-            )
+            ) from e
 
     @staticmethod
     def _handle_response(response):
@@ -336,7 +341,7 @@ class ClientBase:
 
             return self._handle_response(response)
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-            raise RSpaceConnectionError(e)
+            raise RSpaceConnectionError(e) from e
 
     def _post_multipart(self, endpoint, files=None, data=None):
         """
@@ -364,7 +369,7 @@ class ClientBase:
             )
             return self._handle_response(response)
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-            raise RSpaceConnectionError(e)
+            raise RSpaceConnectionError(e) from e
 
     def _get_raw_response(self, url, params=None, accept="application/octet-stream"):
         """
@@ -381,7 +386,7 @@ class ClientBase:
                 allow_redirects=False,
             )
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-            raise RSpaceConnectionError(e)
+            raise RSpaceConnectionError(e) from e
         self._check_status(response)
         return response
 
@@ -396,7 +401,7 @@ class ClientBase:
         try:
             return response["_links"]
         except KeyError:
-            raise NoSuchLinkRel("There are no links!")
+            raise NoSuchLinkRel("There are no links!") from None
 
     def get_link_contents(self, response, link_rel):
         """
@@ -450,7 +455,7 @@ class ClientBase:
                     for chunk in response.iter_content(chunk_size=chunk_size):
                         filename.write(chunk)
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-            raise RSpaceConnectionError(e)
+            raise RSpaceConnectionError(e) from e
 
     def link_exists(self, response, link_rel):
         """
@@ -500,8 +505,7 @@ class ClientBase:
         next_link = requests.Request(url=urlStr, params=pagination.data).prepare().url
         while next_link is not None:
             items = self.retrieve_api_results(next_link)
-            for item in items[endpoint]:
-                yield item
+            yield from items[endpoint]
             if self.link_exists(items, "next"):
                 next_link = self.get_link(items, "next")
             else:

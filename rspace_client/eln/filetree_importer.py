@@ -7,6 +7,7 @@ Created on Thu Nov  4 20:56:36 2021
 
 import os
 import re
+from typing import Any
 
 from rspace_client.eln.dcs import DocumentCreationStrategy as DCS
 
@@ -40,7 +41,7 @@ class TreeImporter:
     def import_tree(
         self,
         data_dir: str,
-        parent_folder_id: int = None,
+        parent_folder_id: int | str | None = None,
         ignore_hidden_folders: bool = True,
         halt_on_error: bool = False,
         doc_creation=DCS.DOC_PER_FILE,
@@ -54,7 +55,7 @@ class TreeImporter:
                     subdirList.remove(sf)
 
         assert_is_readable_dir(data_dir)
-        path2Id = {}
+        path2Id: dict[str, str] = {}
 
         def _is_subfolder_tree_required(sf, doc_creation):
             return (sf not in path2Id) and (
@@ -63,7 +64,7 @@ class TreeImporter:
             )
 
         # maintain mapping of local directory paths to RSpace folder Ids
-        result = {}
+        result: dict[str, Any] = {}
         result["status"] = "FAILED"
         result["path2Id"] = path2Id
         ## replace any forward slashes (e.g in windows path names)

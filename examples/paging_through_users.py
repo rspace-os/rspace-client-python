@@ -11,7 +11,7 @@ def print_users(response):
     with open("toDelete-8087.txt", "a+") as toDelete:
         for user in response["users"]:
             print(user["id"])
-            toDelete.write("{0}\n".format(user["id"]))
+            toDelete.write(f"{user['id']}\n")
         toDelete.close()
 
 
@@ -42,7 +42,7 @@ def delete_users():
                     deletelog.write(f"Deleted {userId}\n")
                     deletelog.flush()
                     print(f"Deleted {userId}\n")
-            except:
+            except Exception:
                 deletelog.write(f"FAILED {userId}\n")
                 deletelog.flush()
                 print(f"FAILED {userId}\n")

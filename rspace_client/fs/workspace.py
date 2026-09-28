@@ -462,7 +462,7 @@ class WorkspaceFilesystem(RSpaceFSBase):
                 f"{container!r}: files are uploaded into a document field folder (a text field)"
             )
         document = self._record(target.parent_gid)
-        field = self._field(target.parent_gid, target.field_gid, document)
+        self._field(target.parent_gid, target.field_gid, document)
         # Checked before the upload: the field update afterwards would be refused and the
         # file would be stranded in the Gallery, which the API cannot delete.
         self._require_unsigned(document, container, "Nothing was uploaded.")

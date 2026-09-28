@@ -64,5 +64,5 @@ class QuantityUnit:
         return [x for x in QuantityUnit.data if x["label"] == label]
 
     @staticmethod
-    def unit_labels() -> tuple:
+    def unit_labels() -> list:
         return [x["label"] for x in QuantityUnit.data]

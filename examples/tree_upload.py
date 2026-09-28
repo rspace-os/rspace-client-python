@@ -1,6 +1,7 @@
 import argparse
 import os
 import re
+import sys
 import tempfile
 import time
 import xml.etree.ElementTree as ET
@@ -135,7 +136,7 @@ def parse_log_file():
         ## quick  check on contents, is this a likely log file??
         if len(lines) == 0:
             raise ValueError("Log file {} is empty.".format("log_file_path"))
-        if re.search(LOG_FILE_HEADER, lines[0]) == None:
+        if re.search(LOG_FILE_HEADER, lines[0]) is None:
             raise ValueError(
                 "Log file {} does not have correct header, are you sure it's a log file?".format(
                     "log_file_path"
@@ -159,7 +160,7 @@ def parse_log_file():
 
 
 def isFolder(odtfname):
-    print("checking %s for folder" % odtfname)
+    print(f"checking {odtfname} for folder")
     with tempfile.TemporaryDirectory() as tmpdirname:
         zip_ref = zipfile.ZipFile(odtfname, "r")
         zip_ref.extract("content.xml", tmpdirname)
@@ -226,7 +227,7 @@ def create_dir_and_ancestors(fdict, directory, galleryType):
 def share_document(docId, groupId, folderId, origFilePath="None"):
     if origFilePath not in shared_sdocs:
         print(f"Sharing document {docId} with group {groupId} into folder {folderId}")
-        shared = api_call(
+        api_call(
             "shareDocuments",
             lambda: client.shareDocuments([docId], groupId, sharedFolderId=folderId),
         )
@@ -294,7 +295,7 @@ else:
 client = rspace_client.Client(args.server, args.apiKey)
 
 
-if ResumeMode == True:
+if ResumeMode:
     sharingGroupId = int(toResume[1][1])
     print(f"Resuming with group {sharingGroupId}")
 elif not api_simulate:
@@ -328,8 +329,8 @@ embedded_image_folder_id = args.wordImportImageFolder
 docCount = 0
 imgCount = 0
 fileCount = 0
-for dirName, subdirList, fileList in os.walk(args.srcDir):
-    print("Found directory: %s" % dirName)
+for dirName, _subdirList, fileList in os.walk(args.srcDir):
+    print(f"Found directory: {dirName}")
     print(
         f"Processed (folders/instances): Docs {len(wfolders)}/{docCount}; Images {len(gifolders)}/{imgCount}; Files {len(gdfolders)}/{fileCount}"
     )
@@ -365,21 +366,21 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
             )
             log_api_success("FLS", response["id"], dirName)
         for filename in fileList:
-            print("considering: %s" % os.path.join(dirName, filename))
+            print(f"considering: {os.path.join(dirName, filename)}")
             if filename[-4:] == ".pdf" or filename[-5:] == ".docx":
-                print("ignoring %s ..." % os.path.join(dirName, filename))
+                print(f"ignoring {os.path.join(dirName, filename)} ...")
                 continue
             if filename[-4:] == ".odt":
                 # if the odt isn't a folder odt import the .docx to wfolders[dirName]
                 # and share the RSpace document into sfolders[dirName]
                 if isFolder(os.path.join(dirName, filename)):
-                    print("ignoring Folder odt %s" % os.path.join(dirName, filename))
+                    print(f"ignoring Folder odt {os.path.join(dirName, filename)}")
                 else:
                     docxname = os.path.join(
                         dirName, os.path.splitext(filename)[0] + ".docx"
                     )
 
-                    print("importing %s to workspace and sharing" % docxname)
+                    print(f"importing {docxname} to workspace and sharing")
                     with open(docxname, "rb") as f:
                         # if not already created
                         docId = -1
@@ -415,12 +416,12 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
 
             else:  # some other kind of file, to go in document gallery
                 # create gdfolders[dirName] and parents if needed
-                print("creating Gallery Docs folder and parents for %s" % dirName)
+                print(f"creating Gallery Docs folder and parents for {dirName}")
                 create_dir_and_ancestors(gdfolders, dirName, "GFD")
                 # upload to gdfolders[dirName]
                 galleryItemPath = os.path.join(dirName, filename)
 
-                print("uploading %s to Gallery Docs" % galleryItemPath)
+                print(f"uploading {galleryItemPath} to Gallery Docs")
                 with open(galleryItemPath, "rb") as f:
                     new_file_id = -1
                     if galleryItemPath not in glfiles:
@@ -444,7 +445,7 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
                         print(f"File  {galleryItemPath} was already uploaded")
                     if new_file_id == -1:
                         print("ERROR - file ID not determined")
-                        exit
+                        sys.exit(1)
                     # create a basic document with the same name and a link to the uploaded gallery file.
                     if new_file_id not in sdocs:
                         print(
@@ -486,12 +487,12 @@ for dirName, subdirList, fileList in os.walk(args.srcDir):
         ## TODO complete resume code
         parentDir = os.path.dirname(dirName)
         # create gifolders[parentDir] and parents as needed
-        print("creating Gallery Images folder and parents for %s" % parentDir)
+        print(f"creating Gallery Images folder and parents for {parentDir}")
         create_dir_and_ancestors(gifolders, parentDir, "GFI")
         # TODO this needs refactoring to create document with a link to the folder instead of all the images
         for filename in fileList:
             # upload filename to gifolders[parentDir]
-            print("uploading %s to GalleryImages" % filename)
+            print(f"uploading {filename} to GalleryImages")
             galleryItemPath = os.path.join(dirName, filename)
             if galleryItemPath not in glfiles:
                 with open(galleryItemPath, "rb") as f:

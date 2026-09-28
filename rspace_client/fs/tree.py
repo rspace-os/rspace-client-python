@@ -108,7 +108,7 @@ def format_tree(
         getattr(fs, "server", None) or type(fs).__name__
     )
     lines = [root_label.rstrip("/") + "/"]
-    for depth, entry, label, last, flags in iter_tree(fs, path, max_depth, show_ids):
+    for _depth, entry, label, last, flags in iter_tree(fs, path, max_depth, show_ids):
         stem = "".join("    " if done else "│   " for done in flags)
         branch = "└── " if last else "├── "
         size = entry.get("size")

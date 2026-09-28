@@ -138,7 +138,7 @@ class RSpaceFilesystemTest(MockServerTestCase):
 
     def test_id_style_and_bare_id_aliases(self):
         rs = RSpaceFilesystem(self.url, "k", path_style="id")
-        rs.gallery.gallery_id  # resolve the root outside the measurement
+        _ = rs.gallery.gallery_id  # resolve the root outside the measurement
         before = self.calls()
         rows = rs.ls("gallery", detail=True)
         self.assertEqual(

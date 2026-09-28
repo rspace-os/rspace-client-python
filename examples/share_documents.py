@@ -8,7 +8,7 @@ import rspace_client
 
 
 def printSharedItemNames(response):
-    names = [l["shareItemName"] for l in response["shares"]]
+    names = [share["shareItemName"] for share in response["shares"]]
     print(",".join(names))
 
 

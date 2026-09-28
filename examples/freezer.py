@@ -10,14 +10,14 @@ import sys
 import time
 
 import rspace_client
-
-cli = rspace_client.utils.createInventoryClient()
 from rspace_client.inv.inv import (
     ByColumn,
     ByRow,
     GridContainerPost,
     SamplePost,
 )
+
+cli = rspace_client.utils.createInventoryClient()
 
 # %%
 
@@ -80,7 +80,7 @@ class FreezerCreator:
         rc = []
         posts = []
         for i in range(0, n, 100):
-            for j in range(i, min(n, i + 100) - i):
+            for _j in range(i, min(n, i + 100) - i):
                 c_post = GridContainerPost(
                     f"{name_prefix}-{i}", rows, columns, can_store_samples=store_samples
                 )
@@ -94,7 +94,7 @@ class FreezerCreator:
 
         return rc
 
-    def add_to_parent_tier(self, parents, parents_per_gp, items_per_parent, items):
+    def add_to_parent_tier(self, parents, _parents_per_gp, items_per_parent, items):
         for j in range(len(parents)):
             k = items_per_parent
             rack_slice = items[j * k : (j * k) + k]

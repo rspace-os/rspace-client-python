@@ -4,7 +4,6 @@ Define SampleTemplates and InstrumentTemplates using a Builder pattern
 
 import datetime as dt
 import numbers
-from typing import Union
 from urllib.parse import urlparse
 
 from rspace_client.inv.inv import RelationType
@@ -17,7 +16,7 @@ class FieldDefinitionBuilder:
     (SampleTemplate or InstrumentTemplate) prior to POSTing to RSpace.
     """
 
-    numeric = Union[int, float]
+    numeric = int | float
 
     def __init__(self):
         self.fields = []
@@ -119,7 +118,7 @@ class FieldDefinitionBuilder:
 
     ## TODO date, time, URI, attachment?
 
-    def date(self, name: str, isodate: dt.date | dt.datetime | str = None):
+    def date(self, name: str, isodate: dt.date | dt.datetime | str | None = None):
         """
 
         Parameters
@@ -155,7 +154,7 @@ class FieldDefinitionBuilder:
         self.fields.append(f)
         return self
 
-    def time(self, name: str, isotime: dt.date | dt.time | str = None):
+    def time(self, name: str, isotime: dt.date | dt.time | str | None = None):
         """
 
         Parameters
@@ -228,7 +227,10 @@ class FieldDefinitionBuilder:
         """
         f = self._set_name(name, "Uri")
         if uri is not None and len(uri) > 0 and len(str.strip(uri)) > 0:
-            parsed_uri = urlparse(uri)
+            try:
+                urlparse(uri)
+            except ValueError as e:
+                raise ValueError(f"{uri!r} could not be parsed as a URI") from e
             f["content"] = uri
         self.fields.append(f)
         return self

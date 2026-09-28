@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import warnings
 from collections.abc import Iterator, Mapping
@@ -155,7 +156,10 @@ class GalleryFilesystem(FS):
         return [file["globalId"] for file in self._all_records(id)]
 
     def makedir(
-        self, path: str, permissions: Permissions | None = None, recreate: bool = False
+        self,
+        path: str,
+        permissions: Permissions | None = None,
+        recreate: bool = False,
     ) -> SubFS[FS]:
         new_folder_name = path.split("/")[-1]
         parent_id = path_to_id(path[: -(len(new_folder_name) + 1)])
@@ -194,7 +198,7 @@ class GalleryFilesystem(FS):
                 file.seek(0)
                 self.upload(path, file)
 
-            file.close = upload_callback
+            file.close = upload_callback  # type: ignore[method-assign]
             return file
 
         raise errors.Unsupported(f"mode {_mode!r}")
@@ -218,14 +222,18 @@ class GalleryFilesystem(FS):
         raise NotImplementedError
 
     def download(
-        self, path: str, file: BinaryIO, chunk_size: int | None = None, **options: Any
+        self,
+        path: str,
+        file: BinaryIO,
+        chunk_size: int | None = None,
+        **options: Any,
     ) -> None:
         if chunk_size is not None:
             self.eln_client.download_file(path_to_id(path), file, chunk_size)
         else:
             self.eln_client.download_file(path_to_id(path), file)
 
-    def upload(
+    def upload(  # type: ignore[override]
         self,
         path: str,
         file: BinaryIO,
@@ -270,10 +278,8 @@ class GalleryFilesystem(FS):
             guessed = classify_media_section(filename)
 
             if policy == ON_MISMATCH_REROUTE:
-                try:
+                with contextlib.suppress(AttributeError, OSError, ValueError):
                     file.seek(0)
-                except (AttributeError, OSError, ValueError):
-                    pass
                 response = self.eln_client.upload_file(file, None)
                 placed = placement(
                     self.eln_client, response, requested_path=path, rerouted=True

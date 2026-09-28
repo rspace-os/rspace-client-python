@@ -383,11 +383,13 @@ class WorkspaceTest(MockServerTestCase):
     def test_a_field_that_keeps_being_overwritten_gives_up_with_an_error(self):
         fs = self.fs(writable=True)
         field = "FL20/NB30/SD41/FD410"
-        with patch.object(
-            fs.eln_client, "update_document"
-        ) as update:  # nothing ever sticks
-            with self.assertRaises(OSError) as ctx:
-                fs.link(field, "GL100")
+        with (
+            patch.object(
+                fs.eln_client, "update_document"
+            ) as update,  # nothing ever sticks
+            self.assertRaises(OSError) as ctx,
+        ):
+            fs.link(field, "GL100")
         self.assertEqual(workspace.FIELD_EDIT_ATTEMPTS, update.call_count)
         self.assertIn("overwritten by another writer", str(ctx.exception))
         self.assertEqual([], fs.ls(field, detail=False))

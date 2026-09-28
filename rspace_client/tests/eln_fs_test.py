@@ -425,7 +425,7 @@ class ElnFilesystemPagingTest(unittest.TestCase):
 
         def get_link_contents(response, rel):
             count()
-            link = next(l["link"] for l in response["_links"] if l["rel"] == rel)
+            link = next(lnk["link"] for lnk in response["_links"] if lnk["rel"] == rel)
             return {**self.home, **self.gallery}[link]
 
         self.fakes = {}

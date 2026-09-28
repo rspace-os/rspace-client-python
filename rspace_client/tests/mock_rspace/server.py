@@ -165,8 +165,8 @@ class MockRSpaceHandler(BaseHTTPRequestHandler):
         raw = self._read_body()
         try:
             return json.loads(raw or b"{}")
-        except json.JSONDecodeError:
-            raise ApiError(400, "request body is not valid JSON")
+        except json.JSONDecodeError as exc:
+            raise ApiError(400, "request body is not valid JSON") from exc
 
     def _count(self, path: str) -> None:
         with self.server.stats_lock:
@@ -462,8 +462,8 @@ def inv_upload_file(h: MockRSpaceHandler, base, query):
     filename, content, ctype = parts["file"]
     try:
         settings = json.loads(parts["fileSettings"][1].decode())
-    except json.JSONDecodeError:
-        raise ApiError(400, "fileSettings must be JSON")
+    except json.JSONDecodeError as exc:
+        raise ApiError(400, "fileSettings must be JSON") from exc
     parent = settings.get("parentGlobalId")
     if not parent:
         raise ApiError(400, "fileSettings.parentGlobalId is required")
@@ -487,7 +487,7 @@ def inv_attach_gallery_file(h: MockRSpaceHandler, base, query):
         try:
             a = h.server.data.link_gallery_file(parent, media)
         except ValueError as exc:
-            raise ApiError(422, str(exc))
+            raise ApiError(422, str(exc)) from exc
     h._send_json(fx.ser_inv_file(a, base), 201)
 
 

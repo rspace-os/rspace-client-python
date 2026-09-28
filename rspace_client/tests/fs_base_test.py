@@ -879,7 +879,9 @@ class StreamPagesTest(unittest.TestCase):
         client = MagicMock()
 
         def link(page, rel):
-            return next(l["link"] for l in page.get("_links", []) if l["rel"] == rel)
+            return next(
+                lnk["link"] for lnk in page.get("_links", []) if lnk["rel"] == rel
+            )
 
         client.get_link.side_effect = link
         client.get_link_contents.side_effect = lambda page, rel: pages[link(page, rel)]
