@@ -2,9 +2,9 @@ name: codeQL and Test
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
   workflow_dispatch:  # allow manual trigger
 
 permissions:
@@ -167,11 +167,24 @@ jobs:
           rm -rf "$RS_FILE_BASE"
           mkdir -p "$RS_FILE_BASE"
 
-      # Backend only - no -DgenerateReactDist, so no Node/pnpm/Vite build.
-      # The Python client only exercises the REST API, not the UI.
-      - name: Build RSpace backend
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Seed dev deployment.properties
         working-directory: rspace-web
-        run: ./mvnw clean package -DskipTests -Dtimestamp=${{ github.run_id }} -Djava-version=17 -Djava-vendor=temurin
+        run: |
+          cp -f src/main/resources/deployments/dev/deployment.properties.example \
+            src/main/resources/deployments/dev/deployment.properties
+
+
+      - name: Build RSpace
+        working-directory: rspace-web
+        run: ./mvnw clean package -DgenerateReactDist -DskipTests -Dtimestamp=${{ github.run_id }} -Djava-version=17 -Djava-vendor=temurin
 
       - name: Start RSpace and wait for readiness
         working-directory: rspace-web
@@ -191,7 +204,9 @@ jobs:
             -Djdbc.db.maven=rspace \
             -DRS_FILE_BASE="$RS_FILE_BASE" \
             > /tmp/jetty.log 2>&1 &
-          for i in $(seq 1 180); do
+          # 168 x 5s = 14 min, under the 15 min step timeout, so the log tail
+          # below actually gets printed instead of the step being killed first.
+          for i in $(seq 1 168); do
             if [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/login || true)" = "200" ]; then
               echo "Ready after ~$((i*5))s"
               exit 0
