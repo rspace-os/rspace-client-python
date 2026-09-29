@@ -308,3 +308,75 @@ class MiscTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RebaseAdvertisedLinksTest(unittest.TestCase):
+    """
+    RSpace builds _links from its own configured base URL, which is often not the address the
+    client used (reverse proxy, container, port-forward). Following such a link verbatim fails,
+    so absolute URLs are pointed back at the configured server.
+    """
+
+    def client(self, url="https://rspace.example.com"):
+        return ELNClient(url, "key")
+
+    def test_foreign_host_is_rebased_keeping_path_and_query(self):
+        c = self.client()
+        self.assertEqual(
+            "https://rspace.example.com/api/v1/folders/tree/215?pageSize=5&pageNumber=1",
+            c._rebase_url("http://localhost:8080/api/v1/folders/tree/215?pageSize=5&pageNumber=1"))
+
+    def test_matching_host_is_untouched(self):
+        c = self.client()
+        url = "https://rspace.example.com/api/v1/files/7/file"
+        self.assertEqual(url, c._rebase_url(url))
+
+    def test_scheme_and_port_differences_are_rebased(self):
+        c = self.client("http://192.168.1.5:8080")
+        self.assertEqual("http://192.168.1.5:8080/api/v1/status",
+                         c._rebase_url("https://rspace.internal/api/v1/status"))
+
+    def test_following_a_link_requests_our_host(self):
+        c = self.client()
+        with mock.patch.object(c, "_session") as session:
+            session.get.return_value = mock.MagicMock(
+                status_code=200, headers={"Content-Type": "application/json"},
+                json=mock.MagicMock(return_value={}))
+            c.retrieve_api_results("http://elsewhere.invalid:9999/api/v1/folders/tree/1?pageNumber=2")
+        called = session.get.call_args[0][0]
+        self.assertEqual("https://rspace.example.com/api/v1/folders/tree/1?pageNumber=2", called)
+
+
+class RedirectRefusalTest(unittest.TestCase):
+    """The apiKey header must never follow a redirect to another host."""
+
+    def setUp(self):
+        self.client = ELNClient(RSPACE_URL, "fake-api-key")
+
+    def tearDown(self):
+        self.client.close()
+
+    @responses.activate
+    def test_a_redirect_is_an_api_error_and_is_not_followed(self):
+        responses.add(responses.GET, API_URL + "/status", status=302,
+                      headers={"Location": "https://elsewhere.example/api/v1/status"})
+        responses.add(responses.GET, "https://elsewhere.example/api/v1/status", json={}, status=200)
+        with self.assertRaises(ApiError) as cm:
+            self.client.retrieve_api_results("/status")
+        self.assertEqual(302, cm.exception.response_status_code)
+        self.assertIn("elsewhere.example", str(cm.exception))
+        self.assertEqual(1, len(responses.calls))  # the second host was never contacted
+
+    def test_every_session_call_disables_redirects(self):
+        ok = make_response(200, json_body={})
+        with mock.patch.object(self.client._session, "get", return_value=ok) as g, \
+                mock.patch.object(self.client._session, "request", return_value=ok) as r, \
+                mock.patch.object(self.client._session, "post", return_value=ok) as p:
+            self.client.retrieve_api_results("/status")
+            self.client.retrieve_api_results("/forms", request_type="POST")
+            self.client._post_multipart("/files", files={"file": ("f.txt", b"x")})
+            self.client._get_raw_response(API_URL + "/files/1/file")
+        for mocked in (g, r, p):
+            for call in mocked.call_args_list:
+                self.assertFalse(call.kwargs["allow_redirects"])
+

@@ -193,7 +193,7 @@ class ElnFilesystemTest(unittest.TestCase):
             'https://example.com/api/v1/folders',
             json={'name': 'newFolder', 'parentFolderId': 123, 'notebook': False},
             headers=ANY,
-            timeout=ANY
+            timeout=ANY, allow_redirects=False
         )
 
     @patch('requests.Session.request', side_effect=mock_requests_post)
@@ -205,7 +205,7 @@ class ElnFilesystemTest(unittest.TestCase):
             'https://example.com/api/v1/folders/456',
             json=ANY,
             headers=ANY,
-            timeout=ANY
+            timeout=ANY, allow_redirects=False
         )
 
     @patch('requests.Session.get')
@@ -223,7 +223,7 @@ class ElnFilesystemTest(unittest.TestCase):
             'https://example.com/api/v1/files/123/file',
             headers=ANY,
             stream=True,
-            timeout=ANY
+            timeout=ANY, allow_redirects=False
         )
 
     @patch('requests.Session.post')
@@ -242,7 +242,7 @@ class ElnFilesystemTest(unittest.TestCase):
             files={'file': file_obj},
             data={'folderId': 123},
             headers=ANY,
-            timeout=ANY
+            timeout=ANY, allow_redirects=False
         )
 
     def test_classify_media_section(self):
