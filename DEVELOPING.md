@@ -58,6 +58,19 @@ All top-level methods for use by client code should be unit-tested.
 
 RSpace can be run on Docker on a developer machine, providing access to a sandbox environment.
 
+#### Checking the Galaxy file source plugin
+
+Galaxy ships an `rspace` file source built on this library's deprecated `rspace_client.eln.fs.GalleryFilesystem`, so changes here can break Galaxy. `rspace_client/tests/galaxy_plugin_contract_test.py` pins what it relies on and runs with the normal suite; a failure there is a release blocker. To drive Galaxy's real plugin through Galaxy's real `ConfiguredFileSources`, with no Galaxy server:
+
+```
+python3 -m venv .galaxy-venv && .galaxy-venv/bin/pip install galaxy-files -e .
+.galaxy-venv/bin/python tools/galaxy/check_plugin.py --mock /
+```
+
+Drop `--mock` to run it against `RSPACE_URL` / `RSPACE_API_KEY`. Files must come back with an integer `size`; Galaxy's `RemoteFile` model rejects a null one.
+
+A file source that exposes `/inventory` and `/workspace` to Galaxy users has to live in Galaxy itself, since Galaxy discovers file sources only inside its own package; what such a contribution has to carry is in [docs/unified-pyfilesystem-design.md](docs/unified-pyfilesystem-design.md), section 8.
+
 #### Local mock server (no RSpace needed)
 
 `rspace_client/tests/mock_rspace/` contains a dependency-free mock of the ELN and Inventory REST APIs (the endpoints the PyFilesystem implementations use) plus a harness that drives a filesystem the way Galaxy's `PyFilesystem2FilesSource` does and prints what Galaxy's file browser would show. The unit suite starts one for the whole session. See [rspace_client/tests/mock_rspace/README.md](rspace_client/tests/mock_rspace/README.md). Quick start:
