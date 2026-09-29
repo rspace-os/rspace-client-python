@@ -58,6 +58,14 @@ All top-level methods for use by client code should be unit-tested.
 
 RSpace can be run on Docker on a developer machine, providing access to a sandbox environment.
 
+#### Local mock server (no RSpace needed)
+
+`rspace_client/tests/mock_rspace/` contains a dependency-free mock of the ELN and Inventory REST APIs (the endpoints the PyFilesystem implementations use) plus a harness that drives a filesystem the way Galaxy's `PyFilesystem2FilesSource` does and prints what Galaxy's file browser would show. The unit suite starts one for the whole session. See [rspace_client/tests/mock_rspace/README.md](rspace_client/tests/mock_rspace/README.md). Quick start:
+
+```
+poetry run python -m rspace_client.tests.mock_rspace.galaxy_harness --embedded --fs gallery ls /
+```
+
  
 ### Making a release
 

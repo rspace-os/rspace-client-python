@@ -4,7 +4,7 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/rspace-client.svg)](https://pypi.org/project/rspace-client/)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-The official Python client for the [RSpace](https://www.researchspace.com) ELN and Inventory APIs. It wraps the raw REST endpoints in a Pythonic interface so you can create and search documents, manage Inventory samples and containers, export your work, and read/write Gallery and Inventory files — from a script, a Jupyter notebook, or your own application.
+The official Python client for the [RSpace](https://www.researchspace.com) ELN and Inventory APIs. It wraps the raw REST endpoints in a Pythonic interface so you can create and search documents, manage Inventory samples and containers, export your work, and browse the Gallery, Inventory and ELN as a PyFilesystem drive — from a script, a Jupyter notebook, or your own application.
 
 Don't have an RSpace account? Sign up for free at [community.researchspace.com](https://community.researchspace.com), or run [RSpace locally in Docker](https://github.com/rspace-os/rspace-docker). You'll need an API key from your [profile page](https://researchspace.helpdocs.io/article/v0dxtfvj7u-rspace-api-introduction) to use this client. This client is especially easy to use from Jupyter notebooks — see the [round-trip data analysis video](https://researchspace.helpdocs.io/article/5xqzm36v9t-video-round-trip-data-analysis-using-jupyter-notebook-and-the-rspace-api) for a walkthrough.
 
@@ -45,12 +45,15 @@ Full REST API reference is served by your own RSpace instance at `https://<YOUR_
 | Inventory: samples, subsamples, containers                       | Create and manage samples, split/duplicate subsamples, organise items into containers                                                                                                    |
 | Instruments & Instrument Templates *(new in 2.7.0, RSpace 2.24)* | Create, update, and manage Inventory instruments and instrument templates                                                                                                                |
 | Export                                                           | Async export of a user's or group's work (or specific documents/notebooks/folders) to HTML or XML, with progress polling                                                                 |
-| PyFilesystem access                                              | `GalleryFilesystem` and `InventoryAttachmentFilesystem` implement the [PyFilesystem](https://docs.pyfilesystem.org/en/latest/index.html) API for Gallery files and Inventory attachments |
+| PyFilesystem access                                              | `RSpaceFilesystem` mounts the Gallery, Inventory and ELN Workspace as one [PyFilesystem](https://docs.pyfilesystem.org/en/latest/index.html) drive (`/gallery`, `/inventory`, `/workspace`); browse records as folders, download and upload files, or open it with `fs.open_fs("rspace://host")` |
 | Notebook / Jupyter / R interop (`notebook_sync`)                 | Helpers for round-tripping data between RSpace notebook entries and Jupyter or R workflows                                                                                               |
 | Activity / audit trail                                           | Query "who did what, when" for a record or across a date range                                                                                                                           |
 | Forms                                                            | Create, publish, share, and list custom forms; create documents from them                                                                                                                |
 
 Full worked examples for every feature above are in the **[Usage Guide](docs/usage-guide.md)**.
+
+Why the PyFilesystem is shaped as it is, and what Galaxy depends on, is in the
+[design record](docs/unified-pyfilesystem-design.md).
 
 ## Compatibility & limitations
 

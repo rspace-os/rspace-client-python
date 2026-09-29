@@ -8,6 +8,34 @@ All notable changes to this project will be documented in this file
 
 ## 2.8.0 (unreleased)
 
+Verified against RSpace 2.27. The minimum server version is still to be established: the new
+code calls `/workbenches`, the Inventory files endpoints and `/folders/tree`.
+
+- New `rspace_client.fs` package: a unified PyFilesystem for RSpace (GitHub #58).
+  `RSpaceFilesystem` mounts `/gallery`, `/inventory` and `/workspace` over one shared client
+  set. Every Inventory record and every ELN folder, notebook and document is a folder;
+  documents expose their text fields as sub-folders holding the linked files, so a file can
+  be uploaded into or downloaded from a chosen document field. Paths use the records' own
+  names (`/gallery/Images/microscope.png`); a sibling sharing a name carries its global ID
+  before the extension (`data [GL112].csv`), a segment written as a global ID always
+  resolves, and `path_style="labelled"` or `"id"` make every segment carry one. Read-only by
+  default (`writable=True`, `allow_delete=True`). One API call per directory listing, with
+  `details.size/created/modified` populated, and listings stream page by page. A
+  `rspace://host` opener is registered; the key comes from `RSPACE_API_KEY`, never the URL.
+  `print_tree`/`format_tree` render the tree. See `docs/usage-guide.md`.
+- Inventory attachments uploaded through the filesystem are now Gallery files linked to the
+  record, as the web interface's "link from Gallery" produces; `via_gallery=False` restores
+  the older Inventory-only file. `RSpaceFilesystem.copy` links a Gallery file into an
+  Inventory record or an ELN field instead of duplicating it, via the new
+  `InventoryClient.attach_gallery_file_by_global_id`.
+- Signed (locked) ELN documents report the lock in the `access` namespace and list their
+  fields with a `(signed)` suffix; writes to them are refused before any request is made.
+- RSpace client errors surface as PyFilesystem errors: 404 is `ResourceNotFound`, 401 and
+  403 `PermissionDenied`, 5xx or a lost connection `RemoteConnectionError`; 400, 409 and 422
+  stay `ApiError` with the server's explanation.
+- Security: the opener reads the key from `RSPACE_API_KEY` only and accepts `scheme=http`
+  for loopback hosts only; a record whose name looks like an address is listed with its
+  real ID so it cannot redirect a download or a remove to another record.
 - Security: the client never follows an HTTP redirect, since `requests` would carry the
   `apiKey` header to the new host.
 - Client-level changes: `_links` URLs are rebased onto the configured host so paging and
@@ -16,8 +44,10 @@ All notable changes to this project will be documented in this file
   `filename=`; `list_folder_tree` takes `page_size=`; new `get_workbench_by_id`; Inventory
   CSV import uses the shared session.
 - Removed a stray debug print from `InventoryClient.upload_attachment_by_global_id`.
-- Added `rspace_client/tests/mock_rspace`, an offline mock of the ELN and Inventory REST
-  endpoints the PyFilesystem classes use, shared by the unit suite. Not installed.
+- Added `rspace_client/tests/mock_rspace`, an offline mock of the endpoints the filesystems
+  use, plus a harness that shows what Galaxy's file browser would display. Not installed.
+- Known limitation: the Gallery folder-tree endpoint returns no file sizes, so a `details`
+  listing fetches each file's record to fill `size` in.
 
 ## Unreleased
 
