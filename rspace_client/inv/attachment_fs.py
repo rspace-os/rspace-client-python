@@ -1,3 +1,4 @@
+import warnings
 # This script implements a pyfilesystem for Inventory attachments.
 # Inventory records -- containers, samples, subsamples, etc -- are modelled as
 # directories, with each containing a set of attachments: the files.
@@ -21,6 +22,10 @@ class InventoryAttachmentInfo(Info):
 class InventoryAttachmentFilesystem(FS):
 
     def __init__(self, server: str, api_key: str) -> None:
+        warnings.warn(
+            "rspace_client.inv.attachment_fs.InventoryAttachmentFilesystem (PyFilesystem2) is deprecated "
+            "and will be removed in rspace-client 3.0; use rspace_client.fs.InventoryFilesystem or "
+            "RSpaceFilesystem (fsspec)", DeprecationWarning, stacklevel=2)
         super(InventoryAttachmentFilesystem, self).__init__()
         self.inv_client = inv.InventoryClient(server, api_key)
 

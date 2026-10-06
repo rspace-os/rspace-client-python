@@ -1,4 +1,5 @@
 import logging
+import warnings
 from dataclasses import dataclass
 from fs.base import FS
 from rspace_client.eln import eln
@@ -127,6 +128,10 @@ class GalleryInfo(Info):
 class GalleryFilesystem(FS):
 
     def __init__(self, server: str, api_key: str, on_mismatch: str = ON_MISMATCH_RAISE) -> None:
+        warnings.warn(
+            "rspace_client.eln.fs.GalleryFilesystem (PyFilesystem2) is deprecated and will be removed "
+            "in rspace-client 3.0; use rspace_client.fs.GalleryFilesystem or RSpaceFilesystem (fsspec)",
+            DeprecationWarning, stacklevel=2)
         """
         :param server: RSpace server URL
         :param api_key: RSpace API key

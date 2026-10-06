@@ -8,6 +8,25 @@ All notable changes to this project will be documented in this file
 
 ## 2.8.0 (unreleased)
 
+- New `rspace_client.fs`: RSpace as an [fsspec](https://filesystem-spec.readthedocs.io)
+  filesystem. `RSpaceFilesystem` mounts `gallery/`, `inventory/` and `workspace/` (Gallery
+  folders and files; Inventory benches, containers, samples, subsamples, templates and
+  instruments as folders of their records and attachments, attachment fields as one-file
+  folders; ELN folders, notebooks and documents, a document as a folder of its text fields
+  and a field as a folder of its linked files). Paths are record names; duplicate names
+  and names that read as addresses carry their global ID (`data [GL112].csv`);
+  `path_style="labelled"` / `"id"` for stable paths. Read-only by default (`writable=True`,
+  `allow_delete=True`). Uploads into Inventory and the Workspace go through the Gallery and
+  link; `cp_file` from any Gallery-backed file links instead of copying bytes. Transactions
+  defer uploads. `rspace://host` URLs via `fsspec.open`, `fsspec.filesystem("rspace")` and
+  `UPath`, key from `RSPACE_API_KEY` only. `glob("<dir>/*<text>*")` answers Galaxy's search
+  including bracketed names. New dependency `fsspec`.
+- Deprecated `rspace_client.eln.fs.GalleryFilesystem` and
+  `rspace_client.inv.attachment_fs.InventoryAttachmentFilesystem` (PyFilesystem2, unmaintained
+  upstream). Unchanged in behaviour, now emit a `DeprecationWarning`; removal together with
+  the `fs` dependency in 3.0, after Galaxy's shipped plugin has moved to `rspace_client.fs`.
+- `tools/galaxy/rspace_fsspec_source.py`: the reference Galaxy file source for the new
+  filesystem, to be proposed upstream.
 - Security: the client never follows an HTTP redirect, since `requests` would carry the
   `apiKey` header to the new host.
 - Client-level changes: `_links` URLs are rebased onto the configured host so paging and

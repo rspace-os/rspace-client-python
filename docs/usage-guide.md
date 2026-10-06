@@ -9,7 +9,7 @@ bash> export RSPACE_URL=https://myrspace.com
 bash> export RSPACE_API_KEY=abcdefgh...
 ```
 
-- [Using the library as a PyFilesystem implementation](#using-the-rspace_client-library-as-pyfilesystem-implementation)
+- [Using RSpace as a filesystem (fsspec)](#using-rspace-as-a-filesystem-fsspec)
 - [A basic query to list documents](#a-basic-query-to-list-documents)
 - [Iterating over pages of results](#iterating-over-pages-of-results)
 - [Searching](#searching)
@@ -24,92 +24,123 @@ bash> export RSPACE_API_KEY=abcdefgh...
 - [Forms](#forms)
 - [Export](#export)
 
-## Using the rspace_client library as PyFilesystem implementation
+## Using RSpace as a filesystem (fsspec)
 
-Starting with rspace-client 2.6.0 rspace-client the library partially implements
-[PyFilesystem](https://docs.pyfilesystem.org/en/latest/index.html) API for accessing
-RSpace Gallery files and RSpace Inventory attachments.
+`rspace_client.fs` presents RSpace as an [fsspec](https://filesystem-spec.readthedocs.io)
+filesystem, the same interface pandas, pyarrow, dask, zarr, `universal_pathlib` and Galaxy
+use for remote storage. One mount holds three branches:
 
-To start, export the URL and API key into environment variables (as explained before).
-
-To access the Gallery files construct a `GalleryFilesystem` object.
-```python
-from rspace_client.eln import fs
-
-# create rspace_fs object which supports generic fs methods (listdir, getinfo etc.)
-rspace_gallery_fs = fs.GalleryFilesystem(os.getenv("RSPACE_URL"), os.getenv("RSPACE_API_KEY"))
-
-content = rspace_gallery_fs.listdir("/")
-print(content)
-for globalId in content:
-  print(rspace_gallery_fs.getinfo(globalId).raw)
+```
+gallery/      Gallery folders and files
+inventory/    benches and the sections Containers, Samples, Templates; every record is a
+              folder holding its child records and its attachments
+workspace/    ELN folders, notebooks and documents; a document is a folder of its text
+              fields, a field is a folder of the files linked into it
 ```
 
-#### Uploading into Gallery folders and the media-type section rule
-
-The RSpace Gallery is split into media-type sections (Images, Documents,
-Chemistry, ...) and a file can only be placed in a folder whose section matches
-the file's media type. Uploading, say, a PDF into a folder that lives in the
-Images section is rejected by the server.
-
-By default `upload` turns that rejection into a clear `GallerySectionMismatch`
-that names the folder's section, rather than an opaque API error:
+A directory is anything that contains files; a file is a downloadable blob. Paths are the
+records' own names, without a leading slash (`gallery/Images/microscope.png`). Every entry
+returned by `ls()` or `info()` is a dict with `name`, `type`, `size`, `mtime`, `created`,
+`globalId` and `rspace` (the raw RSpace record).
 
 ```python
-from rspace_client.eln.fs import GallerySectionMismatch
+from rspace_client.fs import RSpaceFilesystem, print_tree
 
-try:
-    rspace_gallery_fs.upload("/GF123", file_obj)  # GF123 is in the Images section
-except GallerySectionMismatch as e:
-    print(e)                 # explains the section clash
-    print(e.folder_section)  # e.g. "Images"
+fs = RSpaceFilesystem(os.getenv("RSPACE_URL"), os.getenv("RSPACE_API_KEY"))
+
+fs.ls("", detail=False)                      # ['gallery', 'inventory', 'workspace']
+fs.ls("gallery/Images", detail=False)        # ['gallery/Images/microscope.png', ...]
+fs.info("gallery/Images/microscope.png")     # {'name': ..., 'type': 'file', 'size': 1096, 'globalId': 'GL100', ...}
+data = fs.cat_file("gallery/Images/microscope.png")
+fs.get_file("inventory/Containers/Freezer -80/manual.pdf", "manual.pdf")
+print_tree(fs, "workspace/Project Alpha", max_depth=3)
 ```
 
-Alternatively, opt in to automatic rerouting. On a mismatch the file is placed
-in the correct section's inbox instead of failing. Set the policy once when
-constructing the filesystem (it then applies to every write, including generic
-PyFilesystem operations), or override it per call:
+With `RSPACE_API_KEY` in the environment the filesystem also opens from a URL. The URL
+carries the host and options only, never the key:
 
 ```python
-# filesystem-wide default
-rspace_gallery_fs = fs.GalleryFilesystem(url, api_key, on_mismatch="reroute")
+import fsspec
+from upath import UPath
 
-# or per upload
-placement = rspace_gallery_fs.upload("/GF123", file_obj, on_mismatch="reroute")
+fs = fsspec.filesystem("rspace", server="https://my.rspace.host")
+with fsspec.open("rspace://my.rspace.host/gallery/Documents/data.csv") as f:
+    ...
+for entry in UPath("rspace://my.rspace.host/inventory/Samples").iterdir():
+    print(entry.name)
 ```
 
-`upload` returns a `Placement` telling you where the file actually landed:
+Plain http is accepted for loopback hosts only (`rspace://localhost:8080/...?scheme=http`).
+
+### Writing
+
+Everything is read-only by default. `writable=True` allows uploads and folder creation,
+`allow_delete=True` allows removals; the two are separate on purpose.
 
 ```python
-placement.rerouted        # True if it did not go in the requested folder
-placement.section         # e.g. "Documents"
-placement.path            # e.g. "Gallery/Documents/Api Inbox"
-placement.file_global_id  # e.g. "GL999"
+fs = RSpaceFilesystem(url, api_key, writable=True, allow_delete=True)
+
+with fs.open("gallery/Documents/notes.txt", "wb") as f:   # uploads when closed
+    f.write(b"...")
+fs.put_file("results.csv", "workspace/Project Alpha/Alpha protocol/Results/results.csv")
+fs.mkdir("gallery/Images/2026-10 run")
+fs.rm_file("inventory/Samples/Plasmid pUC19/old_gel.png")   # deletes the attachment
+fs.rm_file("workspace/Project Alpha/Alpha protocol/Results/old.csv")  # unlinks; the Gallery file stays
 ```
 
-Note that rerouting places the file in the section's inbox, not a subfolder
-matching the one you requested.
+What a write means depends on the branch: a file put into a Gallery folder is a Gallery
+upload; into an Inventory record it is uploaded to the Gallery and attached to the record;
+into a document field it is uploaded to the Gallery and linked into that field. A copy from
+any Gallery-backed file into Inventory or a document field (`fs.cp_file`) links the existing
+file instead of moving bytes. Transactions defer uploads until the block ends:
 
-To access Inventory attachments construct a `InventoryAttachmentFilesystem` object.
 ```python
-from rspace_client.inv.attachment_fs import InventoryAttachmentFilesystem
-
-rspace_inv_fs = InventoryAttachmentFilesystem(os.getenv("RSPACE_URL"), os.getenv("RSPACE_API_KEY"))
-
-# list the attachments that an existing record has, in this case a subsample
-rspace_inv_fs.listdir('/SS123')
-
-# get the metadata for a particular attachment
-rspace_inv_fs.getinfo("IF123")
-
-# or download it
-file_obj = BytesIO()
-rspace_inv_fs.download('/IF123', file_obj)
-
-# or attach a new file
-file_obj_2 = BytesIO(b'test file content')
-rspace_inv_fs.upload('/SS123', file_obj_2)
+with fs.transaction:
+    with fs.open("gallery/Documents/a.txt", "wb") as f: f.write(b"a")
+    with fs.open("gallery/Documents/b.txt", "wb") as f: f.write(b"b")
+# both uploaded here; neither if the block raised
 ```
+
+A signed ELN document is locked and its fields are listed with a `(signed)` suffix. An
+Inventory attachment field holds one file and refuses an upload while occupied. A bench or
+sample template takes no attachments, and the Gallery API cannot delete Gallery files; each
+refusal says so before anything is sent.
+
+#### Names, duplicates and global IDs
+
+Where two records in a folder share a name, the second and later ones are listed with their
+global ID before the extension (`data [GL112].csv`), and a name that would itself read as an
+address gets its real ID the same way. A segment carrying a global ID always resolves to that
+record, whatever the style, and survives a rename. `path_style="labelled"` lists every
+segment as `Name [GID]`; `path_style="id"` lists bare global IDs.
+
+#### Gallery sections
+
+The Gallery is split into media-type sections (Images, Documents, Chemistry, ...) and a file
+can only go into a folder of the matching section. A mismatch raises
+`GallerySectionMismatch`, which names the folder's section; `on_mismatch="reroute"` (on the
+filesystem or per `upload_fileobj` call) lets RSpace file it in the right section instead
+and the returned `Placement` says where it landed.
+
+```python
+placement = fs.upload_fileobj("gallery/Images/report.pdf", file_obj, on_mismatch="reroute")
+placement.rerouted, placement.section, placement.path, placement.file_global_id
+```
+
+#### Galaxy
+
+Galaxy's file sources are built on fsspec. `tools/galaxy/rspace_fsspec_source.py` is the
+reference plugin for `RSpaceFilesystem`; the shipped Galaxy plugin still uses the
+deprecated classes below.
+
+### Deprecated: the PyFilesystem classes
+
+`rspace_client.eln.fs.GalleryFilesystem` and
+`rspace_client.inv.attachment_fs.InventoryAttachmentFilesystem` implement the unmaintained
+[PyFilesystem2](https://github.com/PyFilesystem/pyfilesystem2) API with global IDs as path
+segments (`/GF123`, `/IF123`). They are kept unchanged for the Galaxy plugin that imports
+them, emit a `DeprecationWarning`, and will be removed in rspace-client 3.0 together with
+the `fs` dependency. New code should use `rspace_client.fs`.
 
 ## A basic query to list documents
 
