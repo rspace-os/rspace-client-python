@@ -63,6 +63,17 @@ Why `name` is the default, given the two alternatives:
   Renames do break a stored `name` path; `labelled` and `id` exist for callers that need a
   path to survive one.
 
+  These two listing rules are not only for people who type paths. Galaxy never resolves a
+  clicked row directly: the click stores the URI string, and `realize_to` re-resolves that
+  string later in a separate request (the upload job, a re-run, a workflow input). The listed
+  segment *is* the stored URI, so it must parse to the record it showed, every time. Confirmed
+  2026-10-06 against Galaxy 25.1 with a file genuinely named `report [GL111].txt`.
+
+  Galaxy's search escapes `[` as `\[` and hands the pattern to `glob`; fsspec's glob translation
+  ignores the escape, so a query containing a bracket matches nothing. The fsspec class
+  therefore overrides `glob` for the `<dir>/*<query>*` shape: one listing of the directory, an
+  unescaped case-insensitive substring match on the last segment, results in listing order.
+
 Inventory adds fixed section names at its root, so each branch has a real resolver rather than
 the old "strip the two-letter prefix" helper. Nothing in a path is a page token: `page-N`
 pseudo-folders were built and removed, see section 5.
