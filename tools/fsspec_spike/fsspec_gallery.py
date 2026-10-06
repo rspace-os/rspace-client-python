@@ -113,7 +113,10 @@ class GalleryFileSystem(AbstractFileSystem):
         is_dir = record["globalId"][:2] in FOLDER_PREFIXES
         return {"name": f"{parent}/{record['name']}".strip("/"),
                 "type": "directory" if is_dir else "file", "size": record.get("size"),
-                "mtime": _to_epoch(record.get("lastModified")), "created": _to_epoch(record.get("created")),
+                # Galaxy reads only mtime/modified/LastModified for its time column and RSpace
+                # files carry no lastModified, so fall back to created there
+                "mtime": _to_epoch(record.get("lastModified") or record.get("created")),
+                "created": _to_epoch(record.get("created")),
                 "globalId": record["globalId"], "rspace": record}
 
     def _folder_id(self, path):
