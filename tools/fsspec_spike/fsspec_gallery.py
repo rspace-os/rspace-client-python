@@ -97,7 +97,10 @@ class GalleryFileSystem(AbstractFileSystem):
         return super()._strip_protocol(path).strip("/")
 
     def _records(self, folder_id):
-        first = self.client.list_folder_tree(folder_id, page_size=self.page_size)
+        try:
+            first = self.client.list_folder_tree(folder_id, page_size=self.page_size)
+        except TypeError:  # rspace-client < 2.8 has no page_size
+            first = self.client.list_folder_tree(folder_id)
         return _stream_pages(self.client, first, "records")
 
     @property
