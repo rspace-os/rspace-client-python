@@ -62,3 +62,18 @@ class ReviewRegressionTest(MockServerTestCase):
         self.assertEqual(2, len(fs.cat(["Documents/data.csv", "Images/gel.jpg"])))
         mount = RSpaceFilesystem(self.url, "k")
         self.assertEqual(["gallery/Images"], mount._strip_protocol(["gallery/Images/"]))
+
+    def test_recursive_put_creates_the_folders_it_copies(self):
+        """fsspec's put() hands directories to put_file and expects the backend to make them."""
+        import os
+        import tempfile
+        fs = RSpaceFilesystem(self.url, "k", writable=True)
+        tmp = tempfile.mkdtemp()
+        os.makedirs(os.path.join(tmp, "img", "sub"))
+        with open(os.path.join(tmp, "img", "a.txt"), "wb") as handle:
+            handle.write(b"a")
+        with open(os.path.join(tmp, "img", "sub", "b.txt"), "wb") as handle:
+            handle.write(b"b")
+        fs.put(os.path.join(tmp, "img") + "/", "gallery/Documents/", recursive=True)
+        self.assertIn("gallery/Documents/sub/b.txt", fs.find("gallery/Documents"))
+        self.assertEqual(b"a", fs.cat_file("gallery/Documents/a.txt"))

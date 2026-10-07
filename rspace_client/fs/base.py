@@ -603,7 +603,10 @@ class RSpaceFSBase(AbstractFileSystem):
         """Upload the local file as the RSpace file at ``rpath``."""
         import os
         if os.path.isdir(lpath):
-            return  # fsspec's put() hands directories through too; there is nothing to make
+            # fsspec's put() hands directories through put_file as well, and relies on the
+            # backend to create them before their files arrive
+            self.makedirs(rpath, exist_ok=True)
+            return
         with open(lpath, "rb") as handle:
             self.upload_fileobj(rpath, handle, **kwargs)
 
