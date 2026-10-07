@@ -37,7 +37,7 @@ record, ``allow_delete=True`` allows removing attachments.
 from __future__ import annotations
 
 import errno
-from typing import Any, BinaryIO, Iterator, List, Optional
+from typing import Any, BinaryIO, Iterator, Optional
 
 from rspace_client.client_base import Pagination
 from rspace_client.eln import eln
@@ -48,9 +48,6 @@ from .base import RSpaceFSBase, Target, client_or_new, deletes, make_entry, stre
 
 ATTACHMENT_PREFIX = "IF"
 FIELD_PREFIX = "SF"  # a template-defined field on a sample, template or instrument
-#: Inventory field types are number/date/string/text/uri/reference/attachment/time/radio/choice;
-#: only "attachment" can hold a file, and it holds at most one.
-FILE_BEARING_FIELD_TYPE = "attachment"
 CONTAINER_PREFIXES = ("IC", "BE")
 RECORD_GETTERS = {
     "IC": "get_container_by_id",
@@ -80,6 +77,10 @@ class InventoryFilesystem(RSpaceFSBase):
 
     protocol = ("rspace-inventory",)
     FILE_KINDS = ("attachment",)
+    #: Inventory field types are number/date/string/text/uri/reference/attachment/time/radio/
+    #: choice; only "attachment" can hold a file, and it holds at most one.
+    FILE_BEARING_FIELD_TYPES = ("attachment",)
+    CAN_LINK = True
 
     def __init__(self, server: Optional[str] = None, api_key: Optional[str] = None, *,
                  inv_client: Optional[inv.InventoryClient] = None,
@@ -153,6 +154,9 @@ class InventoryFilesystem(RSpaceFSBase):
             return getter(gid[2:], include_content=True)
         return getter(gid[2:])
 
+    def _record(self, gid: str) -> dict:
+        return self._fetch(gid, include_content=False)
+
     def _section_items(self, section: str) -> Iterator[dict]:
         """Stream a section's records, fetching the next API page only when it is reached."""
         method, key = SECTION_LISTERS[section]
@@ -170,16 +174,6 @@ class InventoryFilesystem(RSpaceFSBase):
         raw.update(extra or {})
         return make_entry(name, True, raw=raw)
 
-    @staticmethod
-    def _file_bearing_fields(record: dict) -> List[dict]:
-        """Template fields that can hold a file. Other field types are not browsable."""
-        return [f for f in (record.get("fields") or [])
-                if str(f.get("type", "")).lower() == FILE_BEARING_FIELD_TYPE and f.get("globalId")]
-
-    def _field(self, record_gid: str, field_gid: str, record: Optional[dict] = None) -> dict:
-        record = record if record is not None else self._fetch(record_gid)
-        return self._find_field(self._file_bearing_fields(record), field_gid, record_gid)
-
     def _field_entry(self, field: dict) -> dict:
         raw = dict(field, fieldType=field.get("type"))
         raw.pop("attachment", None)
@@ -190,7 +184,7 @@ class InventoryFilesystem(RSpaceFSBase):
 
     # ------------------------------------------------------------ children of a directory
 
-    def _children(self, target: Target) -> Iterator[dict]:
+    def _children(self, target: Target, names_only: bool = False) -> Iterator[dict]:
         if target.kind == "root":
             return self._root_children()
         if target.kind == "section":
@@ -221,7 +215,7 @@ class InventoryFilesystem(RSpaceFSBase):
                 sample = record.get("sample")
                 if sample and sample.get("globalId"):
                     yield self._shortcut_entry(sample)
-            for field in self._file_bearing_fields(record):
+            for field in self._file_fields(record):
                 yield self._field_entry(field)
         for attachment in record.get("attachments", []):
             yield self._file_entry(attachment)
@@ -254,11 +248,8 @@ class InventoryFilesystem(RSpaceFSBase):
         self.inv_client.delete_attachment_by_id(target.gid[2:])
         self.invalidate_cache()
 
-    def _file_source(self, path: str):
-        target = self._resolve(path)
-        if target.kind != "attachment":
-            raise IsADirectoryError(errno.EISDIR, f"{path!r} is a directory", path)
-        return target.gid[2:], self.inv_client.download_attachment_by_id
+    def _download(self, file_id: str, file: BinaryIO, chunk_size: int) -> None:
+        self.inv_client.download_attachment_by_id(file_id, file, chunk_size)
 
     @writes
     def upload_fileobj(self, path: str, file: BinaryIO, **options: Any) -> dict:

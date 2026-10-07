@@ -31,8 +31,8 @@ from __future__ import annotations
 import errno
 import functools
 import io
+import os
 import re
-from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import (Any, BinaryIO, Callable, Dict, Iterable, Iterator, List, Mapping, Optional,
@@ -97,14 +97,21 @@ _TRANSLATED_METHODS = ("ls", "scandir", "info", "cat_file", "get_file", "put_fil
                        "rm_file", "link", "glob", "cp_file", "mv", "created", "modified")
 
 
+_CLIENT_ERRORS = (ApiError, AuthenticationError, RSpaceConnectionError)
+
+
+def _reraise(exc: Exception, path: str):
+    translated = os_error_for(exc, path)
+    if translated is None:
+        raise exc
+    raise translated from exc
+
+
 def _translating_iterator(iterator: Iterator, path: str) -> Iterator:
     try:
         yield from iterator
-    except (ApiError, AuthenticationError, RSpaceConnectionError) as exc:
-        translated = os_error_for(exc, path)
-        if translated is None:
-            raise
-        raise translated from exc
+    except _CLIENT_ERRORS as exc:
+        _reraise(exc, path)
 
 
 def translate_api_errors(method):
@@ -116,11 +123,8 @@ def translate_api_errors(method):
     def wrapper(self, path, *args, **kwargs):
         try:
             result = method(self, path, *args, **kwargs)
-        except (ApiError, AuthenticationError, RSpaceConnectionError) as exc:
-            translated = os_error_for(exc, str(path))
-            if translated is None:
-                raise
-            raise translated from exc
+        except _CLIENT_ERRORS as exc:
+            _reraise(exc, str(path))
         # a lazy listing fetches further pages while it is consumed; a file handle is
         # iterable too but must be returned as it is
         if isinstance(result, Iterator) and not hasattr(result, "read"):
@@ -129,6 +133,13 @@ def translate_api_errors(method):
 
     wrapper._translates_api_errors = True
     return wrapper
+
+
+def translate_class(cls) -> None:
+    """Apply ``translate_api_errors`` to the public methods ``cls`` itself defines."""
+    for name in _TRANSLATED_METHODS:
+        if name in cls.__dict__:
+            setattr(cls, name, translate_api_errors(cls.__dict__[name]))
 
 
 def writes(method):
@@ -195,11 +206,6 @@ def make_entry(segment: str, is_dir: bool, raw: Optional[Mapping] = None, size: 
     return entry
 
 
-def rspace_name(entry: Mapping) -> Optional[str]:
-    """The human-readable RSpace name of an entry (not its path segment)."""
-    return (entry.get("rspace") or {}).get("name")
-
-
 @dataclass
 class Target:
     """What a path addresses, as worked out by a branch's ``_resolve``.
@@ -237,6 +243,7 @@ def stream_pages(client: ClientBase, first_page: Mapping, key: str) -> Iterator[
     page = first_page
     while True:
         yield from page.get(key, [])
+        # not client.link_exists(): that raises when a page carries no _links at all
         if not any(link.get("rel") == "next" for link in page.get("_links") or []):
             return
         page = client.get_link_contents(page, "next")
@@ -283,18 +290,19 @@ class RSpaceFSBase(AbstractFileSystem):
     NAME_CACHE_LIMIT = 4096
     #: ``Target.kind`` values that are files: listing one raises ``NotADirectoryError``.
     FILE_KINDS: Tuple[str, ...] = ()
+    #: Field types (lower case) that can hold a file; other fields are not browsable.
+    FILE_BEARING_FIELD_TYPES: Tuple[str, ...] = ()
     #: False where the RSpace API cannot delete a file (the Gallery): a move is then refused
     #: before anything is copied, since the second half could never happen.
     CAN_DELETE_FILES = True
+    #: True where a Gallery file can be attached by reference (``link``) instead of copied.
+    CAN_LINK = False
 
     def __init_subclass__(cls, **kwargs) -> None:
         super().__init_subclass__(**kwargs)
         # every subclass gets the translation on the methods it defines or overrides, so a new
         # branch cannot forget it
-        for name in _TRANSLATED_METHODS:
-            method = cls.__dict__.get(name)
-            if method is not None:
-                setattr(cls, name, translate_api_errors(method))
+        translate_class(cls)
 
     def __init__(self, *, writable: bool = False, allow_delete: bool = False,
                  path_style: str = "name", **storage_options: Any) -> None:
@@ -314,18 +322,6 @@ class RSpaceFSBase(AbstractFileSystem):
         #: can only be resolved against its parent's listing, so without this every operation
         #: on a deep path would re-list every directory above it.
         self._name_cache: Dict[Tuple[str, str], str] = {}
-        #: True while a listing is read only to resolve a name or to test for emptiness:
-        #: branches skip per-entry extras (the Gallery's size fetches) that nobody will see.
-        self._names_only = False
-
-    @contextmanager
-    def _resolving(self):
-        previous = self._names_only
-        self._names_only = True
-        try:
-            yield
-        finally:
-            self._names_only = previous
 
     # ------------------------------------------------------------ paths
 
@@ -396,7 +392,7 @@ class RSpaceFSBase(AbstractFileSystem):
                 self.dircache[path] = out
         return out if detail else [entry["name"] for entry in out]
 
-    def _listing(self, path: str) -> Iterator[dict]:
+    def _listing(self, path: str, names_only: bool = False) -> Iterator[dict]:
         """``_children`` with full names and the guarantee that no two children share a
         segment and that every segment addresses the record it shows.
 
@@ -408,6 +404,9 @@ class RSpaceFSBase(AbstractFileSystem):
         real ID the same way, in ``paths.segment_for``, so that a consumer which stores the
         segment and resolves it later (Galaxy stores URIs) always gets the record it saw.
         The rule needs no lookahead, so listings stay lazy.
+
+        ``names_only`` says the listing is read only to resolve a name or to test for
+        emptiness, so branches may skip per-entry extras (the Gallery's size fetches).
         """
         # _children resolves the directory before returning its generator, so that a bad
         # path fails on the call rather than on first iteration; keep that by not making
@@ -415,33 +414,51 @@ class RSpaceFSBase(AbstractFileSystem):
         target = self._resolve(path)
         if target.kind in self.FILE_KINDS:
             raise NotADirectoryError(errno.ENOTDIR, f"{path!r} is a file", path)
-        children = self._children(target)
-        return self._prefixed(path, self._disambiguated(children) if self.path_style == "name" else children)
+        return self._named(path, self._children(target, names_only))
 
-    @staticmethod
-    def _prefixed(parent: str, children: Iterator[dict]) -> Iterator[dict]:
-        for entry in children:
-            entry["name"] = f"{parent}/{entry['name']}" if parent else entry["name"]
-            yield entry
-
-    @staticmethod
-    def _disambiguated(children: Iterator[dict]) -> Iterator[dict]:
+    def _named(self, parent: str, children: Iterator[dict]) -> Iterator[dict]:
+        """Prefix each child with ``parent``, make segments unique under the ``name`` style
+        and remember every (parent, segment) -> global ID, so that one listing resolves all
+        of its children for later calls."""
         seen = set()
         for entry in children:
             gid = entry.get("globalId")
-            if entry["name"] in seen and gid:
+            if self.path_style == "name" and entry["name"] in seen and gid:
                 entry["name"] = paths.disambiguated_segment(entry["name"], gid)
             seen.add(entry["name"])
+            if gid:
+                self._remember(parent, entry["name"], gid)
+            entry["name"] = self._join(parent, entry["name"])
             yield entry
+
+    def _remember(self, parent: str, segment: str, gid: str) -> None:
+        if len(self._name_cache) >= self.NAME_CACHE_LIMIT:
+            self._name_cache.clear()
+        # both spellings, so a path stored before a document was signed still resolves
+        self._name_cache[(parent, segment)] = gid
+        self._name_cache[(parent, paths.unmarked(segment))] = gid
 
     def _resolve(self, path: str) -> Target:
         """What ``path`` addresses. Branches implement it with their own vocabulary."""
         raise NotImplementedError(f"{type(self).__name__} does not implement _resolve")
 
-    def _children(self, target: Target) -> Iterator[dict]:
+    def _children(self, target: Target, names_only: bool = False) -> Iterator[dict]:
         """The entries inside a directory target, with segment names, from one listing call
         where possible."""
         raise NotImplementedError(f"{type(self).__name__} does not implement _children")
+
+    def _record(self, gid: str) -> dict:
+        """The raw RSpace record that owns fields (an Inventory record, an ELN document)."""
+        raise NotImplementedError(f"{type(self).__name__} does not implement _record")
+
+    def _file_fields(self, record: Mapping) -> List[dict]:
+        """The record's fields that can hold a file. Other field types are not browsable."""
+        return [f for f in record.get("fields") or []
+                if str(f.get("type", "")).lower() in self.FILE_BEARING_FIELD_TYPES and f.get("globalId")]
+
+    def _field(self, owner_gid: str, field_gid: str, record: Optional[Mapping] = None) -> dict:
+        record = record if record is not None else self._record(owner_gid)
+        return self._find_field(self._file_fields(record), field_gid, owner_gid)
 
     def _gids(self, segments: List[str], start: int = 0) -> Iterator[Tuple[int, str]]:
         """``(index, global id)`` for each segment from ``start`` on. A segment carrying a
@@ -469,8 +486,7 @@ class RSpaceFSBase(AbstractFileSystem):
 
     def _is_empty(self, path: str) -> bool:
         """True if the directory has no children, without listing all of them."""
-        with self._resolving():
-            return next(iter(self._listing(path)), None) is None
+        return next(self._listing(path, names_only=True), None) is None
 
     # ------------------------------------------------------------ resolving a segment
 
@@ -478,27 +494,18 @@ class RSpaceFSBase(AbstractFileSystem):
         """Global ID of the child of ``parent`` whose path segment is ``segment``.
 
         Only needed for a segment written as a plain name: one carrying a global ID says
-        what it addresses. Costs one listing of the parent, remembered afterwards.
+        what it addresses. Costs one listing of the parent, remembered afterwards; the
+        listing records every child it passes, so siblings resolve for free.
         """
         key = (parent, segment)
-        cached = self._name_cache.get(key)
-        if cached is not None:
-            return cached
-        # the listing is lazy, so it must be consumed inside the resolving context for the
-        # branches to see the flag
-        with self._resolving():
-            for entry in self._listing(parent):
-                own = paths.last_segment(entry["name"])
-                gid = entry.get("globalId")
-                # match the marked and unmarked spellings, so a path stored before a document
-                # was signed still resolves after it was
-                if segment in (own, paths.unmarked(own)) and gid:
-                    if len(self._name_cache) >= self.NAME_CACHE_LIMIT:
-                        self._name_cache.clear()
-                    self._name_cache[key] = gid
-                    return gid
-        raise FileNotFoundError(errno.ENOENT, f"{self._join(parent, segment)!r} not found",
-                                self._join(parent, segment))
+        if key not in self._name_cache:
+            for _ in self._listing(parent, names_only=True):
+                if key in self._name_cache:
+                    break
+            else:
+                raise FileNotFoundError(errno.ENOENT, f"{self._join(parent, segment)!r} not found",
+                                        self._join(parent, segment))
+        return self._name_cache[key]
 
     def _gid_at(self, path: str) -> str:
         """Global ID addressed by the last segment of ``path``, whichever style wrote it."""
@@ -534,17 +541,21 @@ class RSpaceFSBase(AbstractFileSystem):
         """The entry for a resolved path. Branches implement it."""
         raise NotImplementedError(f"{type(self).__name__} does not implement _info_of")
 
-    def created(self, path: str) -> Optional[datetime]:
-        stamp = self.info(path).get("created")
+    def _stamp(self, path: str, key: str) -> Optional[datetime]:
+        stamp = self.info(path).get(key)
         return datetime.fromtimestamp(stamp, tz=timezone.utc) if stamp is not None else None
 
+    def created(self, path: str) -> Optional[datetime]:
+        return self._stamp(path, "created")
+
     def modified(self, path: str) -> Optional[datetime]:
-        stamp = self.info(path).get("mtime")
-        return datetime.fromtimestamp(stamp, tz=timezone.utc) if stamp is not None else None
+        return self._stamp(path, "mtime")
 
     # ------------------------------------------------------------ search
 
-    _GALAXY_SEARCH = re.compile(r"^(?P<dir>.*?)/?\*(?P<text>.*)\*$", re.S)
+    #: ``<dir>/*<text>*`` with no other wildcard anywhere (a backslash escape inside the text
+    #: is allowed, which is how Galaxy sends a ``[``).
+    _GALAXY_SEARCH = re.compile(r"^(?P<dir>[^*?]*?)/?\*(?P<text>[^*?/]+)\*$", re.S)
 
     def glob(self, path: str, maxdepth: Optional[int] = None, **kwargs):
         """fsspec glob, with one special case: the ``<dir>/*<text>*`` pattern a search box
@@ -554,10 +565,8 @@ class RSpaceFSBase(AbstractFileSystem):
         it with, so a segment carrying ``[GL83]`` could never be found that way."""
         path = self._strip_protocol(path)
         match = self._GALAXY_SEARCH.match(path)
-        text = match.group("text") if match else None
-        if (match and "**" not in path and maxdepth in (None, 1)
-                and not any(c in text.replace("\\", "") for c in "*?/")):
-            needle = re.sub(r"\\(.)", r"\1", text).lower()
+        if match and maxdepth in (None, 1):
+            needle = re.sub(r"\\(.)", r"\1", match.group("text")).lower()
             found = {entry["name"]: entry for entry in self._listing(match.group("dir"))
                      if needle in paths.last_segment(entry["name"]).lower()}
             return found if kwargs.get("detail") else list(found)
@@ -565,18 +574,20 @@ class RSpaceFSBase(AbstractFileSystem):
 
     # ------------------------------------------------------------ files
 
-    def _file_source(self, path: str) -> Tuple[str, Callable]:
-        """``(numeric id, client download method)`` for the file at ``path``. Raises
-        ``IsADirectoryError`` for anything that is not a file. Branches implement it."""
-        raise NotImplementedError(f"{type(self).__name__} does not implement _file_source")
+    def _file_id(self, path: str) -> str:
+        """Numeric id of the file at ``path``; ``IsADirectoryError`` for anything else."""
+        target = self._resolve(path)
+        if target.kind not in self.FILE_KINDS:
+            raise IsADirectoryError(errno.EISDIR, f"{path!r} is a directory", path)
+        return target.gid[2:]
 
-    def download_fileobj(self, path: str, file: BinaryIO, chunk_size: Optional[int] = None) -> None:
+    def _download(self, file_id: str, file: BinaryIO, chunk_size: int) -> None:
+        """The client call that streams file ``file_id`` into ``file``. Branches implement it."""
+        raise NotImplementedError(f"{type(self).__name__} does not implement _download")
+
+    def download_fileobj(self, path: str, file: BinaryIO, chunk_size: int = 128) -> None:
         """Stream the file at ``path`` into the open binary ``file``."""
-        numeric_id, fetch = self._file_source(self._strip_protocol(path))
-        if chunk_size is not None:
-            fetch(numeric_id, file, chunk_size)
-        else:
-            fetch(numeric_id, file)
+        self._download(self._file_id(self._strip_protocol(path)), file, chunk_size)
 
     def upload_fileobj(self, path: str, file: BinaryIO, **options: Any):
         """Write the open binary ``file`` to the file at ``path``: the last segment is the name
@@ -592,8 +603,8 @@ class RSpaceFSBase(AbstractFileSystem):
     def get_file(self, rpath: str, lpath, callback=None, outfile=None, **kwargs) -> None:
         """Download straight into the local file, without the whole-file buffer ``open`` needs."""
         if isinstance(lpath, (str, bytes)) or hasattr(lpath, "__fspath__"):
-            if self.isdir(rpath):
-                import os
+            rpath = self._strip_protocol(rpath)
+            if self._resolve(rpath).kind not in self.FILE_KINDS:
                 os.makedirs(lpath, exist_ok=True)
                 return
             with open(lpath, "wb") as handle:
@@ -603,7 +614,6 @@ class RSpaceFSBase(AbstractFileSystem):
 
     def put_file(self, lpath, rpath: str, callback=None, mode: str = "overwrite", **kwargs) -> None:
         """Upload the local file as the RSpace file at ``rpath``."""
-        import os
         if os.path.isdir(lpath):
             # fsspec's put() hands directories through put_file as well, and relies on the
             # backend to create them before their files arrive
@@ -698,10 +708,14 @@ class RSpaceFSBase(AbstractFileSystem):
             raise NotImplementedError("recursive removal is not supported on RSpace")
         for one in ([path] if isinstance(path, str) else path):
             one = self._strip_protocol(one)
-            if self.isdir(one):
-                self.rmdir(one)
-            else:
+            if self._resolve(one).kind in self.FILE_KINDS:
                 self.rm_file(one)
+            else:
+                self.rmdir(one)
+
+    def link(self, path: str, media_file_gid: str) -> dict:
+        """Attach a Gallery file by reference. Only the branches with ``CAN_LINK`` can."""
+        raise NotImplementedError(f"{path!r}: the Gallery holds the files, it cannot link to them")
 
     def cp_file(self, path1: str, path2: str, **kwargs) -> None:
         """Copy a file within this filesystem by downloading and uploading it."""
@@ -709,18 +723,22 @@ class RSpaceFSBase(AbstractFileSystem):
         self._require_writable(path2)
         self.upload_fileobj(path2, io.BytesIO(self.cat_file(path1)))
 
-    def mv(self, path1: str, path2: str, recursive: bool = False, maxdepth: Optional[int] = None,
-           **kwargs) -> None:
+    def _require_movable(self, path1: str, recursive: bool) -> None:
         """A move is a copy followed by a remove, so check that the remove is allowed
         *before* uploading: otherwise the copy succeeds and the caller is left with an
         error and a duplicate the API may not be able to delete."""
-        self._require_writable(path2)
         self._require_delete(path1)
         if not self.CAN_DELETE_FILES:
             raise NotImplementedError(
-                f"{type(self).__name__} cannot move files: the RSpace API cannot delete the source")
+                f"{path1!r} cannot be moved: the RSpace API cannot delete a Gallery file, so only "
+                f"a copy is possible")
         if recursive:
             raise NotImplementedError("recursive move is not supported on RSpace")
+
+    def mv(self, path1: str, path2: str, recursive: bool = False, maxdepth: Optional[int] = None,
+           **kwargs) -> None:
+        self._require_writable(path2)
+        self._require_movable(path1, recursive)
         self.cp_file(path1, path2)
         self.rm_file(path1)
 
@@ -728,7 +746,4 @@ class RSpaceFSBase(AbstractFileSystem):
 # ``__init_subclass__`` only sees subclasses; the methods the base defines itself (``ls``,
 # ``info``, ``cat_file``...) are translated here, once, so a branch that inherits them
 # unchanged still raises ``OSError`` rather than a client exception.
-for _name in _TRANSLATED_METHODS:
-    if _name in RSpaceFSBase.__dict__:
-        setattr(RSpaceFSBase, _name, translate_api_errors(RSpaceFSBase.__dict__[_name]))
-del _name
+translate_class(RSpaceFSBase)

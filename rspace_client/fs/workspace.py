@@ -31,11 +31,10 @@ from __future__ import annotations
 
 import errno
 import re
-from typing import Any, BinaryIO, Iterable, Iterator, List, Optional
+from typing import Any, BinaryIO, Iterable, Iterator, Optional
 
 from bs4 import BeautifulSoup
 
-from rspace_client.client_base import ClientBase
 from rspace_client.eln import eln
 
 from . import paths
@@ -46,9 +45,6 @@ NOTEBOOK_PREFIXES = ("NB",)
 DOCUMENT_PREFIXES = ("SD",)
 CONTAINER_PREFIXES = FOLDER_PREFIXES + NOTEBOOK_PREFIXES
 FILE_PREFIX = "GL"
-#: The only ELN field type that can hold files. See the module docstring: attachment
-#: fields are legacy, are not offered by the form editor, and never carry linked media.
-FILE_BEARING_FIELD_TYPES = ("text",)
 #: System folders in the Home listing that this filesystem does not show: the Gallery root
 #: is what the gallery branch is for, and Templates is not a place files live.
 HIDDEN_ROOT_FOLDERS = ("Gallery", "Templates")
@@ -116,6 +112,10 @@ class WorkspaceFilesystem(RSpaceFSBase):
 
     protocol = ("rspace-workspace",)
     FILE_KINDS = ("file",)
+    #: The only ELN field type that can hold files. See the module docstring: attachment
+    #: fields are legacy, are not offered by the form editor, and never carry linked media.
+    FILE_BEARING_FIELD_TYPES = ("text",)
+    CAN_LINK = True
 
     def __init__(self, server: Optional[str] = None, api_key: Optional[str] = None, *,
                  eln_client: Optional[eln.ELNClient] = None, writable: bool = False,
@@ -160,16 +160,8 @@ class WorkspaceFilesystem(RSpaceFSBase):
             None if folder_gid is None else folder_gid[2:], TREE_TYPES, page_size=self.page_size)
         return stream_pages(self.eln_client, first_page, "records")
 
-    def _document(self, doc_gid: str) -> dict:
+    def _record(self, doc_gid: str) -> dict:
         return self.eln_client.get_document(doc_gid[2:])
-
-    @staticmethod
-    def _visible_fields(document: dict) -> List[dict]:
-        return [f for f in document.get("fields", []) if str(f.get("type", "")).lower() in FILE_BEARING_FIELD_TYPES]
-
-    def _field(self, doc_gid: str, field_gid: str, document: Optional[dict] = None) -> dict:
-        document = document or self._document(doc_gid)
-        return self._find_field(self._visible_fields(document), field_gid, doc_gid)
 
     @staticmethod
     def _require_unsigned(document: dict, path: str, extra: str = "") -> None:
@@ -181,19 +173,16 @@ class WorkspaceFilesystem(RSpaceFSBase):
 
     def _update_field_content(self, document: dict, field: dict, content: str) -> None:
         self._require_unsigned(document, document.get("globalId", ""))
-        try:
-            self.eln_client.update_document(
-                document["id"], form_id=document.get("form", {}).get("id"),
-                fields=[{"id": field["id"], "content": content}])
-        except ClientBase.ApiError as exc:  # locked / signed documents
-            if exc.response_status_code in (401, 403, 409, 423):
-                raise ReadOnlyError(errno.EROFS, str(exc), document.get("globalId", "")) from exc
-            raise
+        # a refusal by the server (401/403) reaches the caller as PermissionError through
+        # the shared error translation; ReadOnlyError is for this filesystem's own posture
+        self.eln_client.update_document(
+            document["id"], form_id=document.get("form", {}).get("id"),
+            fields=[{"id": field["id"], "content": content}])
 
     # ------------------------------------------------------------ entry builders
 
     def _document_entry(self, document: dict, gid: str) -> dict:
-        raw = dict(document, hiddenFields=len(document.get("fields", [])) - len(self._visible_fields(document)))
+        raw = dict(document, hiddenFields=len(document.get("fields", [])) - len(self._file_fields(document)))
         raw.pop("fields", None)
         return self._entry(raw, True, gid, writable=not document.get("signed"))
 
@@ -237,13 +226,13 @@ class WorkspaceFilesystem(RSpaceFSBase):
                 continue
             yield self._entry(record, True)
 
-    def _children(self, target: Target) -> Iterator[dict]:
+    def _children(self, target: Target, names_only: bool = False) -> Iterator[dict]:
         if target.kind in ("root", "folder"):
             return self._records_entries(self._tree_items(target.gid), target.gid)
         if target.kind == "document":
-            document = self._document(target.gid)
+            document = self._record(target.gid)
             signed = bool(document.get("signed"))
-            return (self._field_entry(field, signed=signed) for field in self._visible_fields(document))
+            return (self._field_entry(field, signed=signed) for field in self._file_fields(document))
         files = self._field(target.parent_gid, target.field_gid).get("files", [])
         return (self._entry(file, False) for file in files)
 
@@ -255,9 +244,9 @@ class WorkspaceFilesystem(RSpaceFSBase):
         if target.kind == "folder":
             return self._entry(self.eln_client.get_folder(target.gid[2:]), True, target.gid)
         if target.kind == "document":
-            return self._document_entry(self._document(target.gid), target.gid)
+            return self._document_entry(self._record(target.gid), target.gid)
         if target.kind == "field":
-            document = self._document(target.parent_gid)
+            document = self._record(target.parent_gid)
             return self._field_entry(self._field(target.parent_gid, target.field_gid, document),
                                      signed=bool(document.get("signed")))
         return self._entry(self.eln_client.get_file_info(target.gid[2:]), False, target.gid)
@@ -287,11 +276,8 @@ class WorkspaceFilesystem(RSpaceFSBase):
 
     # ------------------------------------------------------------ files
 
-    def _file_source(self, path: str):
-        target = self._resolve(path)
-        if target.kind != "file":
-            raise IsADirectoryError(errno.EISDIR, f"{path!r} is a directory", path)
-        return target.gid[2:], self.eln_client.download_file
+    def _download(self, file_id: str, file: BinaryIO, chunk_size: int) -> None:
+        self.eln_client.download_file(file_id, file, chunk_size)
 
     @writes
     def upload_fileobj(self, path: str, file: BinaryIO, **options: Any) -> dict:
@@ -306,7 +292,7 @@ class WorkspaceFilesystem(RSpaceFSBase):
         if target.kind != "field":
             raise NotImplementedError(
                 f"{container!r}: files are uploaded into a document field folder (a text field)")
-        document = self._document(target.parent_gid)
+        document = self._record(target.parent_gid)
         field = self._field(target.parent_gid, target.field_gid, document)
         # Checked before the upload: the field update afterwards would be refused and the
         # file would be stranded in the Gallery, which the API cannot delete.
@@ -324,7 +310,7 @@ class WorkspaceFilesystem(RSpaceFSBase):
         target = self._resolve(path)
         if target.kind != "field":
             raise NotImplementedError(f"{path!r}: a Gallery file links into a document field (a text field)")
-        document = self._document(target.parent_gid)
+        document = self._record(target.parent_gid)
         field = self._field(target.parent_gid, target.field_gid, document)
         numeric = _gallery_file_number(media_file_gid)
         self._update_field_content(document, field, (field.get("content") or "") + _file_token(numeric))
@@ -338,7 +324,7 @@ class WorkspaceFilesystem(RSpaceFSBase):
         target = self._resolve(path)
         if target.kind != "file":
             raise IsADirectoryError(errno.EISDIR, f"{path!r} is not a file", path)
-        document = self._document(target.parent_gid)
+        document = self._record(target.parent_gid)
         field = self._field(target.parent_gid, target.field_gid, document)
         stripped = strip_file_references(field.get("content") or "", target.gid[2:])
         if stripped is None:

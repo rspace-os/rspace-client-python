@@ -1,6 +1,5 @@
 import logging
 import warnings
-from dataclasses import dataclass
 from fs.base import FS
 from rspace_client.eln import eln
 from rspace_client.client_base import ClientBase
@@ -15,61 +14,11 @@ from ..fs_utils import path_to_id
 
 logger = logging.getLogger(__name__)
 
-# Accepted values for the GalleryFilesystem ``on_mismatch`` policy.
-ON_MISMATCH_RAISE = "raise"
-ON_MISMATCH_REROUTE = "reroute"
-_ON_MISMATCH_VALUES = (ON_MISMATCH_RAISE, ON_MISMATCH_REROUTE)
-
-# The RSpace Gallery's media-type sections. "Miscellaneous" is the catch-all
-# that accepts any file not matching a more specific section; the others accept
-# only their listed extensions (including "Documents", which is a fixed set, not
-# a catch-all).
-MISCELLANEOUS_SECTION = "Miscellaneous"
-
-# Best-effort mapping of file extension to the Gallery section RSpace classifies
-# it into, taken from the Gallery documentation. This mirrors the server's own
-# classification but is NOT authoritative: it is used only to phrase error
-# messages, never to decide whether an upload is allowed. Any extension not
-# listed falls through to "Miscellaneous", matching the server default.
-_SECTION_BY_EXTENSION = {
-    # Images
-    "png": "Images", "jpg": "Images", "jpeg": "Images", "gif": "Images",
-    "bmp": "Images", "tif": "Images", "tiff": "Images",
-    # Audios
-    "mp3": "Audios", "wav": "Audios", "wma": "Audios", "aac": "Audios",
-    "ogg": "Audios",
-    # Videos
-    "mp4": "Videos", "mov": "Videos", "hdmov": "Videos", "m4v": "Videos",
-    "wmv": "Videos", "avi": "Videos", "mpg": "Videos", "mpeg": "Videos",
-    "flv": "Videos", "3gp": "Videos",
-    # Documents (a fixed set, NOT a catch-all)
-    "doc": "Documents", "docx": "Documents", "rtf": "Documents",
-    "pdf": "Documents", "odt": "Documents", "ods": "Documents",
-    "odp": "Documents", "txt": "Documents", "ppt": "Documents",
-    "pptx": "Documents", "xls": "Documents", "xlsx": "Documents",
-    "csv": "Documents", "pps": "Documents", "md": "Documents",
-    # Chemistry (documented subset; the server accepts more)
-    "skc": "Chemistry", "mrv": "Chemistry", "cxsmiles": "Chemistry",
-    "cxsmarts": "Chemistry", "cdx": "Chemistry", "cdxml": "Chemistry",
-    "csrdf": "Chemistry", "cml": "Chemistry",
-}
-
-
-def classify_media_section(filename: Optional[Text]) -> Optional[Text]:
-    """
-    Best-effort guess of the Gallery section for a filename, mirroring RSpace's
-    server-side classification. Returns a section name (e.g. "Images"),
-    "Miscellaneous" as the catch-all when the extension is not one of a specific
-    section's types, or None when no filename/extension is available to guess
-    from.
-
-    The server remains the authority on placement; this is only used to make
-    error messages and log lines more helpful.
-    """
-    if not filename or "." not in filename:
-        return None
-    ext = filename.rsplit(".", 1)[-1].lower()
-    return _SECTION_BY_EXTENSION.get(ext, MISCELLANEOUS_SECTION)
+# The section policy, the classification table, the exception and the Placement record
+# are shared with the fsspec filesystem that replaces this module.
+from rspace_client.fs.gallery import (ON_MISMATCH_RAISE, ON_MISMATCH_REROUTE, GallerySectionMismatch,  # noqa: E402,F401
+                                      Placement, check_policy, classify_media_section, folder_section,
+                                      mismatch_message, placement)
 
 
 def _filename_for(file: BinaryIO, options: Mapping[Text, Any]) -> Optional[Text]:
@@ -80,39 +29,6 @@ def _filename_for(file: BinaryIO, options: Mapping[Text, Any]) -> Optional[Text]
         return name
     name = getattr(file, "name", None)
     return name if isinstance(name, str) else None
-
-
-class GallerySectionMismatch(ClientBase.ApiError):
-    """
-    Raised when a file could not be uploaded into the requested Gallery folder
-    because that folder belongs to a media-type section that does not accept the
-    file. Carries the folder's section and, when it could be guessed, the file's
-    media type, so callers can react programmatically as well as read the message.
-    """
-
-    def __init__(self, message, *, folder_section=None, folder_global_id=None,
-                 file_media_type=None, response_status_code=None):
-        super().__init__(message, response_status_code=response_status_code)
-        self.folder_section = folder_section
-        self.folder_global_id = folder_global_id
-        self.file_media_type = file_media_type
-
-
-@dataclass
-class Placement:
-    """Where an uploaded file actually ended up in the Gallery.
-
-    Returned by :meth:`GalleryFilesystem.upload`. When ``rerouted`` is True the
-    file did not land in the folder named by ``requested_path`` (its section did
-    not accept the file) and was placed in the correct section instead;
-    ``path`` reports the human-readable location it ended up in.
-    """
-    file_global_id: Optional[Text]
-    folder_global_id: Optional[Text]
-    section: Optional[Text]
-    path: Text
-    rerouted: bool
-    requested_path: Optional[Text] = None
 
 
 def is_folder(path):
@@ -144,11 +60,7 @@ class GalleryFilesystem(FS):
             :meth:`upload` calls may override it.
         """
         super(GalleryFilesystem, self).__init__()
-        if on_mismatch not in _ON_MISMATCH_VALUES:
-            raise ValueError(
-                "on_mismatch must be one of {}".format(_ON_MISMATCH_VALUES)
-            )
-        self.on_mismatch = on_mismatch
+        self.on_mismatch = check_policy(on_mismatch)
         self.eln_client = eln.ELNClient(server, api_key)
         self.gallery_id = next(file['id'] for file in self.eln_client.list_folder_tree()['records'] if file['name'] == 'Gallery')
 
@@ -237,63 +149,6 @@ class GalleryFilesystem(FS):
         else:
             self.eln_client.download_file(path_to_id(path), file)
 
-    def _folder_section(self, folder_id: Text) -> Optional[Text]:
-        """The Gallery section (mediaType) a folder belongs to, or None if it
-        cannot be determined. Best-effort: never raises, so it cannot mask the
-        real outcome of an upload."""
-        try:
-            return self.eln_client.get_folder(folder_id).get("mediaType")
-        except Exception:
-            return None
-
-    def _human_path(self, folder: Mapping[Text, Any]) -> Text:
-        """Best-effort readable path for a folder, e.g. 'Gallery/Documents/Api
-        Inbox'. Uses the API's pathToRootFolder when present, otherwise falls
-        back to the section and folder name."""
-        trail = folder.get("pathToRootFolder")
-        if isinstance(trail, list) and trail:
-            names = [f.get("name") for f in trail if f.get("name")]
-            if names:
-                return "/".join(names)
-        parts = ["Gallery"]
-        if folder.get("mediaType"):
-            parts.append(folder["mediaType"])
-        if folder.get("name"):
-            parts.append(folder["name"])
-        return "/".join(parts)
-
-    def _placement(self, response: Any, requested_path: Optional[Text],
-                   rerouted: bool) -> Placement:
-        """Build a Placement from an upload response, resolving the parent
-        folder for section/path feedback where possible.
-
-        Tolerates a response that is not a dict (e.g. None): some callers wrap
-        or replace ``eln_client.upload_file`` and discard its return value, so
-        Placement construction must never crash a successful upload.
-        """
-        if not isinstance(response, dict):
-            response = {}
-        parent_id = response.get("parentFolderId")
-        section = None
-        folder_global_id = None
-        path = "Gallery"
-        if parent_id is not None:
-            try:
-                folder = self.eln_client.get_folder(parent_id)
-                section = folder.get("mediaType")
-                folder_global_id = folder.get("globalId")
-                path = self._human_path(folder)
-            except Exception:
-                pass
-        return Placement(
-            file_global_id=response.get("globalId"),
-            folder_global_id=folder_global_id,
-            section=section,
-            path=path,
-            rerouted=rerouted,
-            requested_path=requested_path,
-        )
-
     def upload(self, path: Text, file: BinaryIO, chunk_size: Optional[int] = None,
                on_mismatch: Optional[str] = None, **options: Any) -> Placement:
         """
@@ -314,19 +169,13 @@ class GalleryFilesystem(FS):
         section (``"raise"``) or places the file in the correct section's inbox
         and returns a Placement with ``rerouted=True`` (``"reroute"``).
         """
-        policy = on_mismatch if on_mismatch is not None else self.on_mismatch
-        if policy not in _ON_MISMATCH_VALUES:
-            raise ValueError(
-                "on_mismatch must be one of {}".format(_ON_MISMATCH_VALUES)
-            )
+        policy = check_policy(self.on_mismatch if on_mismatch is None else on_mismatch)
         folder_id = path_to_id(path) if path else None
         try:
             response = self.eln_client.upload_file(file, folder_id)
-            return self._placement(response, requested_path=path or None, rerouted=False)
+            return placement(self.eln_client, response, requested_path=path or None, rerouted=False)
         except ClientBase.ApiError as err:
-            if folder_id is None:
-                raise
-            section = self._folder_section(folder_id)
+            section = None if folder_id is None else folder_section(self.eln_client, folder_id)
             if section is None:
                 raise
             filename = _filename_for(file, options)
@@ -338,39 +187,14 @@ class GalleryFilesystem(FS):
                 except (AttributeError, OSError, ValueError):
                     pass
                 response = self.eln_client.upload_file(file, None)
-                placement = self._placement(response, requested_path=path, rerouted=True)
+                placed = placement(self.eln_client, response, requested_path=path, rerouted=True)
                 logger.info(
-                    "RSpace Gallery: %s could not go in %s (section '%s'); "
-                    "placed in %s instead",
-                    "'{}'".format(filename) if filename else "file",
-                    path, section, placement.path,
-                )
-                return placement
+                    "RSpace Gallery: %s could not go in %s (section '%s'); placed in %s instead",
+                    "'{}'".format(filename) if filename else "file", path, section, placed.path)
+                return placed
 
-            named = "'{}'".format(filename) if filename else "the file"
-            message = (
-                "Could not upload {named} to Gallery folder {path}. That folder "
-                "is in the '{section}' section, which only accepts {section} "
-                "files".format(named=named, path=path, section=section)
-            )
-            if guessed and guessed != section:
-                if guessed == MISCELLANEOUS_SECTION:
-                    message += (
-                        ", but {named} does not match a specialised section and "
-                        "belongs in 'Miscellaneous'".format(named=named)
-                    )
-                else:
-                    message += ", but {named} looks like a '{guessed}' file".format(
-                        named=named, guessed=guessed
-                    )
-            message += (
-                ". Upload it to a folder in the matching section, omit the "
-                "folder path to let RSpace place it in the correct section "
-                "automatically, or construct the filesystem with "
-                "on_mismatch='reroute'. Original API error: {err}".format(err=err)
-            )
             raise GallerySectionMismatch(
-                message,
+                mismatch_message("'{}'".format(filename) if filename else "the file", path, section, guessed, err),
                 folder_section=section,
                 folder_global_id="GF" + str(folder_id),
                 file_media_type=guessed,

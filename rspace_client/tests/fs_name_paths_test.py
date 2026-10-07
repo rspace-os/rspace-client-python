@@ -17,11 +17,9 @@ import unittest
 from unittest.mock import MagicMock
 
 from rspace_client.fs import GalleryFilesystem, InventoryFilesystem, RSpaceFilesystem, paths
-from .mock_server_case import MockServerTestCase
+from .mock_server_case import MockServerTestCase, segments
 
 
-def segments(names):
-    return [paths.last_segment(name) for name in names]
 
 
 class SegmentGrammarTest(unittest.TestCase):

@@ -21,14 +21,11 @@ from upath import UPath
 
 from rspace_client.fs import GalleryFilesystem, ReadOnlyError, RSpaceFilesystem, format_tree
 from rspace_client.fs.paths import last_segment
-from .mock_server_case import MockServerTestCase
+from .mock_server_case import MockServerTestCase, segments
 
 MOUNTS = ["gallery", "inventory", "workspace"]
 
 
-def segments(entries):
-    """The last path segment of each entry (dict) or path (str)."""
-    return [last_segment(e["name"] if isinstance(e, dict) else e) for e in entries]
 
 
 class RSpaceFilesystemTest(MockServerTestCase):

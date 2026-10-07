@@ -104,6 +104,12 @@ def _a_or_an(word: str) -> str:
     return "an" if word[:1].upper() in "AEIOU" else "a"
 
 
+def check_policy(on_mismatch: str) -> str:
+    if on_mismatch not in _ON_MISMATCH_VALUES:
+        raise ValueError("on_mismatch must be one of {}".format(_ON_MISMATCH_VALUES))
+    return on_mismatch
+
+
 class GallerySectionMismatch(ClientBase.ApiError):
     """
     Raised when a file could not be uploaded into the requested Gallery folder
@@ -141,6 +147,69 @@ class Placement:
     requested_path: Optional[str] = None
 
 
+def folder_section(eln_client: eln.ELNClient, folder_id) -> Optional[str]:
+    """The Gallery section (mediaType) a folder belongs to, or None if it cannot be
+    determined. Best-effort: never raises, so it cannot mask the real outcome of an upload."""
+    try:
+        return eln_client.get_folder(folder_id).get("mediaType")
+    except RSpaceError:
+        return None
+
+
+def human_path(folder: Mapping[str, Any]) -> str:
+    """Best-effort readable path for a folder, e.g. 'Gallery/Documents/Api Inbox'. Uses the
+    API's pathToRootFolder when present, otherwise the section and folder name."""
+    trail = folder.get("pathToRootFolder")
+    names = [f.get("name") for f in trail if f.get("name")] if isinstance(trail, list) else []
+    if names:
+        return "/".join(names)
+    return "/".join(["Gallery"] + [folder[k] for k in ("mediaType", "name") if folder.get(k)])
+
+
+def placement(eln_client: eln.ELNClient, response: Any, requested_path: Optional[str],
+              rerouted: bool) -> Placement:
+    """Build a Placement from an upload response, resolving the parent folder for
+    section/path feedback where possible. Tolerates a response that is not a dict (e.g.
+    None): a caller may wrap ``upload_file`` and discard its return value, and Placement
+    construction must never crash a successful upload."""
+    if not isinstance(response, dict):
+        response = {}
+    folder: Mapping[str, Any] = {}
+    parent_id = response.get("parentFolderId")
+    if parent_id is not None:
+        try:
+            folder = eln_client.get_folder(parent_id)
+        except RSpaceError:
+            pass
+    return Placement(
+        file_global_id=response.get("globalId"),
+        folder_global_id=folder.get("globalId"),
+        section=folder.get("mediaType"),
+        path=human_path(folder) if folder else "Gallery",
+        rerouted=rerouted,
+        requested_path=requested_path,
+    )
+
+
+def mismatch_message(named: str, container: str, section: str, guessed: Optional[str], err: Exception) -> str:
+    """The explanation a person reads when a folder's section refuses their file."""
+    message = (f"Could not upload {named} to Gallery folder {container or '/'}. That folder "
+               f"is in the '{section}' section, which only accepts {section} files")
+    if guessed and guessed != section:
+        looks = ("does not match a specialised section and belongs in 'Miscellaneous'"
+                 if guessed == MISCELLANEOUS_SECTION else f"looks like {_a_or_an(guessed)} '{guessed}' file")
+        message += f", but {named} {looks}"
+        remedy = f"Choose a folder in the '{guessed}' section instead"
+    else:
+        remedy = "Choose a folder in the section that matches this file type"
+    # Lead with what the person in front of the screen can act on; the API-level option is
+    # a parenthetical for library callers, who are not always the audience (this message
+    # reaches Galaxy users verbatim).
+    return message + (f". {remedy}, or upload without choosing a folder and RSpace will file it in the "
+                      f"right section itself (library callers can pass on_mismatch='reroute' to do that "
+                      f"automatically). Original API error: {err}")
+
+
 class GalleryFilesystem(RSpaceFSBase):
     """Target kinds: root | folder | file."""
 
@@ -157,10 +226,8 @@ class GalleryFilesystem(RSpaceFSBase):
                          **storage_options)
         #: records fetched per API request while a listing is consumed, as in the other branches
         self.page_size = max(1, int(page_size))
-        if on_mismatch not in _ON_MISMATCH_VALUES:
-            raise ValueError("on_mismatch must be one of {}".format(_ON_MISMATCH_VALUES))
         self.eln_client = client_or_new(eln_client, eln.ELNClient, server, api_key, "GalleryFilesystem")
-        self.on_mismatch = on_mismatch
+        self.on_mismatch = check_policy(on_mismatch)
         #: fetch each file's own record while listing, because the folder-tree endpoint
         #: carries no size (one extra request per file)
         self.fetch_sizes = fetch_sizes
@@ -211,15 +278,14 @@ class GalleryFilesystem(RSpaceFSBase):
 
     # ------------------------------------------------------------ listing and info
 
-    def _children(self, target: Target) -> Iterator[dict]:
+    def _children(self, target: Target, names_only: bool = False) -> Iterator[dict]:
         folder_id = self.gallery_id if target.kind == "root" else target.gid[2:]
-        return self._scan_records(folder_id)
+        return self._scan_records(folder_id, self.fetch_sizes and not names_only)
 
-    def _scan_records(self, folder_id) -> Iterator[dict]:
+    def _scan_records(self, folder_id, want_sizes: bool) -> Iterator[dict]:
         # One listing call per directory, plus one record fetch per file when sizes are
         # wanted: folder-tree items carry no size and consumers such as Galaxy require an
         # integer size for every file.
-        want_sizes = self.fetch_sizes and not self._names_only
         for record in self._all_records(folder_id):
             if want_sizes and record.get("globalId", "")[:2] == FILE_PREFIX and record.get("size") is None:
                 try:
@@ -251,7 +317,7 @@ class GalleryFilesystem(RSpaceFSBase):
     @deletes
     def rmdir(self, path: str) -> None:
         path = self._strip_protocol(path)
-        target = self._resolve(path) if not paths.is_root(path) else Target("root")
+        target = self._resolve(path)
         self._remove_folder(path, target.gid if target.kind == "folder" else None,
                             self.eln_client.delete_folder,
                             NotADirectoryError(errno.ENOTDIR, f"{path!r} is not a folder", path))
@@ -261,69 +327,10 @@ class GalleryFilesystem(RSpaceFSBase):
 
     # ------------------------------------------------------------ files
 
-    def _file_source(self, path: str):
-        target = self._resolve(path)
-        if target.kind != "file":
-            raise IsADirectoryError(errno.EISDIR, f"{path!r} is a directory", path)
-        return target.gid[2:], self.eln_client.download_file
+    def _download(self, file_id: str, file: BinaryIO, chunk_size: int) -> None:
+        self.eln_client.download_file(file_id, file, chunk_size)
 
     # ------------------------------------------------------------ upload with section routing
-
-    def _folder_section(self, folder_id: str) -> Optional[str]:
-        """The Gallery section (mediaType) a folder belongs to, or None if it
-        cannot be determined. Best-effort: never raises, so it cannot mask the
-        real outcome of an upload."""
-        try:
-            return self.eln_client.get_folder(folder_id).get("mediaType")
-        except RSpaceError:
-            return None
-
-    def _human_path(self, folder: Mapping[str, Any]) -> str:
-        """Best-effort readable path for a folder, e.g. 'Gallery/Documents/Api
-        Inbox'. Uses the API's pathToRootFolder when present, otherwise falls
-        back to the section and folder name."""
-        trail = folder.get("pathToRootFolder")
-        if isinstance(trail, list) and trail:
-            names = [f.get("name") for f in trail if f.get("name")]
-            if names:
-                return "/".join(names)
-        parts = ["Gallery"]
-        if folder.get("mediaType"):
-            parts.append(folder["mediaType"])
-        if folder.get("name"):
-            parts.append(folder["name"])
-        return "/".join(parts)
-
-    def _placement(self, response: Any, requested_path: Optional[str], rerouted: bool) -> Placement:
-        """Build a Placement from an upload response, resolving the parent
-        folder for section/path feedback where possible.
-
-        Tolerates a response that is not a dict (e.g. None): some callers wrap
-        or replace ``eln_client.upload_file`` and discard its return value, so
-        Placement construction must never crash a successful upload.
-        """
-        if not isinstance(response, dict):
-            response = {}
-        parent_id = response.get("parentFolderId")
-        section = None
-        folder_global_id = None
-        path = "Gallery"
-        if parent_id is not None:
-            try:
-                folder = self.eln_client.get_folder(parent_id)
-                section = folder.get("mediaType")
-                folder_global_id = folder.get("globalId")
-                path = self._human_path(folder)
-            except RSpaceError:
-                pass
-        return Placement(
-            file_global_id=response.get("globalId"),
-            folder_global_id=folder_global_id,
-            section=section,
-            path=path,
-            rerouted=rerouted,
-            requested_path=requested_path,
-        )
 
     @writes
     def upload_fileobj(self, path: str, file: BinaryIO, on_mismatch: Optional[str] = None,
@@ -346,20 +353,16 @@ class GalleryFilesystem(RSpaceFSBase):
         section (``"raise"``) or places the file in the correct section's inbox
         and returns a Placement with ``rerouted=True`` (``"reroute"``).
         """
-        policy = on_mismatch if on_mismatch is not None else self.on_mismatch
-        if policy not in _ON_MISMATCH_VALUES:
-            raise ValueError("on_mismatch must be one of {}".format(_ON_MISMATCH_VALUES))
+        policy = check_policy(self.on_mismatch if on_mismatch is None else on_mismatch)
         path = self._strip_protocol(path)
         container, name = self._upload_target(path)
         folder_id = None if paths.is_root(container) else self._folder_id(container)
         try:
             response = self.eln_client.upload_file(file, folder_id, **self._upload_kwargs(name))
             self.invalidate_cache()
-            return self._placement(response, requested_path=container, rerouted=False)
+            return placement(self.eln_client, response, requested_path=container, rerouted=False)
         except ClientBase.ApiError as err:
-            if folder_id is None:
-                raise
-            section = self._folder_section(folder_id)
+            section = None if folder_id is None else folder_section(self.eln_client, folder_id)
             if section is None:
                 raise
             filename = options.get("filename") or name
@@ -372,49 +375,19 @@ class GalleryFilesystem(RSpaceFSBase):
                     pass
                 response = self.eln_client.upload_file(file, None, **self._upload_kwargs(name))
                 self.invalidate_cache()
-                placement = self._placement(response, requested_path=container, rerouted=True)
+                placed = placement(self.eln_client, response, requested_path=container, rerouted=True)
                 logger.info(
                     "RSpace Gallery: %s could not go in %s (section '%s'); placed in %s instead",
-                    "'{}'".format(filename) if filename else "file", container, section, placement.path)
-                return placement
+                    f"'{filename}'" if filename else "file", container, section, placed.path)
+                return placed
 
-            named = "'{}'".format(filename) if filename else "the file"
-            message = (
-                "Could not upload {named} to Gallery folder {path}. That folder "
-                "is in the '{section}' section, which only accepts {section} "
-                "files".format(named=named, path=container or "/", section=section)
-            )
-            if guessed and guessed != section:
-                if guessed == MISCELLANEOUS_SECTION:
-                    message += (
-                        ", but {named} does not match a specialised section and "
-                        "belongs in 'Miscellaneous'".format(named=named)
-                    )
-                else:
-                    message += ", but {named} looks like {article} '{guessed}' file".format(
-                        named=named, article=_a_or_an(guessed), guessed=guessed
-                    )
-            # Lead with what the person in front of the screen can act on; the API-level
-            # option is a parenthetical for library callers, who are not always the audience
-            # (this message reaches Galaxy users verbatim).
-            if guessed and guessed != section and guessed != MISCELLANEOUS_SECTION:
-                remedy = "Choose a folder in the '{guessed}' section instead".format(guessed=guessed)
-            elif guessed == MISCELLANEOUS_SECTION:
-                remedy = "Choose a folder in the 'Miscellaneous' section instead"
-            else:
-                remedy = "Choose a folder in the section that matches this file type"
-            message += (
-                ". {remedy}, or upload without choosing a folder and RSpace will file it in the "
-                "right section itself (library callers can pass on_mismatch='reroute' to do that "
-                "automatically). Original API error: {err}".format(remedy=remedy, err=err)
-            )
             # `from None` rather than `from err`: this exception reaches people through
             # Galaxy, which prints the whole chain and clips it from the top, hiding the
             # explanation at the bottom. The server's own reason is already quoted in the
-            # message above, and the original error stays available on the exception's
+            # message, and the original error stays available on the exception's
             # attributes, so nothing is lost by not stacking three tracebacks.
             raise GallerySectionMismatch(
-                message,
+                mismatch_message(f"'{filename}'" if filename else "the file", container, section, guessed, err),
                 folder_section=section,
                 folder_global_id="GF" + str(folder_id),
                 file_media_type=guessed,

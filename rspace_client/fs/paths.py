@@ -24,7 +24,7 @@ from __future__ import annotations
 import re
 from typing import Optional, Tuple
 
-from posixpath import basename, dirname
+from posixpath import basename
 
 GLOBAL_ID = re.compile(r"^[A-Z]{2}\d+$")
 LABELLED = re.compile(r"^(?P<label>.*) \[(?P<gid>[A-Z]{2}\d+)\]$", re.S)
@@ -49,10 +49,6 @@ def segments(path: str) -> list:
 def last_segment(path: str) -> str:
     """The final path segment ('' for the root)."""
     return basename(path.rstrip("/")) if not is_root(path) else ""
-
-
-def parent_path(path: str) -> str:
-    return dirname(path.rstrip("/")) or "/"
 
 
 def parse_segment(segment: str) -> Tuple[Optional[str], Optional[str]]:

@@ -10,7 +10,7 @@ from rspace_client.fs import GalleryFilesystem, ReadOnlyError, RSpaceFilesystem,
 from rspace_client.fs import workspace
 from rspace_client.fs.paths import last_segment
 from rspace_client.fs.workspace import strip_file_references
-from .mock_server_case import MockServerTestCase
+from .mock_server_case import MockServerTestCase, names
 
 
 ATTACHMENT_HTML = (
@@ -24,9 +24,6 @@ ATTACHMENT_HTML = (
 )  # verbatim shape recorded from a real RSpace 2.27 server
 
 
-def names(fs, path):
-    """The last segments of a listing, which is what the old ``listdir`` returned."""
-    return [last_segment(n) for n in fs.ls(path, detail=False)]
 
 
 class StripFileReferencesTest(unittest.TestCase):

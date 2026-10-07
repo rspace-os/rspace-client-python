@@ -16,14 +16,12 @@ from unittest.mock import MagicMock
 from rspace_client.client_base import ClientBase
 from rspace_client.exceptions import AuthenticationError, RSpaceConnectionError
 from rspace_client.fs import (GalleryFilesystem, GallerySectionMismatch, InventoryFilesystem,
-                              ReadOnlyError, RemoteApiError, WorkspaceFilesystem, make_entry, paths)
+                              ReadOnlyError, RemoteApiError, WorkspaceFilesystem, make_entry)
 from rspace_client.fs.base import to_epoch
 from rspace_client.fs.gallery import classify_media_section
+from rspace_client.tests.mock_server_case import segments
 
 
-def segments(entries):
-    """The own segment of every entry in a listing."""
-    return [paths.last_segment(entry["name"]) for entry in entries]
 
 
 class MakeEntryTest(unittest.TestCase):
@@ -204,7 +202,7 @@ class GalleryFilesystemTest(unittest.TestCase):
 
     def test_open_read_downloads(self):
         fs, client = gallery_with_mock_client()
-        client.download_file.side_effect = lambda fid, fh: fh.write(b"bytes")
+        client.download_file.side_effect = lambda fid, fh, chunk_size=128: fh.write(b"bytes")
         with fs.open("GF10/GL100", "rb") as fh:
             self.assertEqual(b"bytes", fh.read())
         client.download_file.assert_called_once()
@@ -360,7 +358,7 @@ DELETIONS = ("rm_file", "rmdir", "mv")
 #: what a branch does not offer at all is refused the same way however it was opened
 NOT_OFFERED = {
     GalleryFilesystem: {"rm_file": NotImplementedError,  # the RSpace API cannot delete Gallery files
-                        "link": AttributeError},         # a Gallery file is already in the Gallery
+                        "link": NotImplementedError},    # a Gallery file is already in the Gallery
     InventoryFilesystem: {"mkdir": NotImplementedError, "rmdir": NotImplementedError},
     WorkspaceFilesystem: {},
 }

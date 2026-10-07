@@ -152,16 +152,7 @@ class MockData:
 
     def _gfile(self, gid: int, name: str, parent: int, t: int = 0, text: Optional[str] = None,
                caption: str = "") -> dict:
-        blob = fake_blob(name, text)
-        g = {
-            "id": gid, "globalId": f"GL{gid}", "name": name, "caption": caption,
-            "contentType": guess_type(name), "created": iso(t), "size": len(blob),
-            "version": 1, "parentFolderId": parent,
-        }
-        self.gallery_files[gid] = g
-        self.blobs[g["globalId"]] = blob
-        self.children.setdefault(parent, []).append(g["globalId"])
-        return g
+        return self.add_gallery_file(name, parent, fake_blob(name, text), None, caption, gid=gid, t=t)
 
     def _doc(self, did: int, name: str, parent: int, form_id: int, fields: List[dict],
              t: int = 0, signed: bool = False) -> dict:
@@ -248,24 +239,7 @@ class MockData:
         return ins
 
     def _ifile(self, fid: int, name: str, parent_gid: str, t: int = 0, text: Optional[str] = None) -> dict:
-        blob = fake_blob(name, text)
-        a = {
-            "id": fid, "globalId": f"IF{fid}", "name": name, "parentGlobalId": parent_gid,
-            "mediaFileGlobalId": None, "type": "GENERAL", "contentMimeType": guess_type(name),
-            "extension": ext_of(name), "size": len(blob), "created": iso(t),
-            "createdBy": OWNER["username"], "deleted": False,
-        }
-        self.inv_files[fid] = a
-        self.blobs[a["globalId"]] = blob
-        parent = self.record_by_global_id(parent_gid)
-        if parent_gid.startswith("SF"):  # a field holds one file; a new one replaces it
-            previous = parent.get("attachment_id")
-            if previous is not None:
-                self.inv_files[previous]["deleted"] = True
-            parent["attachment_id"] = fid
-        else:
-            parent["attachment_ids"].append(fid)
-        return a
+        return self.add_inv_file(parent_gid, name, fake_blob(name, text), None, fid=fid, t=t)
 
     def _build(self) -> None:
         # ---- ELN tree
@@ -408,14 +382,15 @@ class MockData:
         del self.children[fid]
 
     def add_gallery_file(self, name: str, parent: Optional[int], content: bytes,
-                         content_type: Optional[str], caption: str = "") -> dict:
+                         content_type: Optional[str], caption: str = "", gid: Optional[int] = None,
+                         t: int = 200) -> dict:
         parent = parent if parent is not None else 14  # "Api Imports"
         if not self.is_gallery_folder(parent) or parent == self.gallery_root_id():
             raise ValueError(f"folder {parent} is not a Gallery folder that can hold files")
-        gid = self.new_id()
+        gid = self.new_id() if gid is None else gid
         g = {
             "id": gid, "globalId": f"GL{gid}", "name": name, "caption": caption,
-            "contentType": content_type or guess_type(name), "created": iso(200), "size": len(content),
+            "contentType": content_type or guess_type(name), "created": iso(t), "size": len(content),
             "version": 1, "parentFolderId": parent,
         }
         self.gallery_files[gid] = g
@@ -462,15 +437,16 @@ class MockData:
         linked["mediaFileGlobalId"] = media_gid
         return linked
 
-    def add_inv_file(self, parent_gid: str, name: str, content: bytes, content_type: Optional[str]) -> dict:
+    def add_inv_file(self, parent_gid: str, name: str, content: bytes, content_type: Optional[str],
+                     fid: Optional[int] = None, t: int = 202) -> dict:
         if parent_gid[:2] not in ("IC", "SA", "SS", "IT", "IN", "SF"):
             raise ValueError(f"{parent_gid} cannot hold attachments")
         parent = self.record_by_global_id(parent_gid)
-        fid = self.new_id()
+        fid = self.new_id() if fid is None else fid
         a = {
             "id": fid, "globalId": f"IF{fid}", "name": name, "parentGlobalId": parent_gid,
             "mediaFileGlobalId": None, "type": "GENERAL", "contentMimeType": content_type or guess_type(name),
-            "extension": ext_of(name), "size": len(content), "created": iso(202),
+            "extension": ext_of(name), "size": len(content), "created": iso(t),
             "createdBy": OWNER["username"], "deleted": False,
         }
         self.inv_files[fid] = a

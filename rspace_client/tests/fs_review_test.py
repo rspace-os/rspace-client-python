@@ -10,11 +10,9 @@ import fsspec
 from rspace_client.client_base import ClientBase
 from rspace_client.fs import GalleryFilesystem, RemoteApiError, RSpaceFilesystem
 from rspace_client.fs.paths import last_segment
-from rspace_client.tests.mock_server_case import MockServerTestCase
+from rspace_client.tests.mock_server_case import MockServerTestCase, names
 
 
-def names(fs, path):
-    return [last_segment(n) for n in fs.ls(path, detail=False)]
 
 
 class ReviewRegressionTest(MockServerTestCase):

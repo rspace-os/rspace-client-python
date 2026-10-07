@@ -7,13 +7,9 @@ from itertools import islice
 from rspace_client.fs import GalleryFilesystem, InventoryFilesystem, RemoteApiError
 from rspace_client.fs.inventory import Target
 from rspace_client.fs.paths import last_segment
-from .mock_server_case import MockServerTestCase
+from .mock_server_case import MockServerTestCase, names
 
 
-def names(fs, path):
-    """The path segments of a directory's children, in listing order (fsspec's ``name`` is
-    the full path)."""
-    return [last_segment(n) for n in fs.ls(path, detail=False)]
 
 
 class InventoryTreeTest(MockServerTestCase):
