@@ -164,9 +164,16 @@ class RSpaceFilesystem(AbstractFileSystem):
         path = super()._strip_protocol(path)
         if isinstance(path, str) and (path.startswith("http://") or path.startswith("https://")):
             return ""  # a bare URL after fsspec removed the protocol: nothing but a host
-        # after fsspec removed 'rspace://' the first segment is the host when the original
-        # string was a URL; fsspec hands us 'host/gallery/...' in that case
-        return path.strip("/")
+        path = path.strip("/")
+        # After fsspec removed 'rspace://' the first segment is the host when the original
+        # string was a URL. The top level holds only the fixed mount names, so a first segment
+        # that is not one of them and looks like a host (a dot, a port, a query string) is the
+        # host, and the query string that can only have come with a URL goes with it. This is
+        # what lets fsspec.core.url_to_fs, get_mapper and UPath hand back plain paths.
+        head, _, rest = path.partition("/")
+        if head and head not in MOUNTS and ("." in head or ":" in head or "?" in head or head == "localhost"):
+            return rest.split("?", 1)[0].rstrip("/")
+        return path
 
     @staticmethod
     def _get_kwargs_from_urls(url: str) -> Dict[str, Any]:

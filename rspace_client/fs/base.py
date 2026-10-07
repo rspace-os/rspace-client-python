@@ -82,9 +82,11 @@ def os_error_for(exc: Exception, path: str) -> Optional[OSError]:
         return FileNotFoundError(errno.ENOENT, f"{path!r}: {exc}", path)
     if status in (401, 403):
         return PermissionError(errno.EACCES, f"{path!r}: {exc}", path)
-    if status is not None and status >= 500:
+    if status in (502, 503, 504):  # the server or a proxy in front of it is not answering
         return ConnectionError(f"{path!r}: {exc}")
     if isinstance(exc, ApiError):
+        # a 500 included: RSpace answers one for a request it understood but could not
+        # carry out (an invalid image, say), and the message explains why
         return RemoteApiError(path, exc)
     return None
 

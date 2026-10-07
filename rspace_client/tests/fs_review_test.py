@@ -2,7 +2,13 @@
 Regression tests from the 2026-10-07 review pass over rspace_client.fs: each test pins a
 behaviour that the review found wrong against the mock RSpace server.
 """
-from rspace_client.fs import GalleryFilesystem, RSpaceFilesystem
+import os
+from unittest import mock
+
+import fsspec
+
+from rspace_client.client_base import ClientBase
+from rspace_client.fs import GalleryFilesystem, RemoteApiError, RSpaceFilesystem
 from rspace_client.fs.paths import last_segment
 from rspace_client.tests.mock_server_case import MockServerTestCase
 
@@ -77,3 +83,27 @@ class ReviewRegressionTest(MockServerTestCase):
         fs.put(os.path.join(tmp, "img") + "/", "gallery/Documents/", recursive=True)
         self.assertIn("gallery/Documents/sub/b.txt", fs.find("gallery/Documents"))
         self.assertEqual(b"a", fs.cat_file("gallery/Documents/a.txt"))
+
+    def test_url_paths_come_back_without_host_or_query(self):
+        host = self.url.split("//")[1]
+        with mock.patch.dict(os.environ, {"RSPACE_API_KEY": "k"}):
+            fs, path = fsspec.core.url_to_fs(f"rspace://{host}/gallery/Images?scheme=http")
+            self.assertEqual("gallery/Images", path)
+            self.assertEqual(["2026-09 run", "gel.jpg", "microscope.png"],
+                             sorted(last_segment(n) for n in fs.ls(path, detail=False)))
+            mapper = fsspec.get_mapper(f"rspace://{host}/gallery/Documents?scheme=http")
+            self.assertIn("data.csv", list(mapper))
+            self.assertEqual("", RSpaceFilesystem._strip_protocol(f"rspace://{host}?scheme=http"))
+        # a record name with a dot or colon below the top level is left alone
+        self.assertEqual("gallery/v1.2:final/x", RSpaceFilesystem._strip_protocol("gallery/v1.2:final/x"))
+
+    def test_a_500_with_a_server_message_is_a_remote_api_error_not_a_connection_error(self):
+        fs = GalleryFilesystem(self.url, "k", writable=True)
+        fs.eln_client.get_folder = mock.Mock(side_effect=ClientBase.ApiError("Not a Valid PNG File", response_status_code=500))
+        with self.assertRaises(RemoteApiError) as caught:
+            fs.info("GF10")
+        self.assertEqual(500, caught.exception.status)
+        self.assertIn("Not a Valid PNG File", str(caught.exception))
+        fs.eln_client.get_folder = mock.Mock(side_effect=ClientBase.ApiError("gateway", response_status_code=503))
+        with self.assertRaises(ConnectionError):
+            fs.info("GF10")
