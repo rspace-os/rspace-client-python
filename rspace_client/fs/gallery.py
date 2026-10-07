@@ -146,6 +146,7 @@ class GalleryFilesystem(RSpaceFSBase):
 
     protocol = ("rspace-gallery",)
     FILE_KINDS = ("file",)
+    CAN_DELETE_FILES = False  # the RSpace API has no call to delete a Gallery file
 
     def __init__(self, server: Optional[str] = None, api_key: Optional[str] = None, *,
                  eln_client: Optional[eln.ELNClient] = None, writable: bool = False,
@@ -218,8 +219,9 @@ class GalleryFilesystem(RSpaceFSBase):
         # One listing call per directory, plus one record fetch per file when sizes are
         # wanted: folder-tree items carry no size and consumers such as Galaxy require an
         # integer size for every file.
+        want_sizes = self.fetch_sizes and not self._names_only
         for record in self._all_records(folder_id):
-            if self.fetch_sizes and record.get("globalId", "")[:2] == FILE_PREFIX and record.get("size") is None:
+            if want_sizes and record.get("globalId", "")[:2] == FILE_PREFIX and record.get("size") is None:
                 try:
                     record = self.eln_client.get_file_info(record["id"])
                 except ClientBase.ApiError:  # keep listing even if one file cannot be read

@@ -32,6 +32,7 @@ import errno
 import functools
 import io
 import re
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import (Any, BinaryIO, Callable, Dict, Iterable, Iterator, List, Mapping, Optional,
@@ -280,6 +281,9 @@ class RSpaceFSBase(AbstractFileSystem):
     NAME_CACHE_LIMIT = 4096
     #: ``Target.kind`` values that are files: listing one raises ``NotADirectoryError``.
     FILE_KINDS: Tuple[str, ...] = ()
+    #: False where the RSpace API cannot delete a file (the Gallery): a move is then refused
+    #: before anything is copied, since the second half could never happen.
+    CAN_DELETE_FILES = True
 
     def __init_subclass__(cls, **kwargs) -> None:
         super().__init_subclass__(**kwargs)
@@ -308,11 +312,25 @@ class RSpaceFSBase(AbstractFileSystem):
         #: can only be resolved against its parent's listing, so without this every operation
         #: on a deep path would re-list every directory above it.
         self._name_cache: Dict[Tuple[str, str], str] = {}
+        #: True while a listing is read only to resolve a name or to test for emptiness:
+        #: branches skip per-entry extras (the Gallery's size fetches) that nobody will see.
+        self._names_only = False
+
+    @contextmanager
+    def _resolving(self):
+        previous = self._names_only
+        self._names_only = True
+        try:
+            yield
+        finally:
+            self._names_only = previous
 
     # ------------------------------------------------------------ paths
 
     @classmethod
-    def _strip_protocol(cls, path) -> str:
+    def _strip_protocol(cls, path):
+        if isinstance(path, list):
+            return [cls._strip_protocol(p) for p in path]
         path = super()._strip_protocol(path)
         return path.strip("/")
 
@@ -449,7 +467,8 @@ class RSpaceFSBase(AbstractFileSystem):
 
     def _is_empty(self, path: str) -> bool:
         """True if the directory has no children, without listing all of them."""
-        return next(iter(self._listing(path)), None) is None
+        with self._resolving():
+            return next(iter(self._listing(path)), None) is None
 
     # ------------------------------------------------------------ resolving a segment
 
@@ -463,16 +482,19 @@ class RSpaceFSBase(AbstractFileSystem):
         cached = self._name_cache.get(key)
         if cached is not None:
             return cached
-        for entry in self._listing(parent):
-            own = paths.last_segment(entry["name"])
-            gid = entry.get("globalId")
-            # match the marked and unmarked spellings, so a path stored before a document
-            # was signed still resolves after it was
-            if segment in (own, paths.unmarked(own)) and gid:
-                if len(self._name_cache) >= self.NAME_CACHE_LIMIT:
-                    self._name_cache.clear()
-                self._name_cache[key] = gid
-                return gid
+        # the listing is lazy, so it must be consumed inside the resolving context for the
+        # branches to see the flag
+        with self._resolving():
+            for entry in self._listing(parent):
+                own = paths.last_segment(entry["name"])
+                gid = entry.get("globalId")
+                # match the marked and unmarked spellings, so a path stored before a document
+                # was signed still resolves after it was
+                if segment in (own, paths.unmarked(own)) and gid:
+                    if len(self._name_cache) >= self.NAME_CACHE_LIMIT:
+                        self._name_cache.clear()
+                    self._name_cache[key] = gid
+                    return gid
         raise FileNotFoundError(errno.ENOENT, f"{self._join(parent, segment)!r} not found",
                                 self._join(parent, segment))
 
@@ -488,8 +510,14 @@ class RSpaceFSBase(AbstractFileSystem):
         self._name_cache.clear()
 
     def invalidate_cache(self, path: Optional[str] = None) -> None:
-        """Drop cached listings (fsspec's) and resolved names (ours)."""
+        """Drop cached listings (fsspec's) and resolved names (ours).
+
+        fsspec's default does nothing to the listings cache, so a write through this
+        filesystem would otherwise leave a cached listing showing the old state. Writes are
+        rare next to reads, so everything is dropped rather than just the paths involved.
+        """
         super().invalidate_cache(path)
+        self.dircache.clear()
         self.clear_name_cache()
 
     # ------------------------------------------------------------ info
@@ -525,7 +553,8 @@ class RSpaceFSBase(AbstractFileSystem):
         path = self._strip_protocol(path)
         match = self._GALAXY_SEARCH.match(path)
         text = match.group("text") if match else None
-        if match and maxdepth in (None, 1) and not any(c in text.replace("\\", "") for c in "*?/"):
+        if (match and "**" not in path and maxdepth in (None, 1)
+                and not any(c in text.replace("\\", "") for c in "*?/")):
             needle = re.sub(r"\\(.)", r"\1", text).lower()
             found = {entry["name"]: entry for entry in self._listing(match.group("dir"))
                      if needle in paths.last_segment(entry["name"]).lower()}
@@ -682,6 +711,9 @@ class RSpaceFSBase(AbstractFileSystem):
         error and a duplicate the API may not be able to delete."""
         self._require_writable(path2)
         self._require_delete(path1)
+        if not self.CAN_DELETE_FILES:
+            raise NotImplementedError(
+                f"{type(self).__name__} cannot move files: the RSpace API cannot delete the source")
         if recursive:
             raise NotImplementedError("recursive move is not supported on RSpace")
         self.cp_file(path1, path2)

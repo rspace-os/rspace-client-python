@@ -159,6 +159,8 @@ class RSpaceFilesystem(AbstractFileSystem):
     def _strip_protocol(cls, path) -> str:
         """``rspace://host/gallery/Images`` -> ``gallery/Images``. The host is a connection
         parameter (see ``_get_kwargs_from_urls``), not part of the path."""
+        if isinstance(path, list):
+            return [cls._strip_protocol(p) for p in path]
         path = super()._strip_protocol(path)
         if isinstance(path, str) and (path.startswith("http://") or path.startswith("https://")):
             return ""  # a bare URL after fsspec removed the protocol: nothing but a host
@@ -436,6 +438,10 @@ class RSpaceFilesystem(AbstractFileSystem):
             raise IsADirectoryError(errno.EISDIR, f"{path1!r} is a directory", str(path1))
         _, source, inner = self._route(path1)
         source._require_delete(inner)
+        if not source.CAN_DELETE_FILES:
+            raise NotImplementedError(
+                f"{path1!r} cannot be moved: the RSpace API cannot delete a Gallery file, so only "
+                f"a copy is possible")
         self.cp_file(path1, path2)
         self.rm_file(path1)
 
@@ -449,6 +455,7 @@ class RSpaceFilesystem(AbstractFileSystem):
 
     def invalidate_cache(self, path: Optional[str] = None) -> None:
         super().invalidate_cache(path)
+        self.dircache.clear()
         for branch in self.branches.values():
             branch.invalidate_cache()
 
