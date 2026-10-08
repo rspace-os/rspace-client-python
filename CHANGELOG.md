@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file
 
 ## Unreleased
 
+- Fixed `rspace_client.eln.fs.GalleryFilesystem` reading only the first page of a folder
+  listing: it failed to open (`StopIteration`) when the Gallery folder was not on the first
+  page of the Home folder, and `listdir` showed only the newest 20 entries of a Gallery folder.
+  Both broke Galaxy's shipped RSpace file source.
 - Gallery upload routing and section-mismatch handling (PR #56): clearer
   `GallerySectionMismatch` exception, optional `on_mismatch="reroute"`
   policy to auto-reroute uploads into the server-chosen section, `upload()` now
