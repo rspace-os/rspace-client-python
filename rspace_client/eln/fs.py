@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from fs.base import FS
 from rspace_client.eln import eln
 from rspace_client.client_base import ClientBase
-from typing import Optional, List, Text, BinaryIO, Mapping, Any
+from typing import Optional, List, Text, BinaryIO, Mapping, Any, Iterator
 from fs.info import Info
 from fs.permissions import Permissions
 from fs.subfs import SubFS
@@ -145,7 +145,18 @@ class GalleryFilesystem(FS):
             )
         self.on_mismatch = on_mismatch
         self.eln_client = eln.ELNClient(server, api_key)
-        self.gallery_id = next(file['id'] for file in self.eln_client.list_folder_tree()['records'] if file['name'] == 'Gallery')
+        self.gallery_id = next(file['id'] for file in self._all_records(None) if file['name'] == 'Gallery')
+
+    def _all_records(self, folder_id) -> Iterator[dict]:
+        """All records of a folder listing, following its 'next' links: the Home folder
+        of a busy account holds more than one page, and Gallery need not be on the first."""
+        page = self.eln_client.list_folder_tree(folder_id)
+        while True:
+            yield from page.get('records', [])
+            # not link_exists(): that raises when a page carries no _links at all
+            if not any(link.get('rel') == 'next' for link in page.get('_links') or []):
+                return
+            page = self.eln_client.get_link_contents(page, 'next')
 
     def getinfo(self, path, namespaces=None) -> Info:
         is_file = path.split('/')[-1][:2] == "GL"
@@ -170,7 +181,7 @@ class GalleryFilesystem(FS):
 
     def listdir(self, path: Text) -> List[Text]:
         id = path in [u'.', u'/', u'./'] and self.gallery_id or path_to_id(path)
-        return [file['globalId'] for file in self.eln_client.list_folder_tree(id)['records']]
+        return [file['globalId'] for file in self._all_records(id)]
 
     def makedir(self, path: Text, permissions: Optional[Permissions] = None, recreate: bool = False) -> SubFS[FS]:
         new_folder_name = path.split('/')[-1]
