@@ -366,3 +366,42 @@ class ElnFilesystemTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def _page(records, next_page=None):
+    links = [{'rel': 'next', 'link': next_page}] if next_page else []
+    return {'records': records, '_links': links}
+
+
+class ElnFilesystemPagingTest(unittest.TestCase):
+    """Galaxy's shipped RSpace file source failed for accounts whose Home folder held more
+    than one page: Gallery was looked up on the first page only."""
+
+    HOME = {
+        None: _page([{'id': i, 'name': f'tree-{i}', 'globalId': f'FL{i}'} for i in range(20)], 'p2'),
+        'p2': _page([{'id': 123, 'name': 'Gallery', 'globalId': 'GF123'}]),
+    }
+    GALLERY = {
+        None: _page([{'id': 1, 'name': 'Images', 'globalId': 'GF1'}], 'g2'),
+        'g2': _page([{'id': 2, 'name': 'Documents', 'globalId': 'GF2'}]),
+    }
+
+    def setUp(self):
+        def list_folder_tree(folder_id=None, *args, **kwargs):
+            return (self.GALLERY if folder_id == 123 else self.HOME)[None]
+
+        def get_link_contents(response, rel):
+            link = response['_links'][0]['link']
+            return {**self.HOME, **self.GALLERY}[link]
+
+        for name, fake in (('list_folder_tree', list_folder_tree), ('get_link_contents', get_link_contents)):
+            patcher = patch(f'rspace_client.eln.eln.ELNClient.{name}', side_effect=fake)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.fs = GalleryFilesystem("https://example.com", "api_key")
+
+    def test_gallery_found_beyond_first_page_of_home(self):
+        self.assertEqual(123, self.fs.gallery_id)
+
+    def test_listdir_follows_next_links(self):
+        self.assertEqual(['GF1', 'GF2'], self.fs.listdir('/'))
