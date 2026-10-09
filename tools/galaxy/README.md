@@ -15,7 +15,8 @@ python3 -m venv .galaxy-venv
 
 Check that files have an integer `size` and a `ctime`, that `name` is the RSpace name while
 `uri` uses the global ID, and that `source.list(path, query=...)` finds files by name. The
-same four dependencies are pinned offline by `rspace_client/tests/galaxy_plugin_contract_test.py`.
+same dependencies are pinned offline by `rspace_client/tests/galaxy_plugin_contract_test.py`,
+along with the upload path through Galaxy's `FakedNameIO` wrapper.
 
 ## The fsspec file source
 

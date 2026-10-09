@@ -19,12 +19,17 @@ All notable changes to this project will be documented in this file
   `allow_delete=True`). Uploads into Inventory and the Workspace go through the Gallery and
   link; `cp_file` from any Gallery-backed file links instead of copying bytes. Transactions
   defer uploads. `rspace://host` URLs via `fsspec.open`, `fsspec.filesystem("rspace")` and
-  `UPath`, key from `RSPACE_API_KEY` only. `glob("<dir>/*<text>*")` answers Galaxy's search
+  `UPath` (registered as an `fsspec.specs` entry point), key from `RSPACE_API_KEY` only. `glob("<dir>/*<text>*")` answers Galaxy's search
   including bracketed names. New dependency `fsspec`.
 - Deprecated `rspace_client.eln.fs.GalleryFilesystem` and
   `rspace_client.inv.attachment_fs.InventoryAttachmentFilesystem` (PyFilesystem2, unmaintained
   upstream). Unchanged in behaviour, now emit a `DeprecationWarning`; removal together with
   the `fs` dependency in 3.0, after Galaxy's shipped plugin has moved to `rspace_client.fs`.
+- Fix: uploads accept a file object that forwards `read` through `__getattr__`. requests 2.34
+  refuses such objects on Python 3.12+, which broke exports from Galaxy 26.1 (it pins requests
+  2.34.2) to RSpace through Galaxy's shipped `rspace` file source.
+- `rspace_client/tests/galaxy_plugin_contract_test.py` pins what Galaxy's shipped plugin relies
+  on; a failure there is a release blocker.
 - `tools/galaxy/rspace_fsspec_source.py`: the reference Galaxy file source for the new
   filesystem, to be proposed upstream.
 - Security: the client never follows an HTTP redirect, since `requests` would carry the
