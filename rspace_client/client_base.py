@@ -1,6 +1,7 @@
 import logging
 import re
 import requests
+from urllib.parse import urlparse, urlunparse
 
 from typing import Optional
 
@@ -21,6 +22,7 @@ DEFAULT_TIMEOUT = (3.05, 30)  # (connect, read) seconds
 DEFAULT_MAX_RETRIES = 3
 DEFAULT_BACKOFF_FACTOR = 0.5
 RETRY_STATUSES = (429, 500, 502, 503, 504)
+REDIRECT_STATUSES = (301, 302, 303, 307, 308)
 
 
 class _RSpaceRetry(Retry):
@@ -119,6 +121,22 @@ class ClientBase:
     def _is_absolute_url(url):
         return url.startswith("http://") or url.startswith("https://")
 
+    def _rebase_url(self, url):
+        """
+        Point an absolute URL at the server this client was configured with.
+
+        RSpace builds the ``_links`` in its responses from its own configured base URL, which
+        is not necessarily the address the client used: behind a reverse proxy, in a container,
+        or through a port-forward the advertised host is unreachable. Following such a link
+        verbatim fails with a connection error, so keep the path and query and substitute our
+        own scheme and host.
+        """
+        link = urlparse(url)
+        ours = urlparse(self.rspace_url)
+        if (link.scheme, link.netloc) == (ours.scheme, ours.netloc):
+            return url
+        return urlunparse((ours.scheme, ours.netloc, link.path, link.params, link.query, link.fragment))
+
     def _get_headers(self, content_type="application/json"):
         headers = {"apiKey": self.api_key}
         if content_type is not None:
@@ -176,6 +194,17 @@ class ClientBase:
             raise AuthenticationError(
                 "Error code: 401, {}".format(ClientBase._get_error_detail(response))
             )
+        if response.status_code in REDIRECT_STATUSES:
+            # Redirects are never followed: requests keeps custom headers such as apiKey
+            # across a redirect to another host, which would hand the key to that host.
+            raise ApiError(
+                "Error code: {}, the server redirected to {!r}; rspace-client does not follow "
+                "redirects, so point the client at the final RSpace URL".format(
+                    response.status_code, response.headers.get("Location")
+                ),
+                response_status_code=response.status_code,
+                response=response,
+            )
 
         try:
             response.raise_for_status()
@@ -205,7 +234,7 @@ class ClientBase:
         """
         numeric_id = self._get_numeric_record_id(resource_id)
         return self.retrieve_api_results(
-            "/{}/{}".format(path, numeric_id),
+            "/{}/{}".format(path.strip("/"), numeric_id),  # tolerate callers passing "/documents"
             content_type=None,
             request_type="DELETE",
         )
@@ -222,15 +251,13 @@ class ClientBase:
         :param content_type: content type
         :return: parsed JSON response as a dictionary
         """
-        url = endpoint
-        if not self._is_absolute_url(endpoint):
-            url = self._get_api_url() + endpoint
+        url = self._rebase_url(endpoint) if self._is_absolute_url(endpoint) else self._get_api_url() + endpoint
 
         headers = self._get_headers(content_type)
         try:
             if request_type == "GET":
                 response = self._session.get(
-                    url, params=params, headers=headers, timeout=self.timeout
+                    url, params=params, headers=headers, timeout=self.timeout, allow_redirects=False
                 )
             elif (
                 request_type == "PUT"
@@ -238,7 +265,8 @@ class ClientBase:
                 or request_type == "DELETE"
             ):
                 response = self._session.request(
-                    request_type, url, json=params, headers=headers, timeout=self.timeout
+                    request_type, url, json=params, headers=headers, timeout=self.timeout,
+                    allow_redirects=False
                 )
             else:
                 raise ValueError(
@@ -271,6 +299,7 @@ class ClientBase:
                 data=data,
                 headers=self._get_headers(),
                 timeout=self.timeout,
+                allow_redirects=False,
             )
             return self._handle_response(response)
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
@@ -288,6 +317,7 @@ class ClientBase:
                 params=params,
                 headers={"apiKey": self.api_key, "Accept": accept},
                 timeout=self.timeout,
+                allow_redirects=False,
             )
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
             raise RSpaceConnectionError(e)
@@ -340,10 +370,11 @@ class ClientBase:
         :param filename: file path to save the file to or an already opened file object
         :param chunk_size: size of the chunks to download at a time, default is 8192
         """
+        url = self._rebase_url(url) if self._is_absolute_url(url) else url
         headers = {"apiKey": self.api_key, "Accept": "application/octet-stream"}
         try:
             with self._session.get(
-                url, headers=headers, stream=True, timeout=self.timeout
+                url, headers=headers, stream=True, timeout=self.timeout, allow_redirects=False
             ) as response:
                 self._check_status(response)
                 if isinstance(filename, str):
