@@ -58,6 +58,10 @@ All top-level methods for use by client code should be unit-tested.
 
 RSpace can be run on Docker on a developer machine, providing access to a sandbox environment.
 
+#### Galaxy's RSpace file source
+
+Galaxy ships an `rspace` file source built on this library's deprecated `rspace_client.eln.fs.GalleryFilesystem`, so changes here can break Galaxy. `rspace_client/tests/galaxy_plugin_contract_test.py` pins what it relies on and runs with the normal suite; a failure there is a release blocker. [tools/galaxy/README.md](tools/galaxy/README.md) shows how to drive Galaxy's real plugin without a Galaxy server, and how to try the fsspec file source proposed for Galaxy. Why the contract looks the way it does is in [docs/fsspec-filesystem-design.md](docs/fsspec-filesystem-design.md), section 8.
+
  
 ### Making a release
 
