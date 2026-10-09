@@ -220,9 +220,9 @@ client side.
 
 All five are pinned by `rspace_client/tests/galaxy_plugin_contract_test.py`, which copies
 Galaxy's wrapper classes so the suite runs without Galaxy installed. **A failure there is a
-release blocker, not a test to update.** The shims (`rspace_client.eln.fs`,
-`rspace_client.inv.attachment_fs`, plus `rspace_client.inv.fs` for the import documented in
-issue #57) are the 2.7 PyFilesystem classes, with their section-routing helpers now imported
+release blocker, not a test to update.** The shims (`rspace_client.eln.fs`, which Galaxy
+imports, and `rspace_client.inv.attachment_fs`, which it does not but 2.x users may) are the
+2.7 PyFilesystem classes, with their section-routing helpers now imported
 from `rspace_client.fs.gallery` and a `DeprecationWarning` on construction. They cannot be
 removed on a schedule: removal follows a Galaxy release that no longer imports them, no
 earlier than 3.0, together with the `fs` dependency and the `setuptools` pin.
