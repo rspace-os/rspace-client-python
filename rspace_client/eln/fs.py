@@ -16,8 +16,8 @@ logger = logging.getLogger(__name__)
 
 # The section policy, the classification table, the exception and the Placement record
 # are shared with the fsspec filesystem that replaces this module.
-from rspace_client.fs.gallery import (ON_MISMATCH_RAISE, ON_MISMATCH_REROUTE, GallerySectionMismatch,  # noqa: E402,F401
-                                      Placement, check_policy, classify_media_section, folder_section,
+from rspace_client.fs.gallery import (MISCELLANEOUS_SECTION, ON_MISMATCH_RAISE, ON_MISMATCH_REROUTE,  # noqa: E402,F401
+                                      GallerySectionMismatch, Placement, check_policy, classify_media_section, folder_section,
                                       mismatch_message, placement)
 
 
