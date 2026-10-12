@@ -31,6 +31,17 @@ def _filename_for(file: BinaryIO, options: Mapping[Text, Any]) -> Optional[Text]
     return name if isinstance(name, str) else None
 
 
+def _with_parsable_created(info: Mapping[Text, Any]) -> Mapping[Text, Any]:
+    """RSpace dates end in ``Z`` for UTC. Galaxy's ``rspace`` file source parses ``created``
+    with ``datetime.fromisoformat``, which rejects ``Z`` before Python 3.11, so on 3.10 every
+    file listing failed. Spell the same instant as ``+00:00``; the rest of the record is
+    passed through untouched."""
+    created = info.get("created")
+    if isinstance(created, str) and created.endswith("Z"):
+        return {**info, "created": created[:-1] + "+00:00"}
+    return info
+
+
 def is_folder(path):
     return path.split('/')[-1][:2] == "GF"
 
@@ -82,7 +93,7 @@ class GalleryFilesystem(FS):
                 "size": info.get('size', 0),
                 "type": is_folder(path) and "1" or "2",
             },
-            "rspace": info,
+            "rspace": _with_parsable_created(info),
         })
 
     def listdir(self, path: Text) -> List[Text]:

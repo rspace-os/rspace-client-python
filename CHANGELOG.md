@@ -23,11 +23,15 @@ All notable changes to this project will be documented in this file
   including bracketed names. New dependency `fsspec`.
 - Deprecated `rspace_client.eln.fs.GalleryFilesystem` and
   `rspace_client.inv.attachment_fs.InventoryAttachmentFilesystem` (PyFilesystem2, unmaintained
-  upstream). Unchanged in behaviour, now emit a `DeprecationWarning`; removal together with
+  upstream). Unchanged in behaviour apart from the fixes below, now emit a `DeprecationWarning`; removal together with
   the `fs` dependency in 3.0, after Galaxy's shipped plugin has moved to `rspace_client.fs`.
 - Fix: uploads accept a file object that forwards `read` through `__getattr__`. requests 2.34
   refuses such objects on Python 3.12+, which broke exports from Galaxy 26.1 (it pins requests
   2.34.2) to RSpace through Galaxy's shipped `rspace` file source.
+- Fix: `GalleryFilesystem` reports a file's `created` date as `+00:00` instead of RSpace's
+  trailing `Z` (the same UTC instant). Galaxy's shipped `rspace` file source parses it with
+  `datetime.fromisoformat`, which rejects `Z` before Python 3.11, so on Python 3.10 Galaxy
+  failed to list any Gallery folder holding files.
 - `rspace_client/tests/galaxy_plugin_contract_test.py` pins what Galaxy's shipped plugin relies
   on; a failure there is a release blocker.
 - Tests: the Link-field integration tests always run instead of needing

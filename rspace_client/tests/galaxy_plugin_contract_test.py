@@ -99,6 +99,17 @@ class GalleryFilesystemContractTest(MockServerTestCase):
                 self.assertIsInstance(info.size, int)
                 datetime.datetime.fromisoformat(info.get("rspace", "created"))
 
+    def test_created_uses_an_offset_older_pythons_can_parse(self):
+        """fromisoformat rejects a trailing 'Z' before Python 3.11, and Galaxy runs on 3.10;
+        pinned here so the check also bites on interpreters that would accept 'Z'."""
+        fs = self.galaxy_style_filesystem()
+        files = [i for i in fs.filterdir("/GF11", namespaces=["details"]) if not i.is_dir]
+        self.assertTrue(files)
+        for info in files:
+            created = info.get("rspace", "created")
+            self.assertFalse(created.endswith("Z"), created)
+            self.assertTrue(created.endswith("+00:00"), created)
+
     def test_the_shim_still_uses_bare_global_id_segments(self):
         """Galaxy builds its URIs from the segment, so those must stay stable identifiers."""
         fs = self.galaxy_style_filesystem()
