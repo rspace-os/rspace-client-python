@@ -346,6 +346,38 @@ class RebaseAdvertisedLinksTest(unittest.TestCase):
         called = session.get.call_args[0][0]
         self.assertEqual("https://rspace.example.com/api/v1/folders/tree/1?pageNumber=2", called)
 
+    def test_our_path_prefix_is_kept(self):
+        # client reaches RSpace through a proxy at /rspace; the server does not know about it
+        c = self.client("https://proxy.example.com/rspace/")
+        self.assertEqual(
+            "https://proxy.example.com/rspace/api/v1/folders/tree/1?pageNumber=2",
+            c._rebase_url("http://localhost:8080/api/v1/folders/tree/1?pageNumber=2"))
+
+    def test_server_path_prefix_is_replaced_by_ours(self):
+        c = self.client()
+        self.assertEqual("https://rspace.example.com/api/inventory/v1/files/3/file",
+                         c._rebase_url("http://internal:8080/rspace/api/inventory/v1/files/3/file"))
+
+    def test_prefixes_on_both_sides(self):
+        c = self.client("https://proxy.example.com/eln")
+        self.assertEqual("https://proxy.example.com/eln/api/v1/status",
+                         c._rebase_url("http://internal/rspace/api/v1/status"))
+
+    def test_same_host_with_unprefixed_link_gains_our_prefix(self):
+        c = self.client("https://proxy.example.com/rspace")
+        self.assertEqual("https://proxy.example.com/rspace/api/v1/status",
+                         c._rebase_url("https://proxy.example.com/api/v1/status"))
+
+    def test_link_outside_the_api_keeps_its_path(self):
+        c = self.client("https://proxy.example.com/rspace")
+        self.assertEqual("https://proxy.example.com/public/apiDocs",
+                         c._rebase_url("http://localhost:8080/public/apiDocs"))
+
+    def test_relative_requests_and_followed_links_agree(self):
+        c = self.client("https://proxy.example.com/rspace")
+        self.assertEqual(c._get_api_url() + "/documents",
+                         c._rebase_url("http://localhost:8080/api/v1/documents"))
+
 
 class RedirectRefusalTest(unittest.TestCase):
     """The apiKey header must never follow a redirect to another host."""

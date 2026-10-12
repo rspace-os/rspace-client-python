@@ -34,8 +34,8 @@ All notable changes to this project will be documented in this file
   filesystem, to be proposed upstream.
 - Security: the client never follows an HTTP redirect, since `requests` would carry the
   `apiKey` header to the new host.
-- Client-level changes: `_links` URLs are rebased onto the configured host so paging and
-  download links work behind a proxy; `doDelete` tolerates a leading slash (fixes
+- Client-level changes: `_links` URLs are rebased onto the configured base URL, path prefix
+  included, so paging and download links work behind a proxy or port-forward; `doDelete` tolerates a leading slash (fixes
   `delete_document`); `upload_file` and `upload_attachment_by_global_id` take an optional
   `filename=`; `list_folder_tree` takes `page_size=`; new `get_workbench_by_id`; Inventory
   CSV import uses the shared session.
