@@ -72,7 +72,7 @@ class InvAttachmentFilesystemTest(unittest.TestCase):
     @patch('requests.Session.request', side_effect=mock_requests)
     def test_remove(self, mock_request):
         self.fs.remove("IF123")
-        mock_request.assert_called_with('DELETE', 'https://example.com/api/inventory/v1/files/123', json=None, headers=ANY, timeout=ANY)
+        mock_request.assert_called_with('DELETE', 'https://example.com/api/inventory/v1/files/123', json=None, headers=ANY, timeout=ANY, allow_redirects=False)
 
     @patch('requests.Session.get')
     def test_download(self, mock_get):
@@ -89,7 +89,7 @@ class InvAttachmentFilesystemTest(unittest.TestCase):
             'https://example.com/api/inventory/v1/files/123/file',
             headers=ANY,
             stream=True,
-            timeout=ANY
+            timeout=ANY, allow_redirects=False
         )
 
     @patch('requests.Session.post')
@@ -104,7 +104,7 @@ class InvAttachmentFilesystemTest(unittest.TestCase):
             data={'fileSettings': '{"parentGlobalId": "SS123"}'},
             files={'file': file_obj},
             headers=ANY,
-            timeout=ANY
+            timeout=ANY, allow_redirects=False
         )
 
     @patch('requests.Session.get', side_effect=mock_requests_get)

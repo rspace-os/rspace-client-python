@@ -1817,11 +1817,42 @@ class InventoryClient(ClientBase):
             f"{url_base}/files/{attachment_id}/file", file_path, chunk_size
         )
 
-    def upload_attachment_by_global_id(self, record_global_id: str, file: BinaryIO) -> dict:
+    def upload_attachment_by_global_id(self, record_global_id: str, file: BinaryIO,
+                                       filename: Optional[str] = None) -> dict:
+        """Attach a file to a record or an attachment field. ``filename`` overrides the name
+        taken from the file object."""
         return self._post_multipart(
             "/files",
-            files={"file": file},
+            files={"file": file if filename is None else (filename, file)},
             data={"fileSettings": json.dumps({"parentGlobalId": record_global_id})},
+        )
+
+    def attach_gallery_file_by_global_id(self, parent_global_id: str, media_file_global_id: str) -> dict:
+        """
+        Attach a file that is already in the Gallery to an Inventory record or attachment field.
+
+        This is the "link from Gallery" the web interface offers alongside "upload new". No
+        bytes move: the resulting Inventory file references the Gallery file, and its
+        ``mediaFileGlobalId`` names it. Deleting the attachment leaves the Gallery file alone.
+
+        Parameters
+        ----------
+        parent_global_id : str
+            A sample (SA...), subsample (SS...), container (IC...), instrument (IN...) or an
+            attachment-type field (SF...). Benches and sample templates are refused by the
+            server.
+        media_file_global_id : str
+            The Gallery file to link (GL...).
+
+        Returns
+        -------
+        Dict of the created InventoryFile, whose ``mediaFileGlobalId`` is the linked file.
+        """
+        return self.retrieve_api_results(
+            "/attachments",
+            request_type="POST",
+            params={"parentGlobalId": Id(parent_global_id).as_global_id(),
+                    "mediaFileGlobalId": Id(media_file_global_id).as_global_id()},
         )
 
     def split_subsample(
@@ -1981,6 +2012,22 @@ class InventoryClient(ClientBase):
         result = self.retrieve_api_results("/workbenches")
         return [wb for wb in result["containers"]]
 
+    def get_workbench_by_id(self, workbench_id: Union[str, int], include_content: bool = False) -> dict:
+        """
+        Gets a workbench (bench) by id. Benches are containers but must be read through
+        /workbenches: /containers/{id} answers 422 for a bench.
+
+        Parameters
+        ----------
+        workbench_id : Union[str, int]
+            Numeric id or global id (BE...) of the bench.
+        include_content : bool
+            Include the bench's locations and their content (subsamples, containers).
+        """
+        numeric_id = self._get_numeric_record_id(workbench_id)
+        return self.retrieve_api_results(
+            f"/workbenches/{numeric_id}?includeContent={'true' if include_content else 'false'}")
+
     ## ---------------------------------------------------------------------
     ## CSV import
     ## ---------------------------------------------------------------------
@@ -1994,13 +2041,9 @@ class InventoryClient(ClientBase):
         multipart Content-Type (with boundary) when ``files`` is supplied, and
         adds each entry of ``data`` as an additional form field.
         """
-        response = requests.post(
-            self._get_api_url() + endpoint,
-            files=files,
-            data=data,
-            headers=self._get_headers(),
-        )
-        return self._handle_response(response)
+        # through the shared session, so timeout, retries, redirect refusal and error
+        # handling are the same as for every other request
+        return self._post_multipart(endpoint, files=files, data=data)
 
     def parse_csv_import_file(
         self, file: BinaryIO, record_type: Union[str, ImportRecordType]

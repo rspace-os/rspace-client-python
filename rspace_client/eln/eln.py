@@ -347,13 +347,14 @@ class ELNClient(ClientBase):
             f"{url_base}/files/{numeric_file_id}/file", filename, chunk_size
         )
 
-    def upload_file(self, file, folder_id=None, caption=None):
+    def upload_file(self, file, folder_id=None, caption=None, filename=None):
         """
         Upload a file to the gallery. More information on
         https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
         :param file: open file object
         :param folder_id: folder id of the destination folder
         :param caption: optional caption
+        :param filename: name to store the file under; defaults to the file object's own name
         :return: parsed response as a dictionary
         """
         data = {}
@@ -365,7 +366,8 @@ class ELNClient(ClientBase):
         if caption is not None:
             data["caption"] = caption
 
-        return self._post_multipart("/files", files={"file": file}, data=data)
+        part = file if filename is None else (filename, file)
+        return self._post_multipart("/files", files={"file": part}, data=data)
 
     def update_file(self, file, fileId):
         """
@@ -793,12 +795,14 @@ class ELNClient(ClientBase):
         numeric_folder_id = self._get_numeric_record_id(folder_id)
         return self.retrieve_api_results("/folders/{}".format(numeric_folder_id))
 
-    def list_folder_tree(self, folder_id=None, typesToInclude=[]):
+    def list_folder_tree(self, folder_id=None, typesToInclude=[], page_size=None):
         """
         Lists contents of a folder by its ID.
         :param folder_id. Optional folderId. If none, will return listing of Home Folder
         :param typesToInclude: An optional list of any of 'folder', 'notebook' or 'document'. Results
          will be restricted to these types
+        :param page_size: optional number of records per page (the server default applies otherwise);
+         follow the response's 'next' link for further pages
         :return a paginated folder listing
         """
         url = ""
@@ -817,6 +821,8 @@ class ELNClient(ClientBase):
                     'typesToInclude must be contain "document", "notebook" and/or "folder"'
                 )
             params["typesToInclude"] = ",".join(typesToInclude)
+        if page_size is not None:
+            params["pageSize"] = int(page_size)
         return self.retrieve_api_results(url, params)
 
     # Groups methods
