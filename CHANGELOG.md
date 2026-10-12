@@ -30,6 +30,8 @@ All notable changes to this project will be documented in this file
   2.34.2) to RSpace through Galaxy's shipped `rspace` file source.
 - `rspace_client/tests/galaxy_plugin_contract_test.py` pins what Galaxy's shipped plugin relies
   on; a failure there is a release blocker.
+- Tests: the Link-field integration tests always run instead of needing
+  `RSPACE_SUPPORTS_LINK_FIELDS=1`; current RSpace releases support Link fields.
 - `tools/galaxy/rspace_fsspec_source.py`: the reference Galaxy file source for the new
   filesystem, to be proposed upstream.
 - Security: the client never follows an HTTP redirect, since `requests` would carry the
