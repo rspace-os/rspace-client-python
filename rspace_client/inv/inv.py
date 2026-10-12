@@ -2025,8 +2025,8 @@ class InventoryClient(ClientBase):
             Include the bench's locations and their content (subsamples, containers).
         """
         numeric_id = self._get_numeric_record_id(workbench_id)
-        return self.retrieve_api_results(
-            f"/workbenches/{numeric_id}?includeContent={'true' if include_content else 'false'}")
+        return self.retrieve_api_results(f"/workbenches/{numeric_id}",
+                                         params={"includeContent": "true" if include_content else "false"})
 
     ## ---------------------------------------------------------------------
     ## CSV import
@@ -2034,16 +2034,6 @@ class InventoryClient(ClientBase):
     ## The Inventory API can import CSV files of samples, subsamples and
     ## containers (only simple LIST containers). Importing Instruments or
     ## Instrument Templates from CSV is NOT supported by the API.
-
-    def _multipart_post(self, endpoint: str, files: dict, data: dict) -> dict:
-        """
-        Helper for multipart/form-data POSTs. ``requests`` sets the correct
-        multipart Content-Type (with boundary) when ``files`` is supplied, and
-        adds each entry of ``data`` as an additional form field.
-        """
-        # through the shared session, so timeout, retries, redirect refusal and error
-        # handling are the same as for every other request
-        return self._post_multipart(endpoint, files=files, data=data)
 
     def parse_csv_import_file(
         self, file: BinaryIO, record_type: Union[str, ImportRecordType]
@@ -2071,7 +2061,7 @@ class InventoryClient(ClientBase):
             'radioOptionsForColumn' and 'quantityUnitForColumn'.
         """
         record_type = ImportRecordType(record_type).value
-        return self._multipart_post(
+        return self._post_multipart(
             "/import/parseFile",
             files={"file": file},
             data={"recordType": record_type},
@@ -2133,7 +2123,7 @@ class InventoryClient(ClientBase):
                 "At least one of containers_file, samples_file or "
                 "subsamples_file must be supplied"
             )
-        return self._multipart_post(
+        return self._post_multipart(
             "/import/importFiles",
             files=files,
             data={"importSettings": json.dumps(import_settings)},
