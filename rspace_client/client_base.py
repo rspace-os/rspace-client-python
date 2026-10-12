@@ -130,12 +130,16 @@ class ClientBase:
         or through a port-forward the advertised host is unreachable. Following such a link
         verbatim fails with a connection error, so keep the path and query and substitute our
         own scheme and host.
+
+        Either side may also sit under a path prefix (a proxy serving RSpace at ``/rspace``), so
+        the part of the path from ``/api/`` on is re-anchored under our own base path, the same
+        base every relative request is built from. A link without ``/api/`` keeps its path.
         """
         link = urlparse(url)
         ours = urlparse(self.rspace_url)
-        if (link.scheme, link.netloc) == (ours.scheme, ours.netloc):
-            return url
-        return urlunparse((ours.scheme, ours.netloc, link.path, link.params, link.query, link.fragment))
+        api_at = link.path.find("/api/")
+        path = link.path if api_at < 0 else ours.path.rstrip("/") + link.path[api_at:]
+        return urlunparse((ours.scheme, ours.netloc, path, link.params, link.query, link.fragment))
 
     def _get_headers(self, content_type="application/json"):
         headers = {"apiKey": self.api_key}
