@@ -21,6 +21,7 @@ import pytest
 from rspace_client.fs import GalleryFilesystem, ReadOnlyError, RemoteApiError, RSpaceFilesystem
 from rspace_client.fs.gallery import GallerySectionMismatch
 from rspace_client.fs.paths import last_segment
+from rspace_client.inv.template_builder import TemplateBuilder
 from rspace_client.tests.base_test import BaseApiTest
 
 PNG_1x1 = bytes.fromhex(
@@ -136,15 +137,21 @@ class UnifiedFilesystemIntegrationTest(BaseApiTest):
         # the shortcut to the subsample's own sample is always there
         self.assertTrue(any(n.startswith("sample:") for n, _gid in self.entries(ss_path)))
 
-    def _first_sample_with_an_attachment_field(self):
-        """(sample path, field path) for the first sample whose template gives it an
-        attachment field, or None. Only some templates define one."""
-        for _name, gid in self.entries("inventory/Samples"):
-            sample = f"inventory/Samples/{gid}"
-            fields = self.of_type(sample, "SF")
-            if fields:
-                return sample, f"{sample}/{fields[0][1]}"
-        return None
+    def _own_sample_with_an_attachment_field(self):
+        """(sample path, field path) for a sample this test creates, from a template with one
+        attachment field, with one subsample. The test account may see samples it cannot
+        edit (a sysadmin sees everyone's), so borrowing the first suitable one fails with
+        422; both are deleted again afterwards."""
+        inv = self.rs.inventory.inv_client
+        template = inv.create_sample_template(
+            TemplateBuilder(f"fs-itest-{self.stamp}", "ml").attachment("Data sheet").build())
+        self.addCleanup(inv.delete_sample_template, template["id"])
+        sample = inv.create_sample(f"fs-itest-{self.stamp}", sample_template_id=template["id"],
+                                   subsample_count=1)
+        self.addCleanup(inv.delete_sample, sample["globalId"])  # runs before the template's
+        path = f"inventory/Samples/{sample['globalId']}"
+        (field_gid,) = [gid for _name, gid in self.of_type(path, "SF")]
+        return path, f"{path}/{field_gid}"
 
     def _round_trip(self, container, payload=b"attachment round trip\n"):
         """Attach a file, read it back, remove it. Returns True if the bytes survived."""
@@ -161,10 +168,7 @@ class UnifiedFilesystemIntegrationTest(BaseApiTest):
         and instruments have attachment fields, because only those have template fields at
         all; and the server refuses an attachment on a bench or a sample template outright.
         """
-        found = self._first_sample_with_an_attachment_field()
-        if not found:
-            self.skipTest("no sample on this account has an attachment field")
-        sample, field = found
+        sample, field = self._own_sample_with_an_attachment_field()
 
         # a sample takes its own attachments
         self.assertTrue(self._round_trip(sample), "sample attachment round trip")
@@ -216,10 +220,7 @@ class UnifiedFilesystemIntegrationTest(BaseApiTest):
     def test_an_inventory_attachment_becomes_a_gallery_item(self):
         """Uploading through the filesystem must leave a file that exists in the Gallery, not
         one that exists only inside Inventory and is reusable nowhere."""
-        found = self._first_sample_with_an_attachment_field()
-        if not found:
-            self.skipTest("no sample on this account has an attachment field")
-        sample, field = found
+        sample, field = self._own_sample_with_an_attachment_field()
         targets = {"sample": sample}
         subsamples = self.of_type(sample, "SS")
         if subsamples:
@@ -241,10 +242,7 @@ class UnifiedFilesystemIntegrationTest(BaseApiTest):
     def test_copying_a_gallery_file_into_rspace_links_it(self):
         """The generic copy would download and re-upload, leaving a duplicate in the Gallery
         that the API cannot delete."""
-        found = self._first_sample_with_an_attachment_field()
-        if not found:
-            self.skipTest("no sample on this account has an attachment field")
-        sample, _field = found
+        sample, _field = self._own_sample_with_an_attachment_field()
         source = next(((n, g) for n, g in self.entries("gallery/Images") if g.startswith("GL")), None)
         if source is None:
             self.skipTest("no file in the Gallery Images section to link")
