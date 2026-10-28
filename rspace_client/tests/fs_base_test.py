@@ -77,7 +77,8 @@ def gallery_with_mock_client(**kwargs):
         "10": {"records": []},
     }[folder_id]
     client.get_folder.return_value = {"id": 10, "globalId": "GF10", "name": "Images"}
-    client.get_file_info.return_value = {"id": 100, "globalId": "GL100", "name": "a.png", "size": 5}
+    client.get_file_info.return_value = {"id": 100, "globalId": "GL100", "name": "a.png", "size": 5,
+                                         "parentFolderId": 10}
     client.create_folder.return_value = {"id": 77, "globalId": "GF77", "name": "new"}
     kwargs.setdefault("path_style", "id")
     return GalleryFilesystem(eln_client=client, **kwargs), client
@@ -160,7 +161,7 @@ class GalleryFilesystemTest(unittest.TestCase):
     def test_created_and_modified_are_datetimes(self):
         fs, client = gallery_with_mock_client()
         client.get_file_info.return_value = {"id": 100, "globalId": "GL100", "name": "a.png", "size": 5,
-                                             "created": "2026-09-01T09:02:00.000Z"}
+                                             "parentFolderId": 10, "created": "2026-09-01T09:02:00.000Z"}
         created = fs.created("GF10/GL100")
         self.assertEqual(2026, created.astimezone(timezone.utc).year)
         self.assertEqual(created, fs.modified("GF10/GL100"))  # no lastModified: created stands in
@@ -307,7 +308,8 @@ class InventoryFilesystemTest(unittest.TestCase):
     def test_entry_names_are_full_paths_and_the_segment_is_the_record(self):
         fs, _ = inventory_with_mock_client()
         self.assertEqual("IC1/IF5", fs.info("IC1/IF5")["name"])  # info names the path asked for
-        self.assertEqual("IF5", fs.info("IF5")["name"])
+        with self.assertRaises(FileNotFoundError):  # an attachment is only reached through its record
+            fs.info("IF5")
         self.assertEqual("map.gb", fs.info("IC1/IF5")["rspace"]["name"])
         entries = fs.ls("IC1")
         self.assertEqual(["IC1/IF5"], [e["name"] for e in entries])

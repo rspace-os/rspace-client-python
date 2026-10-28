@@ -23,6 +23,16 @@ the form editor has only ever offered Number, String, Text, Radio, Choice, Date 
 Uploading into a text field uploads the file to the Gallery and appends a ``<fileId=N>``
 link to that field; removing a file from a field unlinks it (the Gallery file is
 untouched). A signed document is locked: every field write refuses before any request.
+
+The API has no "append to a field": a link is added by sending the field's whole HTML back,
+and the server keeps whichever write lands last. Field edits therefore hold a lock per
+document within this process, and each one reads the field back and is applied again if a
+writer elsewhere overwrote it. Two processes writing the same field at the same moment can
+still lose a link; the server offers nothing to close that window.
+
+A file segment written as a global ID is only accepted when the field really links that file,
+so ``Results/GL112`` does not reach a Gallery file that lives somewhere else.
+
 ``mkdir`` creates folders only (not notebooks or documents). A folder's contents are
 streamed ``page_size`` records at a time, so ``scandir`` of a large folder stays lazy.
 Read-only by default.
@@ -31,7 +41,8 @@ from __future__ import annotations
 
 import errno
 import re
-from typing import Any, BinaryIO, Iterable, Iterator, Optional
+import threading
+from typing import Any, BinaryIO, Callable, Dict, Iterable, Iterator, Optional, Tuple
 
 from bs4 import BeautifulSoup
 
@@ -52,6 +63,19 @@ TREE_TYPES = ["folder", "notebook", "document"]
 
 
 GALLERY_FILE_ID = re.compile(r"^(?:GL)?(\d+)$")
+#: How often a field edit is sent before giving up because another writer keeps replacing the
+#: field's content: the first write plus two re-applications.
+FIELD_EDIT_ATTEMPTS = 3
+
+#: One lock per (server, document), shared by every WorkspaceFilesystem in the process, so
+#: that two threads editing fields of one document take turns instead of overwriting each other.
+_document_locks: Dict[Tuple[str, str], threading.Lock] = {}
+_document_locks_guard = threading.Lock()
+
+
+def _document_lock(server: str, doc_gid: str) -> threading.Lock:
+    with _document_locks_guard:
+        return _document_locks.setdefault((server, doc_gid), threading.Lock())
 
 
 def _file_token(file_id) -> str:
@@ -179,6 +203,34 @@ class WorkspaceFilesystem(RSpaceFSBase):
             document["id"], form_id=document.get("form", {}).get("id"),
             fields=[{"id": field["id"], "content": content}])
 
+    @staticmethod
+    def _links(field: dict, file_number: str) -> bool:
+        """Whether the server's view of ``field`` links Gallery file ``file_number``."""
+        return any(str(f.get("id")) == file_number for f in field.get("files") or [])
+
+    def _edit_field(self, target: Target, edit: Callable[[str], str],
+                    applied: Callable[[dict], bool], what: str) -> None:
+        """Change the HTML of the field ``target`` names and make sure the change stuck.
+
+        ``edit`` turns the field's current content into the new content; ``applied`` says
+        whether a field as the server returns it shows the change. The edit holds this
+        process's lock on the document, then reads the field back: if a writer elsewhere
+        replaced the content in between, the edit is applied again to what is there now.
+        """
+        server = getattr(self.eln_client, "rspace_url", "")
+        with _document_lock(server, target.parent_gid):
+            for attempt in range(FIELD_EDIT_ATTEMPTS):
+                document = self._record(target.parent_gid)
+                field = self._field(target.parent_gid, target.field_gid, document)
+                if attempt and applied(field):  # the other writer's content already has it
+                    return
+                self._update_field_content(document, field, edit(field.get("content") or ""))
+                if applied(self._field(target.parent_gid, target.field_gid)):
+                    return
+        raise OSError(
+            errno.EAGAIN, f"{target.field_gid} of {target.parent_gid}: {what} was overwritten by another "
+                          f"writer {FIELD_EDIT_ATTEMPTS} times; try again", target.field_gid)
+
     # ------------------------------------------------------------ entry builders
 
     def _document_entry(self, document: dict, gid: str) -> dict:
@@ -249,7 +301,14 @@ class WorkspaceFilesystem(RSpaceFSBase):
             document = self._record(target.parent_gid)
             return self._field_entry(self._field(target.parent_gid, target.field_gid, document),
                                      signed=bool(document.get("signed")))
-        return self._entry(self.eln_client.get_file_info(target.gid[2:]), False, target.gid)
+        return self._entry(self._placed_file(path, target), False, target.gid)
+
+    def _placed_file(self, path: str, target: Target) -> dict:
+        """The file as the field it was reached through links it."""
+        for file in self._field(target.parent_gid, target.field_gid).get("files") or []:
+            if file.get("globalId") == target.gid:
+                return file
+        raise FileNotFoundError(errno.ENOENT, f"{path!r}: {target.gid} is not linked into this field", path)
 
     # ------------------------------------------------------------ folders
 
@@ -298,9 +357,13 @@ class WorkspaceFilesystem(RSpaceFSBase):
         # file would be stranded in the Gallery, which the API cannot delete.
         self._require_unsigned(document, container, "Nothing was uploaded.")
         uploaded = self.eln_client.upload_file(file, **self._upload_kwargs(name))
-        self._update_field_content(document, field, (field.get("content") or "") + _file_token(uploaded["id"]))
+        self._append_link(target, str(uploaded["id"]))
         self.invalidate_cache()
         return uploaded
+
+    def _append_link(self, target: Target, file_number: str) -> None:
+        self._edit_field(target, lambda content: content + _file_token(file_number),
+                         lambda field: self._links(field, file_number), f"the link to GL{file_number}")
 
     @writes
     def link(self, path: str, media_file_gid: str) -> dict:
@@ -310,10 +373,8 @@ class WorkspaceFilesystem(RSpaceFSBase):
         target = self._resolve(path)
         if target.kind != "field":
             raise NotImplementedError(f"{path!r}: a Gallery file links into a document field (a text field)")
-        document = self._record(target.parent_gid)
-        field = self._field(target.parent_gid, target.field_gid, document)
         numeric = _gallery_file_number(media_file_gid)
-        self._update_field_content(document, field, (field.get("content") or "") + _file_token(numeric))
+        self._append_link(target, numeric)
         self.invalidate_cache()
         return self.eln_client.get_file_info(numeric)
 
@@ -324,10 +385,14 @@ class WorkspaceFilesystem(RSpaceFSBase):
         target = self._resolve(path)
         if target.kind != "file":
             raise IsADirectoryError(errno.EISDIR, f"{path!r} is not a file", path)
-        document = self._record(target.parent_gid)
-        field = self._field(target.parent_gid, target.field_gid, document)
-        stripped = strip_file_references(field.get("content") or "", target.gid[2:])
-        if stripped is None:
-            raise FileNotFoundError(errno.ENOENT, f"{path!r} is not linked into this field", path)
-        self._update_field_content(document, field, stripped)
+        file_number = target.gid[2:]
+
+        def unlink(content: str) -> str:
+            stripped = strip_file_references(content, file_number)
+            if stripped is None:
+                raise FileNotFoundError(errno.ENOENT, f"{path!r} is not linked into this field", path)
+            return stripped
+
+        self._edit_field(target, unlink, lambda field: not self._links(field, file_number),
+                         f"the removal of {target.gid}")
         self.invalidate_cache()

@@ -591,7 +591,17 @@ class RSpaceFSBase(AbstractFileSystem):
         target = self._resolve(path)
         if target.kind not in self.FILE_KINDS:
             raise IsADirectoryError(errno.EISDIR, f"{path!r} is a directory", path)
+        # A plain name was found in its parent's listing, so the parent holds it. A segment
+        # carrying a global ID is taken at its word by _resolve, and would otherwise reach
+        # any file the key can read, or a server error for one that does not exist.
+        if paths.parse_segment(paths.last_segment(path))[0] is not None:
+            self._placed_file(path, target)
         return target.gid[2:]
+
+    def _placed_file(self, path: str, target: Target) -> dict:
+        """The record of the file ``target`` as the directory ``path`` reaches it through holds
+        it; ``FileNotFoundError`` when that directory does not hold it. Branches implement it."""
+        raise NotImplementedError(f"{type(self).__name__} does not implement _placed_file")
 
     def _download(self, file_id: str, file: BinaryIO, chunk_size: int) -> None:
         """The client call that streams file ``file_id`` into ``file``. Branches implement it."""

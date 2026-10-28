@@ -1,5 +1,7 @@
 """The ELN Workspace as folders, notebooks, documents and text fields holding files, and the
 signed-document lock, against the embedded mock server."""
+import threading
+import time
 import unittest
 from io import BytesIO
 from itertools import islice
@@ -251,6 +253,85 @@ class WorkspaceTest(MockServerTestCase):
         self.assertIn("Alpha protocol/", text)
         self.assertIn("Results/", text)
         self.assertIn("plate1.png", text)
+
+    def test_a_file_id_must_be_linked_into_the_field_it_is_reached_through(self):
+        """GL100 is a Gallery file, but not one linked into Results: a path through Results
+        must not reach it, and a missing id is "not found" rather than a server error."""
+        fs = self.fs()
+        self.assertEqual(27, fs.info("FL20/SD42/FD421/GL111")["size"])  # linked: fine
+        for path in ("FL20/SD42/FD421/GL100", "FL20/SD42/FD421/elsewhere [GL100].png",
+                     "FL20/SD42/FD421/GL999999"):
+            with self.assertRaises(FileNotFoundError, msg=path):
+                fs.cat_file(path)
+            with self.assertRaises(FileNotFoundError, msg=path):
+                fs.info(path)
+            self.assertFalse(fs.exists(path), path)
+
+    def test_concurrent_uploads_into_one_field_keep_every_link(self):
+        """Each upload rewrites the whole field; without the document lock two writers that
+        read the same content drop each other's link and strand the file in the Gallery."""
+        field = "FL20/NB30/SD41/FD410"
+        in_flight, most = [0], [0]
+        real = WorkspaceFilesystem._update_field_content
+
+        def slow_update(fs, document, fld, content):
+            in_flight[0] += 1
+            most[0] = max(most[0], in_flight[0])
+            time.sleep(0.02)  # wide enough for the other threads to read the same content
+            try:
+                real(fs, document, fld, content)
+            finally:
+                in_flight[0] -= 1
+
+        errors = []
+
+        def upload(i):
+            try:
+                self.fs(writable=True).upload_fileobj(f"{field}/c{i}.txt", BytesIO(b"x"))
+            except Exception as exc:  # reported below; a thread swallows it otherwise
+                errors.append(exc)
+
+        with patch.object(WorkspaceFilesystem, "_update_field_content", slow_update):
+            threads = [threading.Thread(target=upload, args=(i,)) for i in range(6)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+        self.assertEqual([], errors)
+        self.assertEqual(1, most[0], "field edits of one document must not overlap")
+        self.assertEqual([f"c{i}.txt" for i in range(6)], sorted(names(self.fs(), field)))
+
+    def test_a_link_lost_to_another_writer_is_applied_again(self):
+        """A writer in another process can still replace the field between our read and our
+        write. Reading the field back catches the loss and the link is added again."""
+        fs = self.fs(writable=True)
+        field = "FL20/NB30/SD41/FD410"
+        client = fs.eln_client
+        real = client.update_document
+        stale = client.get_document(41)["fields"][0]["content"]
+        calls = []
+
+        def update_then_clobber(*args, **kwargs):
+            calls.append(kwargs)
+            result = real(*args, **kwargs)
+            if len(calls) == 1:  # the other process writes the content it read before us
+                real(41, fields=[{"id": kwargs["fields"][0]["id"], "content": stale}])
+            return result
+
+        with patch.object(client, "update_document", side_effect=update_then_clobber):
+            fs.upload_fileobj(f"{field}/kept.txt", BytesIO(b"k"))
+        self.assertEqual(2, len(calls))
+        self.assertEqual(["kept.txt"], names(fs, field))
+
+    def test_a_field_that_keeps_being_overwritten_gives_up_with_an_error(self):
+        fs = self.fs(writable=True)
+        field = "FL20/NB30/SD41/FD410"
+        with patch.object(fs.eln_client, "update_document") as update:  # nothing ever sticks
+            with self.assertRaises(OSError) as ctx:
+                fs.link(field, "GL100")
+        self.assertEqual(workspace.FIELD_EDIT_ATTEMPTS, update.call_count)
+        self.assertIn("overwritten by another writer", str(ctx.exception))
+        self.assertEqual([], fs.ls(field, detail=False))
 
     def test_mounted_in_rspace_filesystem(self):
         rs = RSpaceFilesystem(self.url, "k")

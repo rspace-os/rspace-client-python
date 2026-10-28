@@ -111,7 +111,9 @@ refusal says so before anything is sent.
 Where two records in a folder share a name, the second and later ones are listed with their
 global ID before the extension (`data [GL112].csv`), and a name that would itself read as an
 address gets its real ID the same way. A segment carrying a global ID always resolves to that
-record, whatever the style, and survives a rename. `path_style="labelled"` lists every
+record, whatever the style, and survives a rename. For a file the folder above it must really
+hold it: `Results/GL112` is refused with `FileNotFoundError` when GL112 is not linked into
+`Results`, rather than reaching a file that lives somewhere else. `path_style="labelled"` lists every
 segment as `Name [GID]`; `path_style="id"` lists bare global IDs.
 
 #### Gallery sections

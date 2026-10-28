@@ -216,7 +216,20 @@ class ClientBase:
                 return ClientBase._get_formated_error_message(response.json())
             except ValueError:
                 pass
-        return "error message: {}".format(response.text)
+        text = response.text or ""
+        if text.lstrip()[:15].lower().startswith(("<!doctype html", "<html")):
+            # RSpace answers some failures (a download of a file that does not exist, say)
+            # with its whole web error page, scripts and all. Keep what a person can read:
+            # a proxy's short page as it is, otherwise the page title.
+            visible = re.sub(r"<(script|style)\b.*?</\1>", " ", text, flags=re.I | re.S)
+            visible = " ".join(re.sub(r"<[^>]+>", " ", visible).split())
+            if len(visible) <= 200:
+                return "error message: {}".format(visible or "an empty HTML page")
+            title = re.search(r"<title[^>]*>(.*?)</title>", text, re.I | re.S)
+            title = " ".join(title.group(1).split()) if title else ""
+            return "error message: the server answered with an HTML error page{}".format(
+                f" ({title})" if title else "")
+        return "error message: {}".format(text)
 
     @staticmethod
     def _check_status(response):

@@ -235,8 +235,12 @@ class UnifiedFilesystemIntegrationTest(BaseApiTest):
             media = info["rspace"].get("mediaFileGlobalId")
             self.assertTrue(str(media).startswith("GL"),
                             f"{label}: expected a Gallery file, got {media!r}")
-            # and it really is there, readable through the Gallery branch
-            self.assertEqual(name, self.rs.info(f"gallery/Miscellaneous/{media}")["rspace"]["name"])
+            # and it really is there, readable through the Gallery branch from the folder RSpace
+            # filed it in (a .txt lands in Documents/Api Inbox; a path through any other
+            # folder is refused)
+            folder = self.eln.get_folder(self.eln.get_file_info(media[2:])["parentFolderId"])["globalId"]
+            self.assertEqual(name, self.rs.info(f"gallery/{folder}/{media}")["rspace"]["name"])
+            self.assertEqual(b"gallery backed\n", self.rs.cat_file(f"gallery/{folder}/{media}"))
             self.rs.rm_file(f"{container}/{info['rspace']['globalId']}")
 
     def test_copying_a_gallery_file_into_rspace_links_it(self):

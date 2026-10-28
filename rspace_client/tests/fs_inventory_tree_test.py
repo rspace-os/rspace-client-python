@@ -150,6 +150,46 @@ class InventoryTreeTest(MockServerTestCase):
         fs.upload_fileobj(occupied + "/new.pdf", replacement)
         self.assertEqual(["new.pdf"], names(fs, occupied))
 
+    def test_an_occupied_field_refuses_a_link_too(self):
+        """Linking replaces the file in an attachment field just as an upload does, so the
+        link (and a cross-branch copy, which links) is refused while the field is occupied."""
+        from rspace_client.fs import RSpaceFilesystem
+        occupied = "Samples/Plasmid pUC19/Safety Data"
+        fs = self.fs(writable=True)
+        before = names(fs, occupied)
+        with self.assertRaises(FileExistsError) as ctx:
+            fs.link(occupied, "GL100")
+        self.assertIn("Remove the existing file first", str(ctx.exception))
+        rs = RSpaceFilesystem(self.url, "k", writable=True)
+        with self.assertRaises(FileExistsError):
+            rs.cp_file("gallery/Images/microscope.png", f"inventory/{occupied}/microscope.png")
+        self.assertEqual(before, names(fs, occupied))
+        empty = "Samples/E. coli DH5a/Datasheet"
+        fs.link(empty, "GL100")  # an empty field still takes one
+        self.assertEqual(["microscope.png"], names(fs, empty))
+
+    def test_an_attachment_id_must_hang_off_the_record_it_is_reached_through(self):
+        """IF501 belongs to the sample, not the freezer: a path through the freezer must not
+        reach it, and nor must a bare id at the root or an id that does not exist."""
+        fs = self.fs()
+        self.assertEqual("IF500", fs.info("IC200/IF500")["globalId"])
+        for path in ("IC200/IF501", "Containers/IF500", "IF500", "IC200/IF999999"):
+            with self.assertRaises(FileNotFoundError, msg=path):
+                fs.cat_file(path)
+            with self.assertRaises(FileNotFoundError, msg=path):
+                fs.info(path)
+        self.assertTrue(fs.cat_file("SA1000/IF501"))
+        self.assertTrue(fs.cat_file("SS300/SA1000/IF501"))  # through the shortcut: the sample's own
+
+    def test_a_gallery_file_id_must_sit_in_the_folder_it_is_reached_through(self):
+        gallery = GalleryFilesystem(self.url, "k")
+        self.assertEqual("GL100", gallery.info("GF10/GL100")["globalId"])
+        for path in ("GF11/GL100", "GL100", "GF10/GL999999"):
+            with self.assertRaises(FileNotFoundError, msg=path):
+                gallery.cat_file(path)
+            with self.assertRaises(FileNotFoundError, msg=path):
+                gallery.info(path)
+
     def _media_gid(self, container, name):
         return next((e["rspace"].get("mediaFileGlobalId")
                      for e in self.fs().scandir(container) if last_segment(e["name"]) == name),

@@ -176,10 +176,10 @@ class NamePathStyleTest(MockServerTestCase):
         for listed, gid in (("GL9 [GL6]", "GL6"), ("report [GL111] [GL5].csv", "GL5")):
             self.assertEqual(gid, paths.parse_segment(listed)[0])
 
-        files = [{"id": 5, "globalId": "GL5", "name": "report [GL111].csv"},
-                 {"id": 6, "globalId": "GL6", "name": "GL9"},
-                 {"id": 111, "globalId": "GL111", "name": "other.csv"},
-                 {"id": 9, "globalId": "GL9", "name": "nine.csv"}]
+        files = [{"id": 5, "globalId": "GL5", "name": "report [GL111].csv", "parentFolderId": 2},
+                 {"id": 6, "globalId": "GL6", "name": "GL9", "parentFolderId": 2},
+                 {"id": 111, "globalId": "GL111", "name": "other.csv", "parentFolderId": 2},
+                 {"id": 9, "globalId": "GL9", "name": "nine.csv", "parentFolderId": 2}]
         client = MagicMock()
         client.list_folder_tree.side_effect = lambda folder_id=None, typesToInclude=[], **kw: (
             {"records": [{"id": 2, "globalId": "GF2", "name": "Gallery"}]} if folder_id is None
@@ -199,7 +199,7 @@ class NamePathStyleTest(MockServerTestCase):
         """A name is chosen by an RSpace user, so on a shared instance it crosses a trust
         boundary. One that would break the path grammar is listed by its global ID."""
         client = MagicMock()
-        hostile = {"id": 5, "globalId": "IF5", "name": ".."}
+        hostile = {"id": 5, "globalId": "IF5", "name": "..", "parentGlobalId": "IC1"}
         client.get_container_by_id.return_value = {
             "id": 1, "globalId": "IC1", "name": "Box", "locations": [],
             "attachments": [hostile, {"id": 6, "globalId": "IF6", "name": "a/b.txt"}]}

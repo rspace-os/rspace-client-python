@@ -15,7 +15,7 @@ folder creation, and ``allow_delete=True`` to allow removals. ``mounts=`` narrow
 A path segment is the record's own name (``gallery/Images/microscope.png``). Where two
 records in a folder share a name, the later ones carry their global ID before the extension
 (``data [GL112].csv``). A segment written as a global ID always resolves, whatever style is
-in force, and ``path_style="labelled"`` or ``"id"`` put one on every segment, which is what
+in force (a file only under the folder, field or record that really holds it), and ``path_style="labelled"`` or ``"id"`` put one on every segment, which is what
 you want if a stored path has to survive a rename. The full RSpace record for any entry is
 under the ``rspace`` key of its info dict.
 """

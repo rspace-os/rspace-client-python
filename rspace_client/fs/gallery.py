@@ -302,7 +302,14 @@ class GalleryFilesystem(RSpaceFSBase):
             return make_entry("", True, raw={"name": GALLERY_FOLDER_NAME})
         if target.kind == "folder":
             return self._entry(self.eln_client.get_folder(target.gid[2:]), True, target.gid)
-        return self._entry(self.eln_client.get_file_info(target.gid[2:]), False, target.gid)
+        return self._entry(self._placed_file(path, target), False, target.gid)
+
+    def _placed_file(self, path: str, target: Target) -> dict:
+        """The file's record, provided it sits in the folder the path names."""
+        record = self.eln_client.get_file_info(target.gid[2:])
+        if str(record.get("parentFolderId")) != str(self._folder_id(self._parent(path))):
+            raise FileNotFoundError(errno.ENOENT, f"{path!r}: {target.gid} is not in this folder", path)
+        return record
 
     # ------------------------------------------------------------ folders
 

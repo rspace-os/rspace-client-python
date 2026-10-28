@@ -23,6 +23,14 @@ All notable changes to this project will be documented in this file
   including bracketed names. New dependency `fsspec`. Listings recognise the Gallery root by its `GF`
   id, and refuse a page without its records or a `next` link that loops. A search typed as `*.csv` or
   `data*` works through Galaxy's search box instead of failing on the `**` it produces.
+  Linking or copying into an occupied Inventory attachment field is refused like an upload,
+  instead of replacing its file. Field edits in the Workspace take a per-document lock and are
+  read back and re-applied when another writer overwrote them, so concurrent uploads into one
+  field no longer drop links (writers in separate processes can still race; the API has no
+  atomic append). A file segment written as a global ID only resolves under the field, record or
+  Gallery folder that really holds it, and a missing one is `FileNotFoundError`.
+- An error answered with RSpace's HTML error page is reported by the page's title instead of
+  the whole page.
 - Deprecated `rspace_client.eln.fs.GalleryFilesystem` and
   `rspace_client.inv.attachment_fs.InventoryAttachmentFilesystem` (PyFilesystem2, unmaintained
   upstream). Unchanged in behaviour apart from the fixes below, now emit a `DeprecationWarning`; removal together with

@@ -230,14 +230,36 @@ class InventoryFilesystem(RSpaceFSBase):
         if target.kind == "section":
             return self._virtual_dir(target.section, {"section": target.section})
         if target.kind == "attachment":
-            attachment = self.inv_client.get_attachment_by_id(target.gid[2:])
-            return self._file_entry(attachment, target.gid)
+            return self._file_entry(self._placed_file(path, target), target.gid)
         record = self._fetch(target.gid, include_content=False)
         if target.kind == "shortcut":
             return self._shortcut_entry(record)
         return self._entry(record, True, target.gid)
 
     # ------------------------------------------------------------ files
+
+    def _placed_file(self, path: str, target: Target) -> dict:
+        """The attachment, provided it hangs off the record or field it was reached through
+        (for a shortcut, the sample). A replaced field attachment is kept by the server as
+        deleted, and is not there either."""
+        attachment = self.inv_client.get_attachment_by_id(target.gid[2:])
+        if attachment.get("parentGlobalId") != target.parent_gid or attachment.get("deleted"):
+            raise FileNotFoundError(
+                errno.ENOENT, f"{path!r}: {target.gid} is not attached to {target.parent_gid or 'this folder'}", path)
+        return attachment
+
+    def _require_empty_field(self, target: Target, container: str) -> None:
+        """An attachment field holds one file, and RSpace *replaces* it when another is added,
+        whether uploaded or linked. A folder looks like something you add to, so silently
+        destroying its contents would be a nasty surprise: refuse, and say what to do. Called
+        before anything reaches the server, so a refusal leaves nothing behind."""
+        existing = self._field(target.parent_gid, target.gid).get("attachment")
+        if existing:
+            raise FileExistsError(
+                errno.EEXIST,
+                f"{container!r} already holds {existing.get('name')!r}; an attachment field "
+                f"takes a single file and adding another would replace it. Remove the existing "
+                f"file first.", container)
 
     @deletes
     def rm_file(self, path: str) -> None:
@@ -269,17 +291,7 @@ class InventoryFilesystem(RSpaceFSBase):
         container, name = self._upload_target(path)
         target = self._resolve(container)
         if target.kind == "field":
-            # An attachment field holds one file, and RSpace *replaces* it on a second upload
-            # rather than adding. A folder looks like something you add to, so silently
-            # destroying its contents would be a nasty surprise: refuse, and say what to do.
-            # Checked before anything is uploaded, so a refusal leaves nothing behind.
-            existing = self._field(target.parent_gid, target.gid).get("attachment")
-            if existing:
-                raise FileExistsError(
-                    errno.EEXIST,
-                    f"{container!r} already holds {existing.get('name')!r}; an attachment field "
-                    f"takes a single file and uploading would replace it. Remove the existing "
-                    f"file first.", container)
+            self._require_empty_field(target, container)
         elif target.kind not in ("record", "shortcut"):
             raise NotImplementedError(
                 f"{container!r}: files attach to a record or one of its attachment fields")
@@ -316,6 +328,8 @@ class InventoryFilesystem(RSpaceFSBase):
         target = self._resolve(path)
         if target.kind not in ("record", "shortcut", "field"):
             raise NotImplementedError(f"{path!r}: a Gallery file links to a record or an attachment field")
+        if target.kind == "field":
+            self._require_empty_field(target, path)
         result = self.inv_client.attach_gallery_file_by_global_id(target.gid, media_file_gid)
         self.invalidate_cache()
         return result
