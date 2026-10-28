@@ -35,3 +35,8 @@ one). The container's `rspace-client` must contain `rspace_client.fs`. Galaxy 25
 fsspec base class already; the plugin's hooks accept both the 25.1 and the 26.x signatures.
 Verified 2026-10-06 against Galaxy 25.1 and RSpace 2.26: listing, search, pagination, import
 and export through the web API and the upload picker.
+
+Known limitation: Galaxy writes with `put_file` alone and `RSpaceFilesystem` does not create
+missing folders, so an export into a folder typed into the export form's "enter directory
+name" box fails with `FileNotFoundError` unless that folder already exists in RSpace (checked
+2026-10-28 against Galaxy 26.1 and RSpace 2.27).

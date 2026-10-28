@@ -106,6 +106,13 @@ Inventory attachment field holds one file and refuses an upload while occupied. 
 sample template takes no attachments, and the Gallery API cannot delete Gallery files; each
 refusal says so before anything is sent.
 
+Folders are not created on the way: a file can only be written into a folder that already
+exists, and `fs.makedirs` and `fs.mkdir(..., create_parents=True)` create only the last
+segment of the path, unlike `os.makedirs`. Writing `gallery/Documents/run-42/data.csv` when
+`run-42` does not exist raises `FileNotFoundError` for `Documents/run-42`; create each level
+with `fs.mkdir` first. (Only Gallery and Workspace folders can be created at all; files in the
+Workspace go into a document's text field, and Inventory records are not made from paths.)
+
 #### Names, duplicates and global IDs
 
 Where two records in a folder share a name, the second and later ones are listed with their
@@ -133,7 +140,10 @@ placement.rerouted, placement.section, placement.path, placement.file_global_id
 
 Galaxy's file sources are built on fsspec. `tools/galaxy/rspace_fsspec_source.py` is the
 reference plugin for `RSpaceFilesystem`; the shipped Galaxy plugin still uses the
-deprecated classes below.
+deprecated classes below. Because folders are not created on the way (see
+[Writing](#writing)), a Galaxy export into a folder typed into the export form's "enter
+directory name" box fails with "not found" unless that folder already exists in RSpace;
+choose an existing folder, or create it first.
 
 ### Deprecated: the PyFilesystem classes
 
