@@ -8,6 +8,7 @@ from rspace_client.eln.fs import (
     classify_media_section,
 )
 from rspace_client.client_base import ClientBase
+from fs import errors
 from io import BytesIO
 
 
@@ -52,7 +53,7 @@ def mock_requests_get(url, *args, **kwargs):
     if url.endswith('/folders/tree'):
         mock_response.json.return_value = {
             'records': [
-                {'id': '123', 'name': 'Gallery'}
+                {'id': '123', 'globalId': 'GF123', 'name': 'Gallery'}
             ]
         }
     elif url.endswith('/folders/tree/123'):
@@ -362,6 +363,114 @@ class ElnFilesystemTest(unittest.TestCase):
     def test_invalid_per_call_policy_rejected(self):
         with self.assertRaises(ValueError):
             self.fs.upload('/GF123', BytesIO(b'x'), on_mismatch='bogus')
+
+
+
+def _page(records, next_page=None, self_link='self'):
+    """A folder-tree page shaped like the server's: a self link first, then next."""
+    links = [{'rel': 'self', 'link': self_link}]
+    if next_page:
+        links.append({'rel': 'next', 'link': next_page})
+    return {'records': records, '_links': links}
+
+
+class ElnFilesystemPagingTest(unittest.TestCase):
+    """Galaxy's shipped RSpace file source failed for accounts whose Home folder held more
+    than one page: Gallery was looked up on the first page only."""
+
+    HOME = {
+        None: _page([{'id': i, 'name': f'tree-{i}', 'globalId': f'FL{i}'} for i in range(20)], 'p2'),
+        'p2': _page([{'id': 123, 'name': 'Gallery', 'globalId': 'GF123'}], self_link='p2'),
+    }
+    GALLERY = {
+        None: _page([{'id': 1, 'name': 'Images', 'globalId': 'GF1'}], 'g2'),
+        'g2': _page([{'id': 2, 'name': 'Documents', 'globalId': 'GF2'}], self_link='g2'),
+    }
+    CALL_LIMIT = 50
+
+    def setUp(self):
+        self.home, self.gallery = dict(self.HOME), dict(self.GALLERY)
+        self.calls = 0
+
+        def count():
+            self.calls += 1
+            if self.calls > self.CALL_LIMIT:
+                raise AssertionError('paging did not stop')
+
+        def list_folder_tree(folder_id=None, *args, **kwargs):
+            count()
+            # listdir('/') passes the int gallery id, path_to_id() gives the string form
+            return (self.gallery if str(folder_id) == '123' else self.home)[None]
+
+        def get_link_contents(response, rel):
+            count()
+            link = next(l['link'] for l in response['_links'] if l['rel'] == rel)
+            return {**self.home, **self.gallery}[link]
+
+        self.fakes = {}
+        for name, fake in (('list_folder_tree', list_folder_tree), ('get_link_contents', get_link_contents),
+                           ('delete_folder', lambda *a, **k: None)):
+            patcher = patch(f'rspace_client.eln.eln.ELNClient.{name}', side_effect=fake)
+            self.fakes[name] = patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def open_fs(self):
+        return GalleryFilesystem("https://example.com", "api_key")
+
+    def test_gallery_found_beyond_first_page_of_home(self):
+        self.assertEqual(123, self.open_fs().gallery_id)
+
+    def test_listdir_follows_next_links(self):
+        self.assertEqual(['GF1', 'GF2'], self.open_fs().listdir('/'))
+
+    def test_listdir_by_path_string_reaches_the_same_folder(self):
+        self.assertEqual(['GF1', 'GF2'], self.open_fs().listdir('GF123'))
+
+    def test_gallery_on_first_page_does_not_fetch_the_second(self):
+        self.home[None] = _page([{'id': 123, 'name': 'Gallery', 'globalId': 'GF123'}], 'p2')
+        self.assertEqual(123, self.open_fs().gallery_id)
+        self.fakes['get_link_contents'].assert_not_called()
+
+    def test_missing_gallery_is_a_clear_error(self):
+        self.home['p2'] = _page([{'id': 9, 'name': 'Not it', 'globalId': 'FL9'}], self_link='p2')
+        with self.assertRaises(errors.CreateFailed):
+            self.open_fs()
+
+    def test_user_folder_named_gallery_is_skipped(self):
+        self.home[None] = _page([{'id': 7, 'name': 'Gallery', 'globalId': 'FL7'}], 'p2')
+        self.assertEqual(123, self.open_fs().gallery_id)
+
+    def test_page_without_records_is_an_error_and_nothing_is_deleted(self):
+        fs = self.open_fs()
+        self.gallery[None] = {'_links': []}
+        with self.assertRaises(errors.OperationFailed):
+            fs.removedir('GF123')
+        self.fakes['delete_folder'].assert_not_called()
+
+    def test_next_link_loop_is_an_error(self):
+        self.gallery['g2'] = _page([{'id': 2, 'name': 'Documents', 'globalId': 'GF2'}], None, self_link='g2')
+        self.gallery['g2']['_links'].append({'rel': 'next', 'link': 'g2'})
+        with self.assertRaises(errors.OperationFailed):
+            self.open_fs().listdir('/')
+
+    def test_removedir_reads_only_the_first_page(self):
+        fs = self.open_fs()
+        self.fakes['get_link_contents'].reset_mock()
+        with self.assertRaises(errors.DirectoryNotEmpty):
+            fs.removedir('GF123')
+        self.fakes['get_link_contents'].assert_not_called()
+        self.fakes['delete_folder'].assert_not_called()
+
+    def test_empty_folder_is_deleted(self):
+        fs = self.open_fs()
+        self.gallery[None] = _page([])
+        fs.removedir('GF123')
+        self.fakes['delete_folder'].assert_called_once_with('123')
+
+    def test_page_without_links_ends_the_listing(self):
+        fs = self.open_fs()
+        self.gallery[None] = {'records': [{'id': 1, 'name': 'Images', 'globalId': 'GF1'}]}
+        self.assertEqual(['GF1'], fs.listdir('/'))
 
 
 if __name__ == '__main__':

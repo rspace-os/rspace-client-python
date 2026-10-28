@@ -18,6 +18,12 @@ All notable changes to this project will be documented in this file
 - Removed a stray debug print from `InventoryClient.upload_attachment_by_global_id`.
 - Added `rspace_client/tests/mock_rspace`, an offline mock of the ELN and Inventory REST
   endpoints the PyFilesystem classes use, shared by the unit suite. Not installed.
+- Fixed `rspace_client.eln.fs.GalleryFilesystem` reading only the first page of a folder
+  listing: it failed to open (`StopIteration`) when the Gallery folder was not on the first
+  page of the Home folder, and `listdir` showed only the newest 20 entries of a Gallery folder.
+  Both broke Galaxy's shipped RSpace file source. A missing Gallery now raises `CreateFailed`,
+  the Gallery root is matched by its `GF` id as well as its name, and `removedir` refuses a
+  malformed listing instead of treating it as empty.
 
 ## Unreleased
 
