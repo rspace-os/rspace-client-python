@@ -239,8 +239,11 @@ class GalleryFilesystem(RSpaceFSBase):
     def gallery_id(self) -> int:
         """Numeric id of the Gallery root folder, looked up once on first use."""
         if self._gallery_id is None:
+            # the Gallery root is a system folder with a GF id (the workspace branch hides it
+            # by the same rule); a user's own folder named "Gallery" is an FL and is skipped
             for record in self._all_records(None):
-                if record.get("name") == GALLERY_FOLDER_NAME:
+                if (record.get("name") == GALLERY_FOLDER_NAME
+                        and str(record.get("globalId", "")).startswith("GF")):
                     self._gallery_id = int(record["id"])
                     break
             else:

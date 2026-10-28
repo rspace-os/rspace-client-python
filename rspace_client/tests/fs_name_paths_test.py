@@ -182,7 +182,7 @@ class NamePathStyleTest(MockServerTestCase):
                  {"id": 9, "globalId": "GL9", "name": "nine.csv"}]
         client = MagicMock()
         client.list_folder_tree.side_effect = lambda folder_id=None, typesToInclude=[], **kw: (
-            {"records": [{"id": 2, "globalId": "FL2", "name": "Gallery"}]} if folder_id is None
+            {"records": [{"id": 2, "globalId": "GF2", "name": "Gallery"}]} if folder_id is None
             else {"records": files})
         client.get_file_info.side_effect = lambda fid: next(f for f in files if str(f["id"]) == str(fid))
         fs = GalleryFilesystem(eln_client=client)

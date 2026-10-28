@@ -17,7 +17,7 @@ from rspace_client.client_base import ClientBase
 from rspace_client.exceptions import AuthenticationError, RSpaceConnectionError
 from rspace_client.fs import (GalleryFilesystem, GallerySectionMismatch, InventoryFilesystem,
                               ReadOnlyError, RemoteApiError, WorkspaceFilesystem, make_entry)
-from rspace_client.fs.base import to_epoch
+from rspace_client.fs.base import stream_pages, to_epoch
 from rspace_client.fs.gallery import classify_media_section
 from rspace_client.tests.mock_server_case import segments
 
@@ -65,7 +65,7 @@ class MakeEntryTest(unittest.TestCase):
 def gallery_with_mock_client(**kwargs):
     client = MagicMock()
     client.list_folder_tree.side_effect = lambda folder_id=None, typesToInclude=[], **kw: {
-        None: {"records": [{"id": 2, "globalId": "FL2", "name": "Gallery"}]},
+        None: {"records": [{"id": 2, "globalId": "GF2", "name": "Gallery"}]},
         "2": {"records": [
             {"id": 10, "globalId": "GF10", "name": "Images", "created": "2026-09-01T09:01:00.000Z"},
             {"id": 100, "globalId": "GL100", "name": "a.png", "created": "2026-09-01T09:02:00.000Z", "size": 5},
@@ -96,6 +96,15 @@ class GalleryFilesystemTest(unittest.TestCase):
         client.list_folder_tree.return_value = {"records": [{"id": 1, "name": "Something else"}]}
         with self.assertRaises(FileNotFoundError):
             GalleryFilesystem(eln_client=client).ls("")
+
+    def test_a_user_folder_named_gallery_is_not_the_root(self):
+        """Home lists newest first, so a user's own "Gallery" (an FL folder) would come before
+        the real root (a GF folder) if the lookup went by name alone."""
+        client = MagicMock()
+        client.list_folder_tree.return_value = {"records": [
+            {"id": 7, "globalId": "FL7", "name": "Gallery"},
+            {"id": 2, "globalId": "GF2", "name": "Gallery"}]}
+        self.assertEqual(2, GalleryFilesystem(eln_client=client).gallery_id)
 
     def test_sizes_are_topped_up_when_the_listing_omits_them(self):
         """Real folder-tree items have no size; consumers such as Galaxy require an int.
@@ -250,7 +259,7 @@ class GalleryFilesystemTest(unittest.TestCase):
         glob would read '[GL112]' as a character class and find nothing."""
         fs, client = gallery_with_mock_client(path_style="name")
         client.list_folder_tree.side_effect = lambda folder_id=None, **kw: {
-            None: {"records": [{"id": 2, "globalId": "FL2", "name": "Gallery"}]},
+            None: {"records": [{"id": 2, "globalId": "GF2", "name": "Gallery"}]},
             2: {"records": [{"id": 11, "globalId": "GF11", "name": "Documents"}]},
             "11": {"records": [{"id": 110, "globalId": "GL110", "name": "protocol.docx", "size": 1},
                                {"id": 111, "globalId": "GL111", "name": "data.csv", "size": 1},
@@ -608,7 +617,7 @@ class ApiErrorTranslationTest(unittest.TestCase):
     def test_errors_during_a_lazy_listing_are_translated_too(self):
         fs, client = gallery_with_mock_client()
         client.list_folder_tree.side_effect = lambda *a, **kw: {
-            "records": [{"id": 2, "globalId": "FL2", "name": "Gallery"}],
+            "records": [{"id": 2, "globalId": "GF2", "name": "Gallery"}],
             "_links": [{"rel": "next", "link": "http://example.com/api/v1/folders/tree?pageNumber=1"}]}
         client.get_link_contents.side_effect = ClientBase.ApiError("gone", response_status_code=404)
         listing = fs.scandir("")  # first page is fine; the second page fails while iterating
@@ -634,6 +643,50 @@ class ApiErrorTranslationTest(unittest.TestCase):
         with self.assertRaises(FileNotFoundError) as ctx:
             fs.info("GF10")
         self.assertIs(original, ctx.exception.__cause__)
+
+
+class StreamPagesTest(unittest.TestCase):
+    """``stream_pages`` serves every branch's listings, so its guards protect every rmdir."""
+
+    @staticmethod
+    def client_with_pages(pages):
+        """A client whose links are looked up by rel, as the real one does, never by position."""
+        client = MagicMock()
+
+        def link(page, rel):
+            return next(l["link"] for l in page.get("_links", []) if l["rel"] == rel)
+
+        client.get_link.side_effect = link
+        client.get_link_contents.side_effect = lambda page, rel: pages[link(page, rel)]
+        return client
+
+    @staticmethod
+    def page(records, url, next_url=None):
+        links = [{"rel": "self", "link": url}]
+        if next_url:
+            links.append({"rel": "next", "link": next_url})
+        return {"records": records, "_links": links}
+
+    def test_follows_next_links_in_order(self):
+        pages = {"p1": self.page([{"n": 1}], "p1", "p2"), "p2": self.page([{"n": 2}], "p2")}
+        out = list(stream_pages(self.client_with_pages(pages), pages["p1"], "records"))
+        self.assertEqual([{"n": 1}, {"n": 2}], out)
+
+    def test_a_next_link_loop_is_an_error_not_a_hang(self):
+        pages = {"p1": self.page([{"n": 1}], "p1", "p2"), "p2": self.page([{"n": 2}], "p2", "p1")}
+        with self.assertRaises(OSError) as ctx:
+            list(stream_pages(self.client_with_pages(pages), pages["p1"], "records"))
+        self.assertEqual(errno.EIO, ctx.exception.errno)
+
+    def test_a_page_without_its_collection_is_an_error_not_empty(self):
+        with self.assertRaises(OSError) as ctx:
+            list(stream_pages(MagicMock(), {"_links": []}, "records"))
+        self.assertEqual(errno.EIO, ctx.exception.errno)
+
+    def test_a_page_without_links_ends_the_stream(self):
+        client = MagicMock()
+        self.assertEqual([{"n": 1}], list(stream_pages(client, {"records": [{"n": 1}]}, "records")))
+        client.get_link_contents.assert_not_called()
 
 
 if __name__ == "__main__":

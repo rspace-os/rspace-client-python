@@ -241,11 +241,19 @@ def stream_pages(client: ClientBase, first_page: Mapping, key: str) -> Iterator[
     the rest of the listing.
     """
     page = first_page
+    followed = set()
     while True:
-        yield from page.get(key, [])
+        if key not in page:
+            # a page without its collection is malformed, not empty: _is_empty gates rmdir on this
+            raise OSError(errno.EIO, f"RSpace listing page carries no {key!r}")
+        yield from page[key]
         # not client.link_exists(): that raises when a page carries no _links at all
         if not any(link.get("rel") == "next" for link in page.get("_links") or []):
             return
+        next_link = client.get_link(page, "next")
+        if next_link in followed:
+            raise OSError(errno.EIO, f"RSpace listing 'next' links form a loop: {next_link}")
+        followed.add(next_link)
         page = client.get_link_contents(page, "next")
 
 
