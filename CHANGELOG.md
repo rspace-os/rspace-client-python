@@ -21,7 +21,8 @@ All notable changes to this project will be documented in this file
   defer uploads. `rspace://host` URLs via `fsspec.open`, `fsspec.filesystem("rspace")` and
   `UPath` (registered as an `fsspec.specs` entry point), key from `RSPACE_API_KEY` only. `glob("<dir>/*<text>*")` answers Galaxy's search
   including bracketed names. New dependency `fsspec`. Listings recognise the Gallery root by its `GF`
-  id, and refuse a page without its records or a `next` link that loops.
+  id, and refuse a page without its records or a `next` link that loops. A search typed as `*.csv` or
+  `data*` works through Galaxy's search box instead of failing on the `**` it produces.
 - Deprecated `rspace_client.eln.fs.GalleryFilesystem` and
   `rspace_client.inv.attachment_fs.InventoryAttachmentFilesystem` (PyFilesystem2, unmaintained
   upstream). Unchanged in behaviour apart from the fixes below, now emit a `DeprecationWarning`; removal together with

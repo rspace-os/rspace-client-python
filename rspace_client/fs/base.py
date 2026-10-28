@@ -572,6 +572,10 @@ class RSpaceFSBase(AbstractFileSystem):
         own glob treats ``[`` as a character class and ignores the backslash Galaxy escapes
         it with, so a segment carrying ``[GL83]`` could never be found that way."""
         path = self._strip_protocol(path)
+        # Galaxy wraps a query as ``*<query>*``, so a query that itself starts or ends with a
+        # star ("*.csv") arrives as ``**.csv*``, which fsspec refuses because ``**`` only means
+        # something as a whole path component. Inside a segment the user meant a single star.
+        path = "/".join(seg if seg == "**" else re.sub(r"\*{2,}", "*", seg) for seg in path.split("/"))
         match = self._GALAXY_SEARCH.match(path)
         if match and maxdepth in (None, 1):
             needle = re.sub(r"\\(.)", r"\1", match.group("text")).lower()

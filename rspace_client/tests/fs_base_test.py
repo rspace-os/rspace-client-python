@@ -254,6 +254,23 @@ class GalleryFilesystemTest(unittest.TestCase):
                 raise RuntimeError("abort")
         client.upload_file.assert_not_called()
 
+    def test_glob_tolerates_a_star_at_either_end_of_a_search(self):
+        """A Galaxy query of "*.csv" or "data*" is wrapped as "*<query>*", so the pattern
+        carries "**" inside a segment; fsspec refuses that, the user meant one star."""
+        fs, client = gallery_with_mock_client(path_style="name")
+        client.list_folder_tree.side_effect = lambda folder_id=None, **kw: {
+            None: {"records": [{"id": 2, "globalId": "GF2", "name": "Gallery"}]},
+            2: {"records": [{"id": 11, "globalId": "GF11", "name": "Documents"}]},
+            "11": {"records": [{"id": 110, "globalId": "GL110", "name": "protocol.docx", "size": 1},
+                               {"id": 111, "globalId": "GL111", "name": "data.csv", "size": 1},
+                               {"id": 112, "globalId": "GL112", "name": "notes.csv", "size": 1}]},
+        }[folder_id]
+        self.assertEqual(["Documents/data.csv", "Documents/notes.csv"], fs.glob("Documents/**.csv*"))
+        self.assertEqual(["Documents/data.csv"], fs.glob("Documents/*data**"))
+        self.assertEqual(["Documents/data.csv", "Documents/notes.csv"], fs.glob("Documents/***.csv***"))
+        # a whole-segment ** keeps its recursive meaning
+        self.assertIn("Documents/data.csv", fs.glob("**/data.csv"))
+
     def test_glob_finds_a_bracketed_segment_in_listing_order(self):
         """Galaxy's search box escapes '[' as '\\[' and hands the pattern to glob; fsspec's own
         glob would read '[GL112]' as a character class and find nothing."""
