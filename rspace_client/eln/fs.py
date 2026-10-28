@@ -145,17 +145,31 @@ class GalleryFilesystem(FS):
             )
         self.on_mismatch = on_mismatch
         self.eln_client = eln.ELNClient(server, api_key)
-        self.gallery_id = next(file['id'] for file in self._all_records(None) if file['name'] == 'Gallery')
+        # The Gallery root is a system folder with a GF id; a user's own folder named
+        # "Gallery" (FL...) would otherwise be picked when it sorts first in Home.
+        gallery = next((file for file in self._all_records(None)
+                        if file.get('name') == 'Gallery' and str(file.get('globalId', '')).startswith('GF')), None)
+        if gallery is None:
+            raise errors.CreateFailed("no folder named 'Gallery' in the Home folder listing")
+        self.gallery_id = gallery['id']
 
     def _all_records(self, folder_id) -> Iterator[dict]:
         """All records of a folder listing, following its 'next' links: the Home folder
         of a busy account holds more than one page, and Gallery need not be on the first."""
         page = self.eln_client.list_folder_tree(folder_id)
+        followed = set()
         while True:
-            yield from page.get('records', [])
+            if 'records' not in page:
+                # a listing without records is malformed, not empty: removedir relies on this
+                raise errors.OperationFailed(msg="folder listing carries no 'records'")
+            yield from page['records']
             # not link_exists(): that raises when a page carries no _links at all
             if not any(link.get('rel') == 'next' for link in page.get('_links') or []):
                 return
+            next_link = self.eln_client.get_link(page, 'next')
+            if next_link in followed:
+                raise errors.OperationFailed(msg="folder listing 'next' links form a loop: " + str(next_link))
+            followed.add(next_link)
             page = self.eln_client.get_link_contents(page, 'next')
 
     def getinfo(self, path, namespaces=None) -> Info:
@@ -230,7 +244,8 @@ class GalleryFilesystem(FS):
             raise errors.RemoveRootError()
         if (not is_folder(path)):
             raise errors.DirectoryExpected(path)
-        if len(self.listdir(path)) > 0:
+        # only the first page is needed to know the folder is not empty
+        if next(self._all_records(path_to_id(path)), None) is not None:
             raise errors.DirectoryNotEmpty(path)
         self.eln_client.delete_folder(path_to_id(path))
 
