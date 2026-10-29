@@ -8,6 +8,46 @@ All notable changes to this project will be documented in this file
 
 ## 2.8.0 (unreleased)
 
+- New `rspace_client.fs`: RSpace as an [fsspec](https://filesystem-spec.readthedocs.io)
+  filesystem. `RSpaceFilesystem` mounts `gallery/`, `inventory/` and `workspace/` (Gallery
+  folders and files; Inventory benches, containers, samples, subsamples, templates and
+  instruments as folders of their records and attachments, attachment fields as one-file
+  folders; ELN folders, notebooks and documents, a document as a folder of its text fields
+  and a field as a folder of its linked files). Paths are record names; duplicate names
+  and names that read as addresses carry their global ID (`data [GL112].csv`);
+  `path_style="labelled"` / `"id"` for stable paths. Read-only by default (`writable=True`,
+  `allow_delete=True`). Uploads into Inventory and the Workspace go through the Gallery and
+  link; `cp_file` from any Gallery-backed file links instead of copying bytes. Transactions
+  defer uploads. `rspace://host` URLs via `fsspec.open`, `fsspec.filesystem("rspace")` and
+  `UPath` (registered as an `fsspec.specs` entry point), key from `RSPACE_API_KEY` only. `glob("<dir>/*<text>*")` answers Galaxy's search
+  including bracketed names. New dependency `fsspec`. Listings recognise the Gallery root by its `GF`
+  id, and refuse a page without its records or a `next` link that loops. A search typed as `*.csv` or
+  `data*` works through Galaxy's search box instead of failing on the `**` it produces.
+  Linking or copying into an occupied Inventory attachment field is refused like an upload,
+  instead of replacing its file. Field edits in the Workspace take a per-document lock and are
+  read back and re-applied when another writer overwrote them, so concurrent uploads into one
+  field no longer drop links (writers in separate processes can still race; the API has no
+  atomic append). A file segment written as a global ID only resolves under the field, record or
+  Gallery folder that really holds it, and a missing one is `FileNotFoundError`.
+- An error answered with RSpace's HTML error page is reported by the page's title instead of
+  the whole page.
+- Deprecated `rspace_client.eln.fs.GalleryFilesystem` and
+  `rspace_client.inv.attachment_fs.InventoryAttachmentFilesystem` (PyFilesystem2, unmaintained
+  upstream). Unchanged in behaviour apart from the fixes below, now emit a `DeprecationWarning`; removal together with
+  the `fs` dependency in 3.0, after Galaxy's shipped plugin has moved to `rspace_client.fs`.
+- Fix: uploads accept a file object that forwards `read` through `__getattr__`. requests 2.34
+  refuses such objects on Python 3.12+, which broke exports from Galaxy 26.1 (it pins requests
+  2.34.2) to RSpace through Galaxy's shipped `rspace` file source.
+- Fix: `GalleryFilesystem` reports a file's `created` date as `+00:00` instead of RSpace's
+  trailing `Z` (the same UTC instant). Galaxy's shipped `rspace` file source parses it with
+  `datetime.fromisoformat`, which rejects `Z` before Python 3.11, so on Python 3.10 Galaxy
+  failed to list any Gallery folder holding files.
+- `rspace_client/tests/galaxy_plugin_contract_test.py` pins what Galaxy's shipped plugin relies
+  on; a failure there is a release blocker.
+- Tests: the Link-field integration tests always run instead of needing
+  `RSPACE_SUPPORTS_LINK_FIELDS=1`; current RSpace releases support Link fields.
+- `tools/galaxy/rspace_fsspec_source.py`: the reference Galaxy file source for the new
+  filesystem, to be proposed upstream.
 - Security: the client never follows an HTTP redirect, since `requests` would carry the
   `apiKey` header to the new host.
 - Client-level changes: `_links` URLs are rebased onto the configured base URL, path prefix

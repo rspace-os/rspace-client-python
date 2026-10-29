@@ -1,3 +1,4 @@
+import inspect
 import logging
 import re
 import requests
@@ -23,6 +24,35 @@ DEFAULT_MAX_RETRIES = 3
 DEFAULT_BACKOFF_FACTOR = 0.5
 RETRY_STATUSES = (429, 500, 502, 503, 504)
 REDIRECT_STATUSES = (301, 302, 303, 307, 308)
+
+
+class _ReadForwarder:
+    """
+    Gives requests a file object it recognises. Since requests 2.34, a multipart file part
+    must define ``read`` on its class: on Python 3.12+ the check skips ``__getattr__``, so
+    a wrapper that forwards ``read`` dynamically (Galaxy's ``FakedNameIO``, which Galaxy's
+    RSpace file source passes to ``ELNClient.upload_file``) is refused with a TypeError.
+    """
+
+    def __init__(self, file):
+        self._file = file
+        self.name = getattr(file, "name", None)  # requests names the part after it
+
+    def read(self, *args):
+        return self._file.read(*args)
+
+
+def _readable_part(part):
+    """A multipart file part, with a file object that only reads dynamically wrapped."""
+    if isinstance(part, (tuple, list)) and len(part) >= 2:
+        return (part[0], _readable_part(part[1])) + tuple(part[2:])
+    if (
+        not isinstance(part, (str, bytes, bytearray))
+        and inspect.getattr_static(part, "read", None) is None
+        and callable(getattr(part, "read", None))
+    ):
+        return _ReadForwarder(part)
+    return part
 
 
 class _RSpaceRetry(Retry):
@@ -186,7 +216,20 @@ class ClientBase:
                 return ClientBase._get_formated_error_message(response.json())
             except ValueError:
                 pass
-        return "error message: {}".format(response.text)
+        text = response.text or ""
+        if text.lstrip()[:15].lower().startswith(("<!doctype html", "<html")):
+            # RSpace answers some failures (a download of a file that does not exist, say)
+            # with its whole web error page, scripts and all. Keep what a person can read:
+            # a proxy's short page as it is, otherwise the page title.
+            visible = re.sub(r"<(script|style)\b.*?</\1>", " ", text, flags=re.I | re.S)
+            visible = " ".join(re.sub(r"<[^>]+>", " ", visible).split())
+            if len(visible) <= 200:
+                return "error message: {}".format(visible or "an empty HTML page")
+            title = re.search(r"<title[^>]*>(.*?)</title>", text, re.I | re.S)
+            title = " ".join(title.group(1).split()) if title else ""
+            return "error message: the server answered with an HTML error page{}".format(
+                f" ({title})" if title else "")
+        return "error message: {}".format(text)
 
     @staticmethod
     def _check_status(response):
@@ -296,6 +339,8 @@ class ClientBase:
         url = endpoint
         if not self._is_absolute_url(endpoint):
             url = self._get_api_url() + endpoint
+        if files:
+            files = {key: _readable_part(part) for key, part in files.items()}
         try:
             response = self._session.post(
                 url,

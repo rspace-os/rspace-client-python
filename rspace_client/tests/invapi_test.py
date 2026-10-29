@@ -1138,21 +1138,7 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertIn("serverUrl", result)
         self.assertIn("repositoryPrefix", result)
 
-    def _require_link_field_support(self):
-        """
-        Skips the calling test unless the target server is known to support
-        Inventory Link fields (RSpace server PR #803 / RSDEV-1131). Released
-        servers predate the feature, so the tests are opt-in via the
-        RSPACE_SUPPORTS_LINK_FIELDS environment variable.
-        """
-        if not os.getenv("RSPACE_SUPPORTS_LINK_FIELDS"):
-            pytest.skip(
-                "Skipping Link-field test: set RSPACE_SUPPORTS_LINK_FIELDS=1 "
-                "to run against a server that supports Inventory Link fields"
-            )
-
     def test_add_link_extra_field(self):
-        self._require_link_field_support()
         target = self.invapi.create_sample(base.random_string())
         source = self.invapi.create_sample(base.random_string())
         link_ef = inv.ExtraField.link(
@@ -1168,7 +1154,6 @@ class InventoryApiTest(base.BaseApiTest):
         )
 
     def test_create_sample_with_link_extra_field(self):
-        self._require_link_field_support()
         target = self.invapi.create_sample(base.random_string())
         link_ef = inv.ExtraField.link(
             "cites", inv.RelationType.CITES, target["globalId"]
@@ -1182,7 +1167,6 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(1, len(link_fields))
 
     def test_get_referencing_items(self):
-        self._require_link_field_support()
         target = self.invapi.create_sample(base.random_string())
         source = self.invapi.create_sample(base.random_string())
         link_ef = inv.ExtraField.link(
@@ -1193,13 +1177,11 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertIsInstance(referencing, dict)
 
     def test_get_link_target_summary(self):
-        self._require_link_field_support()
         target = self.invapi.create_sample(base.random_string())
         summary = self.invapi.get_link_target_summary(target["globalId"])
         self.assertEqual(target["globalId"], summary["globalId"])
 
     def test_create_sample_template_with_link_field(self):
-        self._require_link_field_support()
         template_post = (
             template_builder.TemplateBuilder(base.random_string(), "ml")
             .link(

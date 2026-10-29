@@ -24,14 +24,20 @@ exclude = ["examples/*", "rspace_client/tests/*"]
 python = "^3.9"
 requests = "^2.25.1"
 beautifulsoup4 = "^4.9.3"
-fs = "^2.4.16"
-setuptools = "<82"
+fs = "^2.4.16"           # deprecated PyFilesystem2 classes only (rspace_client.eln.fs, rspace_client.inv.attachment_fs); removed in 3.0
+setuptools = "<82"       # fs 2.4.16 imports pkg_resources; goes with fs
+fsspec = ">=2024.3.0"   # rspace_client.fs
+
+# lets fsspec.filesystem("rspace") and rspace:// URLs work before rspace_client.fs is imported
+[tool.poetry.plugins."fsspec.specs"]
+rspace = "rspace_client.fs:RSpaceFilesystem"
 
 [tool.poetry.group.dev.dependencies]
 python-dotenv = "^1.1.1"
 black = "^21.6b0"
 pytest = "^8.0.0"
 responses = "^0.26.2"
+universal-pathlib = ">=0.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

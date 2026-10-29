@@ -1,11 +1,11 @@
 """
 Shared fixture for the offline filesystem tests.
 
-The embedded mock RSpace (``rspace_client/tests/mock_rspace``) is started once per
-session by ``conftest.py`` and installed here; every ``MockServerTestCase`` subclass
-talks to that one server and begins each test from the stock fixtures
-(``server.reset()``). Under plain ``python -m unittest`` no conftest runs, so the
-first class to need a server starts one lazily and keeps it for the process.
+The embedded mock RSpace (``rspace_client/tests/mock_rspace``) is started once per process,
+by the first test class that needs it, and kept until exit; every ``MockServerTestCase``
+begins each test from the stock fixtures (``server.reset()``). One server rather than one
+per class, because the suite used to spend most of its wall time in ``serve_forever``
+shutdowns.
 """
 import atexit
 import unittest
@@ -13,34 +13,29 @@ from typing import Optional, Tuple
 
 import requests
 
+from rspace_client.fs.paths import last_segment
 from rspace_client.tests.mock_rspace.server import MockRSpaceServer, run_in_thread
 
-_shared: Tuple[Optional[MockRSpaceServer], Optional[str]] = (None, None)
-_owned: Tuple[Optional[MockRSpaceServer], Optional[str]] = (None, None)
-
-
-def install_shared_server(server: Optional[MockRSpaceServer], url: Optional[str]) -> None:
-    """Called by the pytest session fixture with the session's server, then with None at teardown."""
-    global _shared
-    _shared = (server, url)
-
-
-def _stop_owned() -> None:
-    server, _ = _owned
-    if server is not None:
-        server.shutdown()
-        server.server_close()
+_server: Optional[Tuple[MockRSpaceServer, str]] = None
 
 
 def shared_server() -> Tuple[MockRSpaceServer, str]:
-    """The session server if pytest installed one, else a process-wide fallback started on demand."""
-    global _owned
-    if _shared[0] is not None:
-        return _shared  # type: ignore[return-value]
-    if _owned[0] is None:
-        _owned = run_in_thread()
-        atexit.register(_stop_owned)
-    return _owned  # type: ignore[return-value]
+    global _server
+    if _server is None:
+        _server = run_in_thread()
+        atexit.register(lambda: (_server[0].shutdown(), _server[0].server_close()))
+    return _server
+
+
+def names(fs, path):
+    """The path segments of a directory's children, in listing order (fsspec's ``name`` is
+    the full path)."""
+    return [last_segment(n) for n in fs.ls(path, detail=False)]
+
+
+def segments(entries):
+    """The last path segment of each entry (dict) or path (str)."""
+    return [last_segment(e["name"] if isinstance(e, dict) else e) for e in entries]
 
 
 class MockServerTestCase(unittest.TestCase):
