@@ -6,6 +6,8 @@ are intercepted by responses or by mocking the shared session.
 """
 
 import json
+import os
+import tempfile
 import unittest
 from io import BytesIO
 from unittest import mock
@@ -77,6 +79,28 @@ class ELNClientMethodsTest(unittest.TestCase):
         with_size, without = (c.request.url for c in responses.calls)
         self.assertIn("pageSize=5", with_size)
         self.assertNotIn("pageSize", without)
+
+    def test_failed_export_job_reports_the_servers_error_details(self):
+        # regression: the FAILED branch used to drop the message and errors list
+        failed = {
+            "status": "FAILED",
+            "result": {"message": "disk full", "errors": ["e1", "e2"]},
+        }
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            mock.patch.object(self.client, "get_job_status", return_value=failed),
+        ):
+            log = os.path.join(tmp, "progress.log")
+            with self.assertRaises(ELNClient.ApiError) as ctx:
+                self.client._wait_till_complete_then_download(
+                    1, tmp, wait_between_requests=0, progress_log=log
+                )
+            with open(log) as f:
+                logged = f.read()
+        for text in (str(ctx.exception), logged):
+            self.assertIn("Export job failed", text)
+            self.assertIn("disk full", text)
+            self.assertIn("e1, e2", text)
 
 
 class InventoryClientMethodsTest(unittest.TestCase):
