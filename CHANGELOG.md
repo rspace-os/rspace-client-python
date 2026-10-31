@@ -67,19 +67,19 @@ All notable changes to this project will be documented in this file
 
 ## Unreleased
 
-- Packaging: migrated `pyproject.toml` to the standard PEP 621 `[project]`
-  table with Poetry 2.x as the build backend.
+- Moved `pyproject.toml` to the standard PEP 621 `[project]` table, built
+  with Poetry 2.x.
 
   Potentially breaking:
-  - Python 3.9 is no longer supported; the minimum is now 3.10.
+  - Python 3.9 is no longer supported. The minimum is now 3.10.
 
-- Development tooling: added `ruff` (lint + format, replacing `black`),
-  `mypy`, `pre-commit` and `pytest-cov` configuration.
+- Added `ruff` for linting and formatting (it replaces `black`), plus
+  configuration for `mypy`, `pre-commit` and `pytest-cov`.
 
 - Fixed shared mutable default arguments (`Pagination()`, `tags=[]`,
   `extra_fields=[]`, `TopLevelTargetLocation()`, `item_ids=[]`,
-  `typesToInclude=[]`) in several `inv` and `eln` methods, which could leak
-  state across calls made without an explicit argument.
+  `typesToInclude=[]`) in several `inv` and `eln` methods. A call that used
+  the default could see state left behind by an earlier call.
 
 - Fixed `Sample.wherep()` returning a `set` instead of the documented `list`.
 
@@ -88,26 +88,27 @@ All notable changes to this project will be documented in this file
 
 - Fixed `GridContainerPost` sending `cType: "LIST"` instead of `"GRID"`.
 
-  Potentially breaking: grid containers created via `GridContainerPost` are
-  now sent to the server with `cType: "GRID"`.
+  Potentially breaking: the server now creates these as grid containers, not
+  list containers.
 
 - Fixed `ListContainer.is_list()` raising `TypeError` when called on an
-  instance (missing `self`).
+  instance. The method was missing `self`.
 
-- Fixed the `URL` field validator's error message, which was missing its
-  f-string prefix and printed the literal placeholders; it also no longer
-  catches unrelated exceptions with a bare `except`.
+- Fixed the `URL` field validator's error message. It was missing its
+  f-string prefix, so it printed the literal placeholders. The validator also
+  no longer catches unrelated exceptions with a bare `except`.
 
-- Fixed the error raised when an ELN export job fails: the server's error
-  detail was dropped, leaving only "Export job failed: ".
+- Fixed the error raised when an ELN export job fails. It dropped the
+  server's error detail and said only "Export job failed: ".
 
-- CI: added a lint job (ruff check, ruff format --check, mypy) and unit test
-  coverage reporting with a 55% floor.
+- Added a CI lint job that runs `ruff check`, `ruff format --check` and
+  `mypy`. Unit tests in CI now report coverage and fail below 55%.
 
-- Releases: tagging `v*` now builds and publishes to PyPI via a Trusted
-  Publishing GitHub Actions workflow; `release.sh` bumps the version with
-  `poetry version` and no longer publishes. Added Dependabot for pip and
-  GitHub Actions updates.
+- Pushing a `v*` tag now builds the package and publishes it to PyPI from a
+  GitHub Actions workflow that uses Trusted Publishing. `release.sh` bumps the
+  version with `poetry version` and no longer publishes.
+
+- Added Dependabot for pip and GitHub Actions updates.
 
 - Gallery upload routing and section-mismatch handling (PR #56): clearer
   `GallerySectionMismatch` exception, optional `on_mismatch="reroute"`

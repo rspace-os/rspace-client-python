@@ -72,33 +72,29 @@ extend-exclude = ["rspace_client/notebook_sync", "jupyter_notebooks"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
-# `ruff format` already wraps every line it safely can at 88 columns; what's
-# left is mostly long strings, URLs and comments that splitting would only
-# make harder to read, so line length is left to the formatter rather than
-# enforced as a lint error.
+# `ruff format` wraps every line it can at 88 columns. The long lines left are
+# mostly strings, URLs and comments that read worse when split, so E501 is off.
 ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
-# tree_upload.py passes lambdas straight into a helper that invokes them
-# synchronously within the same loop iteration, so the loop-variable capture
-# ruff warns about here is never actually stale.
+# tree_upload.py passes lambdas to a helper that calls them in the same loop
+# iteration, so the loop variable they capture is never stale.
 "examples/tree_upload.py" = ["B023"]
 
 [tool.mypy]
 python_version = "3.10"
 ignore_missing_imports = true
-# Much of this codebase predates type hints and still relies on `= None`
-# defaults with a non-Optional annotation; restore mypy's pre-1.0 behaviour
-# of treating that as implicitly Optional rather than annotating every call
-# site as part of a tooling change. Revisit as part of the Phase 3 full-typing
-# pass (see .claude/rspace-python-client-improvement.md).
+# Much of this code predates type hints and puts `= None` defaults on
+# non-Optional annotations. implicit_optional keeps mypy's pre-1.0 behaviour of
+# treating those as Optional, so this tooling change doesn't have to edit every
+# signature. Remove it once the code is fully typed.
 implicit_optional = true
 exclude = ["rspace_client/notebook_sync"]
 
-# rspace_client.fs and its offline mock server landed on main after the
-# tooling pass and have not been through it yet (59 errors at the time,
-# mostly `str | None` passed where `str` is expected). Checked leniently
-# until they get their own typing pass; delete this block to see them.
+# rspace_client.fs and its offline mock server reached main after the tooling
+# pass and have not been typed yet. They had 59 errors when this block was
+# added, mostly `str | None` passed where `str` is expected. Delete the block
+# to see them.
 [[tool.mypy.overrides]]
 module = [
   "rspace_client.fs.*",

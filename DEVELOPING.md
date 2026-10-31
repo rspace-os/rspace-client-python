@@ -4,7 +4,7 @@ Python 3.10 or later is required. We aim to support only active versions of Pyth
 
 ### Setup
 
-Create a virtual environment with a supported Python version installed. If you use `conda`, you can do this
+Create a virtual environment with Python 3.10 or later. With `conda`, this creates one with Python 3.12:
 
 ```
 conda env create -f environment.yaml
@@ -29,7 +29,7 @@ poetry run ruff format rspace_client examples
 poetry run mypy rspace_client
 ```
 
-A [pre-commit](https://pre-commit.com/) config is provided to run these automatically on each commit:
+To run these checks on every commit, install the [pre-commit](https://pre-commit.com/) hooks:
 
 ```
 poetry run pre-commit install
@@ -81,11 +81,11 @@ Galaxy ships an `rspace` file source built on this library's deprecated `rspace_
  
 ### Making a release
 
-- Get a clean test run
-- Update the version in `pyproject.toml` (`poetry version <new-version>`); the README's PyPI badge
-  and the package's `__version__` are both resolved dynamically, so nothing else needs the version hardcoded
-- Update the changelog to include the new version and required RSpace version
-- Commit, then tag with syntax like `v2.2.0` and push the tag
-- Pushing a `v*` tag triggers `.github/workflows/release.yml`, which runs the unit tests, builds the
-  sdist/wheel, and publishes to PyPI via [Trusted Publishing](https://docs.pypi.org/trusted-publishers/)
-  (no API token needed). The workflow fails fast if the tag doesn't match the `pyproject.toml` version.
+- Get a clean test run.
+- Set the new version with `poetry version <new-version>`. `pyproject.toml` is the only file that
+  holds it. `__version__` reads it from the installed package, and the README badge reads it from PyPI.
+- Add the new version and the required RSpace version to the changelog.
+- Commit, tag the commit (for example `v2.2.0`), and push the tag.
+- The tag push starts `.github/workflows/release.yml`. It runs the unit tests, stops if the tag
+  doesn't match the `pyproject.toml` version, builds the sdist and wheel, and publishes them to PyPI
+  with [Trusted Publishing](https://docs.pypi.org/trusted-publishers/), so you don't need an API token.
