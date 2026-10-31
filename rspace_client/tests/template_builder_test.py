@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Mon Jun  7 08:38:55 2021
 
 @author: richard
 """
 
-
-from rspace_client.inv.template_builder import TemplateBuilder, InstrumentTemplateBuilder
-import unittest
 import datetime as dt
+import unittest
+
+from rspace_client.inv.template_builder import (
+    InstrumentTemplateBuilder,
+    TemplateBuilder,
+)
 
 builder = None
 
@@ -144,7 +146,7 @@ class TemplateBuilderTest(unittest.TestCase):
 
     def test_build(self):
         builder = TemplateBuilder("water sample", "ml").text("notes").number("pH", 7)
-        to_post = builder.build()
+        builder.build()
 
 
 class InstrumentTemplateBuilderTest(unittest.TestCase):
@@ -161,9 +163,7 @@ class InstrumentTemplateBuilderTest(unittest.TestCase):
             "Microscope template", "A template for the lab's microscopes"
         )
         to_post = builder.build()
-        self.assertEqual(
-            "A template for the lab's microscopes", to_post["description"]
-        )
+        self.assertEqual("A template for the lab's microscopes", to_post["description"])
 
     def test_shares_field_definition_methods_with_template_builder(self):
         builder = InstrumentTemplateBuilder("Microscope template")

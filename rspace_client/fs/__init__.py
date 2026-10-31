@@ -19,14 +19,15 @@ in force (a file only under the folder, field or record that really holds it), a
 you want if a stored path has to survive a rename. The full RSpace record for any entry is
 under the ``rspace`` key of its info dict.
 """
+
 import fsspec
 
-from .base import RSpaceFSBase, ReadOnlyError, RemoteApiError, make_entry
+from .base import ReadOnlyError, RemoteApiError, RSpaceFSBase, make_entry
 from .gallery import GalleryFilesystem, GallerySectionMismatch, Placement
 from .inventory import InventoryFilesystem
-from .workspace import WorkspaceFilesystem
 from .rspace import RSpaceFilesystem
 from .tree import format_tree, print_tree
+from .workspace import WorkspaceFilesystem
 
 # also declared as an ``fsspec.specs`` entry point in pyproject.toml, so that
 # ``fsspec.filesystem("rspace")`` works before this package was imported

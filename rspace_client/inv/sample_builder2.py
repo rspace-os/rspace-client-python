@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Fri Jan 14 21:43:11 2022
 
 @author: richard
 """
-import re
-import pprint as p
-import datetime as dt
 
+import datetime as dt
+import pprint as p
+import re
 
 import rspace_client.validators as v
 

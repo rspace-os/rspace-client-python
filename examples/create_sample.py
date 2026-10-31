@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Mon Oct 18 20:23:16 2021
 
 @author: richard
 """
+
 import rspace_client
 from rspace_client.inv.inv import Barcode, BarcodeFormat
 
@@ -24,13 +24,13 @@ barcodes = [
     Barcode(
         data="https://researchspace.com",
         format=BarcodeFormat.BARCODE,
-        description="ResearchSpace"
+        description="ResearchSpace",
     ),
     Barcode(
         data="https://www.wikipedia.org/",
         format=BarcodeFormat.BARCODE,
-        description="Wikipedia"
-    )
+        description="Wikipedia",
+    ),
 ]
 
 # Convert to dicts

@@ -37,19 +37,30 @@ so ``Results/GL112`` does not reach a Gallery file that lives somewhere else.
 streamed ``page_size`` records at a time, so ``scandir`` of a large folder stays lazy.
 Read-only by default.
 """
+
 from __future__ import annotations
 
 import errno
 import re
 import threading
-from typing import Any, BinaryIO, Callable, Dict, Iterable, Iterator, Optional, Tuple
+from collections.abc import Callable, Iterable, Iterator
+from typing import Any, BinaryIO
 
 from bs4 import BeautifulSoup
 
 from rspace_client.eln import eln
 
 from . import paths
-from .base import ReadOnlyError, RSpaceFSBase, Target, client_or_new, deletes, make_entry, stream_pages, writes
+from .base import (
+    ReadOnlyError,
+    RSpaceFSBase,
+    Target,
+    client_or_new,
+    deletes,
+    make_entry,
+    stream_pages,
+    writes,
+)
 
 FOLDER_PREFIXES = ("FL",)
 NOTEBOOK_PREFIXES = ("NB",)
@@ -69,7 +80,7 @@ FIELD_EDIT_ATTEMPTS = 3
 
 #: One lock per (server, document), shared by every WorkspaceFilesystem in the process, so
 #: that two threads editing fields of one document take turns instead of overwriting each other.
-_document_locks: Dict[Tuple[str, str], threading.Lock] = {}
+_document_locks: dict[tuple[str, str], threading.Lock] = {}
 _document_locks_guard = threading.Lock()
 
 
@@ -89,11 +100,13 @@ def _gallery_file_number(media_file_gid) -> str:
     else is refused here rather than written into the field and left to the server."""
     match = GALLERY_FILE_ID.match(str(media_file_gid).strip())
     if not match:
-        raise ValueError(f"{media_file_gid!r} is not a Gallery file id (expected 'GL<number>')")
+        raise ValueError(
+            f"{media_file_gid!r} is not a Gallery file id (expected 'GL<number>')"
+        )
     return match.group(1)
 
 
-def strip_file_references(content: str, file_id) -> Optional[str]:
+def strip_file_references(content: str, file_id) -> str | None:
     """
     Remove everything in a field's HTML that references Gallery file ``file_id``:
     the literal ``<fileId=N>`` token the API accepts on write, and the markup the
@@ -106,15 +119,21 @@ def strip_file_references(content: str, file_id) -> Optional[str]:
     changed = token in content
     soup = BeautifulSoup(content.replace(token, ""), "html.parser")
     # exact forms the server uses, so a file id never matches a field id (e.g. sourceParentId=)
-    reference = re.compile(rf"(?:Streamfile/|(?<![A-Za-z])sourceId=|attachOnText_|attachmentInfoDiv_){file_id}(?!\d)")
-    image_id = re.compile(rf"^\d+-{file_id}$")  # <img id="<fieldId>-<fileId>" class="imageDropped">
+    reference = re.compile(
+        rf"(?:Streamfile/|(?<![A-Za-z])sourceId=|attachOnText_|attachmentInfoDiv_){file_id}(?!\d)"
+    )
+    image_id = re.compile(
+        rf"^\d+-{file_id}$"
+    )  # <img id="<fieldId>-<fileId>" class="imageDropped">
     for tag in list(soup.find_all(True)):
         if tag.parent is None:  # already removed with an earlier block
             continue
         hit = False
         for name, value in tag.attrs.items():
-            for v in (value if isinstance(value, list) else [value]):
-                if isinstance(v, str) and (reference.search(v) or (name == "id" and image_id.match(v))):
+            for v in value if isinstance(value, list) else [value]:
+                if isinstance(v, str) and (
+                    reference.search(v) or (name == "id" and image_id.match(v))
+                ):
                     hit = True
         if not hit:
             continue
@@ -124,7 +143,11 @@ def strip_file_references(content: str, file_id) -> Optional[str]:
             block.decompose()
             changed = True
             # an image sits in its own <p>; drop that paragraph if nothing else is left in it
-            if parent.name == "p" and not parent.get_text(strip=True) and not parent.find(True):
+            if (
+                parent.name == "p"
+                and not parent.get_text(strip=True)
+                and not parent.find(True)
+            ):
                 parent.decompose()
     return str(soup) if changed else None
 
@@ -141,13 +164,27 @@ class WorkspaceFilesystem(RSpaceFSBase):
     FILE_BEARING_FIELD_TYPES = ("text",)
     CAN_LINK = True
 
-    def __init__(self, server: Optional[str] = None, api_key: Optional[str] = None, *,
-                 eln_client: Optional[eln.ELNClient] = None, writable: bool = False,
-                 allow_delete: bool = False, path_style: str = "name",
-                 page_size: int = 100, **storage_options: Any) -> None:
-        super().__init__(writable=writable, allow_delete=allow_delete, path_style=path_style,
-                         **storage_options)
-        self.eln_client = client_or_new(eln_client, eln.ELNClient, server, api_key, "WorkspaceFilesystem")
+    def __init__(
+        self,
+        server: str | None = None,
+        api_key: str | None = None,
+        *,
+        eln_client: eln.ELNClient | None = None,
+        writable: bool = False,
+        allow_delete: bool = False,
+        path_style: str = "name",
+        page_size: int = 100,
+        **storage_options: Any,
+    ) -> None:
+        super().__init__(
+            writable=writable,
+            allow_delete=allow_delete,
+            path_style=path_style,
+            **storage_options,
+        )
+        self.eln_client = client_or_new(
+            eln_client, eln.ELNClient, server, api_key, "WorkspaceFilesystem"
+        )
         #: how many records to fetch per API request while streaming a folder listing.
         self.page_size = max(1, int(page_size))
 
@@ -171,17 +208,25 @@ class WorkspaceFilesystem(RSpaceFSBase):
             elif target.kind == "field":
                 if prefix != FILE_PREFIX:
                     raise FileNotFoundError(errno.ENOENT, f"{path!r} not found", path)
-                target = Target("file", gid=gid, parent_gid=target.parent_gid, field_gid=target.field_gid)
+                target = Target(
+                    "file",
+                    gid=gid,
+                    parent_gid=target.parent_gid,
+                    field_gid=target.field_gid,
+                )
             else:
                 raise FileNotFoundError(errno.ENOENT, f"{path!r} not found", path)
         return target
 
     # ------------------------------------------------------------ RSpace plumbing
 
-    def _tree_items(self, folder_gid: Optional[str]) -> Iterator[dict]:
+    def _tree_items(self, folder_gid: str | None) -> Iterator[dict]:
         """Stream a folder's contents, fetching the next API page only when it is reached."""
         first_page = self.eln_client.list_folder_tree(
-            None if folder_gid is None else folder_gid[2:], TREE_TYPES, page_size=self.page_size)
+            None if folder_gid is None else folder_gid[2:],
+            TREE_TYPES,
+            page_size=self.page_size,
+        )
         return stream_pages(self.eln_client, first_page, "records")
 
     def _record(self, doc_gid: str) -> dict:
@@ -192,24 +237,34 @@ class WorkspaceFilesystem(RSpaceFSBase):
         """A signed document is locked; say so before touching the server."""
         if document.get("signed"):
             raise ReadOnlyError(
-                errno.EROFS, f"{path!r}: this document is signed, so its fields cannot be changed."
-                             + (" " + extra if extra else ""), path)
+                errno.EROFS,
+                f"{path!r}: this document is signed, so its fields cannot be changed."
+                + (" " + extra if extra else ""),
+                path,
+            )
 
     def _update_field_content(self, document: dict, field: dict, content: str) -> None:
         self._require_unsigned(document, document.get("globalId", ""))
         # a refusal by the server (401/403) reaches the caller as PermissionError through
         # the shared error translation; ReadOnlyError is for this filesystem's own posture
         self.eln_client.update_document(
-            document["id"], form_id=document.get("form", {}).get("id"),
-            fields=[{"id": field["id"], "content": content}])
+            document["id"],
+            form_id=document.get("form", {}).get("id"),
+            fields=[{"id": field["id"], "content": content}],
+        )
 
     @staticmethod
     def _links(field: dict, file_number: str) -> bool:
         """Whether the server's view of ``field`` links Gallery file ``file_number``."""
         return any(str(f.get("id")) == file_number for f in field.get("files") or [])
 
-    def _edit_field(self, target: Target, edit: Callable[[str], str],
-                    applied: Callable[[dict], bool], what: str) -> None:
+    def _edit_field(
+        self,
+        target: Target,
+        edit: Callable[[str], str],
+        applied: Callable[[dict], bool],
+        what: str,
+    ) -> None:
         """Change the HTML of the field ``target`` names and make sure the change stuck.
 
         ``edit`` turns the field's current content into the new content; ``applied`` says
@@ -222,19 +277,30 @@ class WorkspaceFilesystem(RSpaceFSBase):
             for attempt in range(FIELD_EDIT_ATTEMPTS):
                 document = self._record(target.parent_gid)
                 field = self._field(target.parent_gid, target.field_gid, document)
-                if attempt and applied(field):  # the other writer's content already has it
+                if attempt and applied(
+                    field
+                ):  # the other writer's content already has it
                     return
-                self._update_field_content(document, field, edit(field.get("content") or ""))
+                self._update_field_content(
+                    document, field, edit(field.get("content") or "")
+                )
                 if applied(self._field(target.parent_gid, target.field_gid)):
                     return
         raise OSError(
-            errno.EAGAIN, f"{target.field_gid} of {target.parent_gid}: {what} was overwritten by another "
-                          f"writer {FIELD_EDIT_ATTEMPTS} times; try again", target.field_gid)
+            errno.EAGAIN,
+            f"{target.field_gid} of {target.parent_gid}: {what} was overwritten by another "
+            f"writer {FIELD_EDIT_ATTEMPTS} times; try again",
+            target.field_gid,
+        )
 
     # ------------------------------------------------------------ entry builders
 
     def _document_entry(self, document: dict, gid: str) -> dict:
-        raw = dict(document, hiddenFields=len(document.get("fields", [])) - len(self._file_fields(document)))
+        raw = dict(
+            document,
+            hiddenFields=len(document.get("fields", []))
+            - len(self._file_fields(document)),
+        )
         raw.pop("fields", None)
         return self._entry(raw, True, gid, writable=not document.get("signed"))
 
@@ -245,7 +311,11 @@ class WorkspaceFilesystem(RSpaceFSBase):
         parse it, and appending to ``Results [FD421]`` or to ``FD421`` would break that.
         """
         segment = self._segment(name, gid)
-        return paths.mark_read_only(segment) if signed and self.path_style == "name" else segment
+        return (
+            paths.mark_read_only(segment)
+            if signed and self.path_style == "name"
+            else segment
+        )
 
     def _field_entry(self, field: dict, signed: bool = False) -> dict:
         """A field of a signed document is marked in its own name.
@@ -260,8 +330,13 @@ class WorkspaceFilesystem(RSpaceFSBase):
         raw.pop("content", None)
         raw["fieldType"] = field.get("type")
         raw["signed"] = signed
-        return make_entry(self._read_only_segment(field.get("name"), field["globalId"], signed),
-                          True, raw=raw, modified=field.get("lastModified"), writable=not signed)
+        return make_entry(
+            self._read_only_segment(field.get("name"), field["globalId"], signed),
+            True,
+            raw=raw,
+            modified=field.get("lastModified"),
+            writable=not signed,
+        )
 
     # ------------------------------------------------------------ children
 
@@ -270,9 +345,14 @@ class WorkspaceFilesystem(RSpaceFSBase):
         system folders."""
         if str(record.get("globalId", "")).startswith("GF"):
             return True
-        return record.get("name") in HIDDEN_ROOT_FOLDERS and record.get("systemFolder", True) is not False
+        return (
+            record.get("name") in HIDDEN_ROOT_FOLDERS
+            and record.get("systemFolder", True) is not False
+        )
 
-    def _records_entries(self, records: Iterable[dict], folder_gid: Optional[str]) -> Iterator[dict]:
+    def _records_entries(
+        self, records: Iterable[dict], folder_gid: str | None
+    ) -> Iterator[dict]:
         for record in records:
             if folder_gid is None and self._hidden_at_root(record):
                 continue
@@ -284,7 +364,10 @@ class WorkspaceFilesystem(RSpaceFSBase):
         if target.kind == "document":
             document = self._record(target.gid)
             signed = bool(document.get("signed"))
-            return (self._field_entry(field, signed=signed) for field in self._file_fields(document))
+            return (
+                self._field_entry(field, signed=signed)
+                for field in self._file_fields(document)
+            )
         files = self._field(target.parent_gid, target.field_gid).get("files", [])
         return (self._entry(file, False) for file in files)
 
@@ -294,13 +377,17 @@ class WorkspaceFilesystem(RSpaceFSBase):
         if target.kind == "root":
             return make_entry("", True, raw={"name": "Workspace"})
         if target.kind == "folder":
-            return self._entry(self.eln_client.get_folder(target.gid[2:]), True, target.gid)
+            return self._entry(
+                self.eln_client.get_folder(target.gid[2:]), True, target.gid
+            )
         if target.kind == "document":
             return self._document_entry(self._record(target.gid), target.gid)
         if target.kind == "field":
             document = self._record(target.parent_gid)
-            return self._field_entry(self._field(target.parent_gid, target.field_gid, document),
-                                     signed=bool(document.get("signed")))
+            return self._field_entry(
+                self._field(target.parent_gid, target.field_gid, document),
+                signed=bool(document.get("signed")),
+            )
         return self._entry(self._placed_file(path, target), False, target.gid)
 
     def _placed_file(self, path: str, target: Target) -> dict:
@@ -308,30 +395,52 @@ class WorkspaceFilesystem(RSpaceFSBase):
         for file in self._field(target.parent_gid, target.field_gid).get("files") or []:
             if file.get("globalId") == target.gid:
                 return file
-        raise FileNotFoundError(errno.ENOENT, f"{path!r}: {target.gid} is not linked into this field", path)
+        raise FileNotFoundError(
+            errno.ENOENT, f"{path!r}: {target.gid} is not linked into this field", path
+        )
 
     # ------------------------------------------------------------ folders
 
     @writes
-    def mkdir(self, path: str, create_parents: bool = True, exist_ok: bool = False, **kwargs) -> None:
+    def mkdir(
+        self, path: str, create_parents: bool = True, exist_ok: bool = False, **kwargs
+    ) -> None:
         """Create a Workspace folder. Notebooks and documents are not created here."""
         path = self._strip_protocol(path)
         parent_path, name = self._new_folder(path)
         parent = self._resolve(parent_path)
-        if parent.kind not in ("root", "folder") or (parent.gid or "FL")[:2] in NOTEBOOK_PREFIXES:
-            raise NotImplementedError("folders can only be created in the Home folder or another folder")
+        if (
+            parent.kind not in ("root", "folder")
+            or (parent.gid or "FL")[:2] in NOTEBOOK_PREFIXES
+        ):
+            raise NotImplementedError(
+                "folders can only be created in the Home folder or another folder"
+            )
         parent_id = parent.gid[2:] if parent.gid else None
-        self._create_folder(path, name, self._tree_items(parent.gid),
-                            lambda: self.eln_client.create_folder(name, parent_id, notebook=False),
-                            FOLDER_PREFIXES, exist_ok)
+        self._create_folder(
+            path,
+            name,
+            self._tree_items(parent.gid),
+            lambda: self.eln_client.create_folder(name, parent_id, notebook=False),
+            FOLDER_PREFIXES,
+            exist_ok,
+        )
 
     @deletes
     def rmdir(self, path: str) -> None:
         path = self._strip_protocol(path)
         target = self._resolve(path)
-        folder_gid = target.gid if target.kind == "folder" and target.gid[:2] in FOLDER_PREFIXES else None
-        self._remove_folder(path, folder_gid, self.eln_client.delete_folder,
-                            NotImplementedError("only empty Workspace folders can be removed here"))
+        folder_gid = (
+            target.gid
+            if target.kind == "folder" and target.gid[:2] in FOLDER_PREFIXES
+            else None
+        )
+        self._remove_folder(
+            path,
+            folder_gid,
+            self.eln_client.delete_folder,
+            NotImplementedError("only empty Workspace folders can be removed here"),
+        )
 
     # ------------------------------------------------------------ files
 
@@ -350,9 +459,10 @@ class WorkspaceFilesystem(RSpaceFSBase):
         target = self._resolve(container)
         if target.kind != "field":
             raise NotImplementedError(
-                f"{container!r}: files are uploaded into a document field folder (a text field)")
+                f"{container!r}: files are uploaded into a document field folder (a text field)"
+            )
         document = self._record(target.parent_gid)
-        field = self._field(target.parent_gid, target.field_gid, document)
+        self._field(target.parent_gid, target.field_gid, document)
         # Checked before the upload: the field update afterwards would be refused and the
         # file would be stranded in the Gallery, which the API cannot delete.
         self._require_unsigned(document, container, "Nothing was uploaded.")
@@ -362,8 +472,12 @@ class WorkspaceFilesystem(RSpaceFSBase):
         return uploaded
 
     def _append_link(self, target: Target, file_number: str) -> None:
-        self._edit_field(target, lambda content: content + _file_token(file_number),
-                         lambda field: self._links(field, file_number), f"the link to GL{file_number}")
+        self._edit_field(
+            target,
+            lambda content: content + _file_token(file_number),
+            lambda field: self._links(field, file_number),
+            f"the link to GL{file_number}",
+        )
 
     @writes
     def link(self, path: str, media_file_gid: str) -> dict:
@@ -372,7 +486,9 @@ class WorkspaceFilesystem(RSpaceFSBase):
         path = self._strip_protocol(path)
         target = self._resolve(path)
         if target.kind != "field":
-            raise NotImplementedError(f"{path!r}: a Gallery file links into a document field (a text field)")
+            raise NotImplementedError(
+                f"{path!r}: a Gallery file links into a document field (a text field)"
+            )
         numeric = _gallery_file_number(media_file_gid)
         self._append_link(target, numeric)
         self.invalidate_cache()
@@ -390,9 +506,15 @@ class WorkspaceFilesystem(RSpaceFSBase):
         def unlink(content: str) -> str:
             stripped = strip_file_references(content, file_number)
             if stripped is None:
-                raise FileNotFoundError(errno.ENOENT, f"{path!r} is not linked into this field", path)
+                raise FileNotFoundError(
+                    errno.ENOENT, f"{path!r} is not linked into this field", path
+                )
             return stripped
 
-        self._edit_field(target, unlink, lambda field: not self._links(field, file_number),
-                         f"the removal of {target.gid}")
+        self._edit_field(
+            target,
+            unlink,
+            lambda field: not self._links(field, file_number),
+            f"the removal of {target.gid}",
+        )
         self.invalidate_cache()

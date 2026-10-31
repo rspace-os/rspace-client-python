@@ -1,11 +1,10 @@
 import inspect
 import logging
 import re
-import requests
+from typing import Any
 from urllib.parse import urlparse, urlunparse
 
-from typing import Optional
-
+import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -14,7 +13,6 @@ from rspace_client.exceptions import (
     AuthenticationError,
     NoSuchLinkRel,
     RSpaceConnectionError,
-    RSpaceError,
 )
 
 logger = logging.getLogger("rspace_client")
@@ -79,10 +77,10 @@ class Pagination:
         self,
         page_number: int = 0,
         page_size: int = 10,
-        order_by: str = None,
+        order_by: str | None = None,
         sort_order: str = "asc",
     ):
-        self.data = {
+        self.data: dict[str, Any] = {
             "pageNumber": page_number,
             "pageSize": page_size,
         }
@@ -112,10 +110,14 @@ class ClientBase:
         :param backoff_factor: multiplier for exponential backoff between
             retries; the Retry-After header is honored when the server sends it
         """
-        self.rspace_url = rspace_url.rstrip('/')
+        self.rspace_url = rspace_url.rstrip("/")
         self.api_key = api_key
         self.timeout = timeout
         self._session = self._build_session(max_retries, backoff_factor)
+
+    def _get_api_url(self) -> str:
+        """Implemented by each API-specific subclass (ELNClient, InventoryClient)."""
+        raise NotImplementedError
 
     def _build_session(self, max_retries, backoff_factor):
         session = requests.Session()
@@ -169,7 +171,9 @@ class ClientBase:
         ours = urlparse(self.rspace_url)
         api_at = link.path.find("/api/")
         path = link.path if api_at < 0 else ours.path.rstrip("/") + link.path[api_at:]
-        return urlunparse((ours.scheme, ours.netloc, path, link.params, link.query, link.fragment))
+        return urlunparse(
+            (ours.scheme, ours.netloc, path, link.params, link.query, link.fragment)
+        )
 
     def _get_headers(self, content_type="application/json"):
         headers = {"apiKey": self.api_key}
@@ -189,7 +193,7 @@ class ClientBase:
         elif re.match(r"\d+$", str(global_id)) is not None:
             return int(global_id)
         else:
-            raise ValueError("{} is not a valid global ID".format(global_id))
+            raise ValueError(f"{global_id} is not a valid global ID")
 
     @staticmethod
     def _get_formated_error_message(json_error):
@@ -227,9 +231,12 @@ class ClientBase:
                 return "error message: {}".format(visible or "an empty HTML page")
             title = re.search(r"<title[^>]*>(.*?)</title>", text, re.I | re.S)
             title = " ".join(title.group(1).split()) if title else ""
-            return "error message: the server answered with an HTML error page{}".format(
-                f" ({title})" if title else "")
-        return "error message: {}".format(text)
+            return (
+                "error message: the server answered with an HTML error page{}".format(
+                    f" ({title})" if title else ""
+                )
+            )
+        return f"error message: {text}"
 
     @staticmethod
     def _check_status(response):
@@ -239,7 +246,7 @@ class ClientBase:
         """
         if response.status_code == 401:
             raise AuthenticationError(
-                "Error code: 401, {}".format(ClientBase._get_error_detail(response))
+                f"Error code: 401, {ClientBase._get_error_detail(response)}"
             )
         if response.status_code in REDIRECT_STATUSES:
             # Redirects are never followed: requests keeps custom headers such as apiKey
@@ -255,14 +262,12 @@ class ClientBase:
 
         try:
             response.raise_for_status()
-        except requests.HTTPError:
+        except requests.HTTPError as e:
             raise ApiError(
-                "Error code: {}, {}".format(
-                    response.status_code, ClientBase._get_error_detail(response)
-                ),
+                f"Error code: {response.status_code}, {ClientBase._get_error_detail(response)}",
                 response_status_code=response.status_code,
                 response=response,
-            )
+            ) from e
 
     @staticmethod
     def _handle_response(response):
@@ -281,7 +286,9 @@ class ClientBase:
         """
         numeric_id = self._get_numeric_record_id(resource_id)
         return self.retrieve_api_results(
-            "/{}/{}".format(path.strip("/"), numeric_id),  # tolerate callers passing "/documents"
+            "/{}/{}".format(
+                path.strip("/"), numeric_id
+            ),  # tolerate callers passing "/documents"
             content_type=None,
             request_type="DELETE",
         )
@@ -298,13 +305,21 @@ class ClientBase:
         :param content_type: content type
         :return: parsed JSON response as a dictionary
         """
-        url = self._rebase_url(endpoint) if self._is_absolute_url(endpoint) else self._get_api_url() + endpoint
+        url = (
+            self._rebase_url(endpoint)
+            if self._is_absolute_url(endpoint)
+            else self._get_api_url() + endpoint
+        )
 
         headers = self._get_headers(content_type)
         try:
             if request_type == "GET":
                 response = self._session.get(
-                    url, params=params, headers=headers, timeout=self.timeout, allow_redirects=False
+                    url,
+                    params=params,
+                    headers=headers,
+                    timeout=self.timeout,
+                    allow_redirects=False,
                 )
             elif (
                 request_type == "PUT"
@@ -312,19 +327,21 @@ class ClientBase:
                 or request_type == "DELETE"
             ):
                 response = self._session.request(
-                    request_type, url, json=params, headers=headers, timeout=self.timeout,
-                    allow_redirects=False
+                    request_type,
+                    url,
+                    json=params,
+                    headers=headers,
+                    timeout=self.timeout,
+                    allow_redirects=False,
                 )
             else:
                 raise ValueError(
-                    "Expected GET / PUT / POST / DELETE request type, received {} instead".format(
-                        request_type
-                    )
+                    f"Expected GET / PUT / POST / DELETE request type, received {request_type} instead"
                 )
 
             return self._handle_response(response)
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-            raise RSpaceConnectionError(e)
+            raise RSpaceConnectionError(e) from e
 
     def _post_multipart(self, endpoint, files=None, data=None):
         """
@@ -352,7 +369,7 @@ class ClientBase:
             )
             return self._handle_response(response)
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-            raise RSpaceConnectionError(e)
+            raise RSpaceConnectionError(e) from e
 
     def _get_raw_response(self, url, params=None, accept="application/octet-stream"):
         """
@@ -369,7 +386,7 @@ class ClientBase:
                 allow_redirects=False,
             )
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-            raise RSpaceConnectionError(e)
+            raise RSpaceConnectionError(e) from e
         self._check_status(response)
         return response
 
@@ -384,7 +401,7 @@ class ClientBase:
         try:
             return response["_links"]
         except KeyError:
-            raise NoSuchLinkRel("There are no links!")
+            raise NoSuchLinkRel("There are no links!") from None
 
     def get_link_contents(self, response, link_rel):
         """
@@ -423,7 +440,11 @@ class ClientBase:
         headers = {"apiKey": self.api_key, "Accept": "application/octet-stream"}
         try:
             with self._session.get(
-                url, headers=headers, stream=True, timeout=self.timeout, allow_redirects=False
+                url,
+                headers=headers,
+                stream=True,
+                timeout=self.timeout,
+                allow_redirects=False,
             ) as response:
                 self._check_status(response)
                 if isinstance(filename, str):
@@ -434,7 +455,7 @@ class ClientBase:
                     for chunk in response.iter_content(chunk_size=chunk_size):
                         filename.write(chunk)
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-            raise RSpaceConnectionError(e)
+            raise RSpaceConnectionError(e) from e
 
     def link_exists(self, response, link_rel):
         """
@@ -456,7 +477,7 @@ class ClientBase:
     def _stream(
         self,
         endpoint: str,
-        pagination: Optional[Pagination] = None,
+        pagination: Pagination | None = None,
     ):
         """
         Yields items, making paginated requests to the server as each page
@@ -484,8 +505,7 @@ class ClientBase:
         next_link = requests.Request(url=urlStr, params=pagination.data).prepare().url
         while next_link is not None:
             items = self.retrieve_api_results(next_link)
-            for item in items[endpoint]:
-                yield item
+            yield from items[endpoint]
             if self.link_exists(items, "next"):
                 next_link = self.get_link(items, "next")
             else:

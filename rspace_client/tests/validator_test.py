@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Mon Oct  4 19:10:42 2021
 
 @author: richard
 """
-import unittest
+
 import datetime as dt
+import unittest
+
 import rspace_client.validators as v
 
 

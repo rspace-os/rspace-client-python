@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Unit tests for the ELN and Inventory client methods added or changed for the filesystems:
 the URLs, query parameters, bodies and multipart parts they send. No server needed; requests
 are intercepted by responses or by mocking the shared session.
 """
+
 import json
+import os
+import tempfile
 import unittest
 from io import BytesIO
 from unittest import mock
@@ -51,7 +53,9 @@ class ELNClientMethodsTest(unittest.TestCase):
         responses.add(responses.DELETE, ELN_API + "/forms/3", status=204)
         self.client.doDelete("/forms", 3)
         self.client.doDelete("forms", "FM3")
-        self.assertEqual([ELN_API + "/forms/3"] * 2, [c.request.url for c in responses.calls])
+        self.assertEqual(
+            [ELN_API + "/forms/3"] * 2, [c.request.url for c in responses.calls]
+        )
 
     @responses.activate
     def test_upload_file_uses_the_given_filename(self):
@@ -76,6 +80,28 @@ class ELNClientMethodsTest(unittest.TestCase):
         self.assertIn("pageSize=5", with_size)
         self.assertNotIn("pageSize", without)
 
+    def test_failed_export_job_reports_the_servers_error_details(self):
+        # regression: the FAILED branch used to drop the message and errors list
+        failed = {
+            "status": "FAILED",
+            "result": {"message": "disk full", "errors": ["e1", "e2"]},
+        }
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            mock.patch.object(self.client, "get_job_status", return_value=failed),
+        ):
+            log = os.path.join(tmp, "progress.log")
+            with self.assertRaises(ELNClient.ApiError) as ctx:
+                self.client._wait_till_complete_then_download(
+                    1, tmp, wait_between_requests=0, progress_log=log
+                )
+            with open(log) as f:
+                logged = f.read()
+        for text in (str(ctx.exception), logged):
+            self.assertIn("Export job failed", text)
+            self.assertIn("disk full", text)
+            self.assertIn("e1, e2", text)
+
 
 class InventoryClientMethodsTest(unittest.TestCase):
     def setUp(self):
@@ -87,8 +113,9 @@ class InventoryClientMethodsTest(unittest.TestCase):
     @responses.activate
     def test_upload_attachment_uses_the_given_filename_and_names_the_parent(self):
         responses.add(responses.POST, INV_API + "/files", json={"id": 1})
-        self.client.upload_attachment_by_global_id("SA1", named_file("/tmp/original.bin"),
-                                                   filename="x.txt")
+        self.client.upload_attachment_by_global_id(
+            "SA1", named_file("/tmp/original.bin"), filename="x.txt"
+        )
         body = sent_body(responses.calls[0])
         self.assertIn(b'filename="x.txt"', body)
         self.assertIn(json.dumps({"parentGlobalId": "SA1"}).encode(), body)
@@ -101,21 +128,29 @@ class InventoryClientMethodsTest(unittest.TestCase):
         self.client.get_workbench_by_id(64)
         self.client.get_workbench_by_id(64, include_content=True)
         self.assertEqual(
-            [url + "?includeContent=false", url + "?includeContent=false",
-             url + "?includeContent=true"],
-            [c.request.url for c in responses.calls])
+            [
+                url + "?includeContent=false",
+                url + "?includeContent=false",
+                url + "?includeContent=true",
+            ],
+            [c.request.url for c in responses.calls],
+        )
 
     @responses.activate
     def test_attach_gallery_file_posts_both_global_ids(self):
         responses.add(responses.POST, INV_API + "/attachments", json={"id": 1})
         self.client.attach_gallery_file_by_global_id("SA1", "GL2")
-        self.assertEqual({"parentGlobalId": "SA1", "mediaFileGlobalId": "GL2"},
-                         json.loads(responses.calls[0].request.body))
+        self.assertEqual(
+            {"parentGlobalId": "SA1", "mediaFileGlobalId": "GL2"},
+            json.loads(responses.calls[0].request.body),
+        )
 
     def test_csv_parse_goes_through_the_shared_session(self):
         ok = make_response(200, json_body={})
-        with mock.patch.object(self.client._session, "post", return_value=ok) as post, \
-                mock.patch("requests.post") as bare_post:
+        with (
+            mock.patch.object(self.client._session, "post", return_value=ok) as post,
+            mock.patch("requests.post") as bare_post,
+        ):
             self.client.parse_csv_import_file(named_file("samples.csv"), "SAMPLES")
         post.assert_called_once()
         self.assertEqual(INV_API + "/import/parseFile", post.call_args.args[0])

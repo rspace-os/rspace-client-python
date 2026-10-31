@@ -1,10 +1,10 @@
 import datetime
-import time
 import os
-import rspace_client.eln.filetree_importer as importer
-from rspace_client.eln.dcs import DocumentCreationStrategy
+import time
 
+import rspace_client.eln.filetree_importer as importer
 from rspace_client.client_base import ClientBase, Pagination
+from rspace_client.eln.dcs import DocumentCreationStrategy
 
 
 class ELNClient(ClientBase):
@@ -21,7 +21,7 @@ class ELNClient(ClientBase):
         Returns an API server URL.
         :return: string URL
         """
-        return "{}/api/{}".format(self.rspace_url, self.API_VERSION)
+        return f"{self.rspace_url}/api/{self.API_VERSION}"
 
     # Documents methods
     def get_documents(
@@ -44,7 +44,7 @@ class ELNClient(ClientBase):
 
         return self.retrieve_api_results("/documents", params)
 
-    def stream_documents(self, pagination: Pagination = Pagination()):
+    def stream_documents(self, pagination: Pagination = None):
         return self._stream("documents", pagination)
 
     def get_documents_advanced_query(
@@ -77,7 +77,7 @@ class ELNClient(ClientBase):
         this document, links to download the content of media files
         """
         numeric_doc_id = self._get_numeric_record_id(doc_id)
-        return self.retrieve_api_results("/documents/{}".format(numeric_doc_id))
+        return self.retrieve_api_results(f"/documents/{numeric_doc_id}")
 
     def delete_document(self, doc_id):
         """
@@ -96,14 +96,13 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(doc_id)
         return self.retrieve_api_results(
-            "/documents/{}".format(numeric_doc_id),
+            f"/documents/{numeric_doc_id}",
             content_type="text/csv",
         )
 
     def create_document(
         self, name=None, parent_folder_id=None, tags=None, form_id=None, fields=None
     ):
-
         """
         Creates a new document in user's Api Inbox folder. More information on
         https://community.researchspace.com/public/apiDocs (or your own instance's /public/apiDocs).
@@ -194,9 +193,7 @@ class ELNClient(ClientBase):
             fields = doc["fields"]
             if field_index >= len(fields):
                 raise ValueError(
-                    "Field at index {} doesn't exist, document {} has {} fields".format(
-                        field_index, document_id, len(fields)
-                    )
+                    f"Field at index {field_index} doesn't exist, document {document_id} has {len(fields)} fields"
                 )
             field = fields[field_index]
 
@@ -244,7 +241,7 @@ class ELNClient(ClientBase):
             data["fields"] = fields
         numeric_doc_id = self._get_numeric_record_id(document_id)
         return self.retrieve_api_results(
-            "/documents/{}".format(numeric_doc_id),
+            f"/documents/{numeric_doc_id}",
             request_type="PUT",
             params=data,
         )
@@ -331,7 +328,7 @@ class ELNClient(ClientBase):
         :return: parsed response as a dictionary
         """
         numeric_file_id = self._get_numeric_record_id(file_id)
-        return self.retrieve_api_results("/files/{}".format(numeric_file_id))
+        return self.retrieve_api_results(f"/files/{numeric_file_id}")
 
     def download_file(self, file_id, filename, chunk_size=128):
         """
@@ -377,9 +374,7 @@ class ELNClient(ClientBase):
         :param fileId: Id of the file to replace
         :return: updated File response as a dictionary
         """
-        return self._post_multipart(
-            "/files/{}/file".format(fileId), files={"file": file}
-        )
+        return self._post_multipart(f"/files/{fileId}/file", files={"file": file})
 
     # Activity methods
     def get_activity(
@@ -417,19 +412,19 @@ class ELNClient(ClientBase):
             if isinstance(date_from, datetime.date):
                 params["dateFrom"] = date_from.isoformat()
             else:
-                raise TypeError("Unexpected date_from type {}".format(type(date_from)))
+                raise TypeError(f"Unexpected date_from type {type(date_from)}")
 
         if date_to is not None:
             if isinstance(date_to, datetime.date):
                 params["dateTo"] = date_to.isoformat()
             else:
-                raise TypeError("Unexpected date_from type {}".format(type(date_to)))
+                raise TypeError(f"Unexpected date_from type {type(date_to)}")
 
         if actions is not None:
             if isinstance(actions, list):
                 params["actions"] = ",".join(actions)
             else:
-                raise TypeError("Unexpected actions type {}".format(type(actions)))
+                raise TypeError(f"Unexpected actions type {type(actions)}")
 
         if domains is not None:
             if isinstance(domains, list):
@@ -450,7 +445,7 @@ class ELNClient(ClientBase):
 
     # Export selection
     def start_export_selection(
-        self, export_format, item_ids=[], include_revisions=False
+        self, export_format, item_ids=None, include_revisions=False
     ):
         """
         Starts an asynchronous of  selection of items.
@@ -462,7 +457,7 @@ class ELNClient(ClientBase):
         :return: job id
         """
         self._check_export_format(export_format)
-        itemsToExport = ",".join(map(str, item_ids))
+        itemsToExport = ",".join(map(str, item_ids or []))
         request_url = (
             self._get_api_url()
             + f"/export/{export_format}/selection?selections={itemsToExport}&includeRevisionHistory={include_revisions}"
@@ -512,7 +507,7 @@ class ELNClient(ClientBase):
         self,
         export_format,
         file_path,
-        item_ids=[],
+        item_ids=None,
         include_revision_history=False,
         wait_between_requests=30,
     ):
@@ -535,21 +530,23 @@ class ELNClient(ClientBase):
     def _wait_till_complete_then_download(
         self, job_id, file_path, wait_between_requests=30, progress_log=None
     ):
-        
+
         while True:
             status_response = self.get_job_status(job_id)
 
             if status_response["status"] == "COMPLETED":
-                
                 download_url = self.get_link(status_response, "enclosure")
-                self._log_progress(progress_log, f"COMPLETED: download url is {download_url}")
+                self._log_progress(
+                    progress_log, f"COMPLETED: download url is {download_url}"
+                )
                 if os.path.isdir(file_path):
                     file_path = os.path.join(file_path, download_url.split("/")[-1])
                 self.download_link_to_file(download_url, file_path)
                 return file_path
             elif status_response["status"] == "FAILED":
-                msg = "Export job failed: "
-                + self._get_formated_error_message(status_response["result"])
+                msg = "Export job failed: " + self._get_formated_error_message(
+                    status_response["result"]
+                )
                 self._log_progress(progress_log, msg)
                 raise ClientBase.ApiError(msg)
             elif status_response["status"] == "ABANDONED":
@@ -562,7 +559,10 @@ class ELNClient(ClientBase):
                 or status_response["status"] == "STARTING"
                 or status_response["status"] == "STARTED"
             ):
-                self._log_progress(progress_log, f"Running - {status_response['percentComplete']:2.2f}% complete")
+                self._log_progress(
+                    progress_log,
+                    f"Running - {status_response['percentComplete']:2.2f}% complete",
+                )
                 time.sleep(wait_between_requests)
                 continue
             else:
@@ -570,17 +570,23 @@ class ELNClient(ClientBase):
                     "Unknown job status: " + status_response["status"]
                 )
 
-    def _log_progress(self, progress_log, msg: str):     
+    def _log_progress(self, progress_log, msg: str):
         if progress_log is not None:
             with open(progress_log, "a") as log:
                 log.write(msg)
                 if not msg.endswith("\n"):
                     log.write("\n")
-                    
-    def export_and_download (self, export_format,scope,file_path, uid=None,
-       include_revisions=False,
+
+    def export_and_download(
+        self,
+        export_format,
+        scope,
+        file_path,
+        uid=None,
+        include_revisions=False,
         wait_between_requests=30,
-        progress_log=None):
+        progress_log=None,
+    ):
         """
         Exports user's or group's records and downloads the exported archive to a specified location.
         :param export_format: 'xml' or 'html'
@@ -592,8 +598,16 @@ class ELNClient(ClientBase):
         :param an optional file-path to a writable log file, to log progress.
         :return: file path to the downloaded export archive.
         """
-        return self.download_export(export_format,scope,file_path,uid, include_revisions,wait_between_requests, progress_log)
-            
+        return self.download_export(
+            export_format,
+            scope,
+            file_path,
+            uid,
+            include_revisions,
+            wait_between_requests,
+            progress_log,
+        )
+
     def download_export(
         self,
         export_format,
@@ -602,7 +616,7 @@ class ELNClient(ClientBase):
         uid=None,
         include_revisions=False,
         wait_between_requests=30,
-        progress_log=None
+        progress_log=None,
     ):
         """
         DEPRECATED since 2.5.0. Use 'export_and_download' which better describes this method and works in exactly the same way.
@@ -616,7 +630,9 @@ class ELNClient(ClientBase):
         :param an optional file-path to a writable log file, to log progress.
         :return: file path to the downloaded export archive.
         """
-        self._log_progress(progress_log, f"{datetime.datetime.now()} - Starting export..")
+        self._log_progress(
+            progress_log, f"{datetime.datetime.now()} - Starting export.."
+        )
         job_id = self.start_export(
             export_format=export_format,
             scope=scope,
@@ -634,7 +650,7 @@ class ELNClient(ClientBase):
         :return: parsed response as a dictionary (most important field is 'status' which is supposed to one of:
         'STARTED', 'STARTING', 'RUNNING', 'COMPLETED', 'FAILED', 'ABANDONED')
         """
-        return self.retrieve_api_results("/jobs/{}".format(job_id))
+        return self.retrieve_api_results(f"/jobs/{job_id}")
 
     # Form related methods
     def get_forms(
@@ -693,7 +709,7 @@ class ELNClient(ClientBase):
         :return: a dictionary that includes: form metadata, fields
         """
         numeric_doc_id = self._get_numeric_record_id(form_id)
-        return self.retrieve_api_results("/forms/{}".format(numeric_doc_id))
+        return self.retrieve_api_results(f"/forms/{numeric_doc_id}")
 
     def delete_form(self, form_id):
         """
@@ -711,7 +727,7 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(form_id)
         return self.retrieve_api_results(
-            "/forms/{}/publish".format(numeric_doc_id),
+            f"/forms/{numeric_doc_id}/publish",
             request_type="PUT",
         )
 
@@ -724,7 +740,7 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(form_id)
         return self.retrieve_api_results(
-            "/forms/{}/unpublish".format(numeric_doc_id),
+            f"/forms/{numeric_doc_id}/unpublish",
             request_type="PUT",
         )
 
@@ -737,7 +753,7 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(form_id)
         return self.retrieve_api_results(
-            "/forms/{}/share".format(numeric_doc_id),
+            f"/forms/{numeric_doc_id}/share",
             request_type="PUT",
         )
 
@@ -751,7 +767,7 @@ class ELNClient(ClientBase):
         """
         numeric_doc_id = self._get_numeric_record_id(form_id)
         return self.retrieve_api_results(
-            "/forms/{}/unshare".format(numeric_doc_id),
+            f"/forms/{numeric_doc_id}/unshare",
             request_type="PUT",
         )
 
@@ -793,9 +809,9 @@ class ELNClient(ClientBase):
         :return: metadata about the folder or notebook
         """
         numeric_folder_id = self._get_numeric_record_id(folder_id)
-        return self.retrieve_api_results("/folders/{}".format(numeric_folder_id))
+        return self.retrieve_api_results(f"/folders/{numeric_folder_id}")
 
-    def list_folder_tree(self, folder_id=None, typesToInclude=[], page_size=None):
+    def list_folder_tree(self, folder_id=None, typesToInclude=None, page_size=None):
         """
         Lists contents of a folder by its ID.
         :param folder_id. Optional folderId. If none, will return listing of Home Folder
@@ -805,11 +821,8 @@ class ELNClient(ClientBase):
          follow the response's 'next' link for further pages
         :return a paginated folder listing
         """
-        url = ""
-        if folder_id is not None:
-            url = "/folders/tree/{}".format(folder_id)
-        else:
-            url = "/folders/tree"
+        typesToInclude = typesToInclude or []
+        url = f"/folders/tree/{folder_id}" if folder_id is not None else "/folders/tree"
         params = {}
         if len(typesToInclude) > 0:
             if (

@@ -67,6 +67,49 @@ All notable changes to this project will be documented in this file
 
 ## Unreleased
 
+- Moved `pyproject.toml` to the standard PEP 621 `[project]` table, built
+  with Poetry 2.x.
+
+  Potentially breaking:
+  - Python 3.9 is no longer supported. The minimum is now 3.10.
+
+- Added `ruff` for linting and formatting (it replaces `black`), plus
+  configuration for `mypy`, `pre-commit` and `pytest-cov`.
+
+- Fixed shared mutable default arguments (`Pagination()`, `tags=[]`,
+  `extra_fields=[]`, `TopLevelTargetLocation()`, `item_ids=[]`,
+  `typesToInclude=[]`) in several `inv` and `eln` methods. A call that used
+  the default could see state left behind by an earlier call.
+
+- Fixed `Sample.wherep()` returning a `set` instead of the documented `list`.
+
+  Potentially breaking: code that calls `.add()` on the result, uses set
+  operators on it, or compares it with `== {...}` needs updating.
+
+- Fixed `GridContainerPost` sending `cType: "LIST"` instead of `"GRID"`.
+
+  Potentially breaking: the server now creates these as grid containers, not
+  list containers.
+
+- Fixed `ListContainer.is_list()` raising `TypeError` when called on an
+  instance. The method was missing `self`.
+
+- Fixed the `URL` field validator's error message. It was missing its
+  f-string prefix, so it printed the literal placeholders. The validator also
+  no longer catches unrelated exceptions with a bare `except`.
+
+- Fixed the error raised when an ELN export job fails. It dropped the
+  server's error detail and said only "Export job failed: ".
+
+- Added a CI lint job that runs `ruff check`, `ruff format --check` and
+  `mypy`. Unit tests in CI now report coverage and fail below 55%.
+
+- Pushing a `v*` tag now builds the package and publishes it to PyPI from a
+  GitHub Actions workflow that uses Trusted Publishing. `release.sh` bumps the
+  version with `poetry version` and no longer publishes.
+
+- Added Dependabot for pip and GitHub Actions updates.
+
 - Gallery upload routing and section-mismatch handling (PR #56): clearer
   `GallerySectionMismatch` exception, optional `on_mismatch="reroute"`
   policy to auto-reroute uploads into the server-chosen section, `upload()` now

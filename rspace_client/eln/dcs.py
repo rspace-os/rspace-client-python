@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Thu Nov  4 21:25:03 2021
 
 @author: richard
 """
+
 import enum
 
 

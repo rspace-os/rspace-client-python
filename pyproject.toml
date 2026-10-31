@@ -1,16 +1,17 @@
-[tool.poetry]
+[project]
 name = "rspace-client"
 version = "2.7.4"
 description = "A client for calling RSpace ELN and Inventory APIs"
 license = "Apache-2.0"
-authors = ["Research Innovations Ltd <support@researchspace.com>"]
+authors = [
+  { name = "Research Innovations Ltd", email = "support@researchspace.com" },
+]
 maintainers = [
-  "Matthias Kowalski <matthias@researchspace.com>",
-  "Robert Lamacraft <robert.lamacraft@researchspace.com>"
+  { name = "Matthias Kowalski", email = "matthias@researchspace.com" },
+  { name = "Robert Lamacraft", email = "robert.lamacraft@researchspace.com" },
 ]
 readme = "README.md"
-repository = "https://github.com/rspace-os/rspace-client-python"
-documentation = "https://github.com/rspace-os/rspace-client-python"
+requires-python = ">=3.10"
 keywords = ["RSpace", "ResearchSpace", "ELN", "Inventory"]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -18,29 +19,40 @@ classifiers = [
   "Intended Audience :: Science/Research",
   "Topic :: Software Development :: Libraries",
 ]
-exclude = ["examples/*", "rspace_client/tests/*"]
-
-[tool.poetry.dependencies]
-python = "^3.9"
-requests = "^2.25.1"
-beautifulsoup4 = "^4.9.3"
-fs = "^2.4.16"           # deprecated PyFilesystem2 classes only (rspace_client.eln.fs, rspace_client.inv.attachment_fs); removed in 3.0
-setuptools = "<82"       # fs 2.4.16 imports pkg_resources; goes with fs
-fsspec = ">=2024.3.0"   # rspace_client.fs
+dependencies = [
+  "requests>=2.25.1,<3",
+  "beautifulsoup4>=4.9.3,<5",
+  "fs>=2.4.16,<3",           # deprecated PyFilesystem2 classes only (rspace_client.eln.fs, rspace_client.inv.attachment_fs); removed in 3.0
+  "setuptools<82",            # fs 2.4.16 imports pkg_resources; goes with fs
+  "fsspec>=2024.3.0",         # rspace_client.fs
+]
 
 # lets fsspec.filesystem("rspace") and rspace:// URLs work before rspace_client.fs is imported
-[tool.poetry.plugins."fsspec.specs"]
+[project.entry-points."fsspec.specs"]
 rspace = "rspace_client.fs:RSpaceFilesystem"
 
-[tool.poetry.group.dev.dependencies]
-python-dotenv = "^1.1.1"
-black = "^21.6b0"
-pytest = "^8.0.0"
-responses = "^0.26.2"
-universal-pathlib = ">=0.2"
+[project.urls]
+Repository = "https://github.com/rspace-os/rspace-client-python"
+Documentation = "https://github.com/rspace-os/rspace-client-python"
+
+[tool.poetry]
+packages = [{ include = "rspace_client" }]
+exclude = ["examples/*", "rspace_client/tests/*"]
+
+[dependency-groups]
+dev = [
+  "python-dotenv>=1.1.1,<2",
+  "pytest>=8.0.0,<9",
+  "pytest-cov>=5.0.0",
+  "responses>=0.26.2,<0.27",
+  "universal-pathlib>=0.2",
+  "ruff==0.16.3",
+  "mypy==2.3.1",
+  "pre-commit>=3.7",
+]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=2.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
@@ -48,3 +60,45 @@ testpaths = ["rspace_client/tests"]
 markers = [
     "integration: marks tests as integration tests requiring a live RSpace server (deselect with '-m not integration')",
 ]
+
+[tool.coverage.run]
+source = ["rspace_client"]
+omit = ["rspace_client/tests/*", "rspace_client/notebook_sync/*"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+extend-exclude = ["rspace_client/notebook_sync", "jupyter_notebooks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+# `ruff format` wraps every line it can at 88 columns. The long lines left are
+# mostly strings, URLs and comments that read worse when split, so E501 is off.
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# tree_upload.py passes lambdas to a helper that calls them in the same loop
+# iteration, so the loop variable they capture is never stale.
+"examples/tree_upload.py" = ["B023"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+# Much of this code predates type hints and puts `= None` defaults on
+# non-Optional annotations. implicit_optional keeps mypy's pre-1.0 behaviour of
+# treating those as Optional, so this tooling change doesn't have to edit every
+# signature. Remove it once the code is fully typed.
+implicit_optional = true
+exclude = ["rspace_client/notebook_sync"]
+
+# rspace_client.fs and its offline mock server reached main after the tooling
+# pass and have not been typed yet. They had 59 errors when this block was
+# added, mostly `str | None` passed where `str` is expected. Delete the block
+# to see them.
+[[tool.mypy.overrides]]
+module = [
+  "rspace_client.fs.*",
+  "rspace_client.tests.mock_rspace.*",
+  "rspace_client.tests.mock_server_case",
+]
+ignore_errors = true

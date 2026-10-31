@@ -1,26 +1,25 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Fri Jan 28 20:04:29 2022
 
 @author: richardadams
 """
 
-#%%
-import sys, time
-import rspace_client
+# %%
+import sys
+import time
 
-cli = rspace_client.utils.createInventoryClient()
+import rspace_client
 from rspace_client.inv.inv import (
-    GridContainer,
-    InventoryClient,
-    ByRow,
     ByColumn,
-    SamplePost,
+    ByRow,
     GridContainerPost,
+    SamplePost,
 )
 
-#%%
+cli = rspace_client.utils.createInventoryClient()
+
+# %%
 
 
 class FreezerCreator:
@@ -81,7 +80,7 @@ class FreezerCreator:
         rc = []
         posts = []
         for i in range(0, n, 100):
-            for j in range(i, min(n, i + 100) - i):
+            for _j in range(i, min(n, i + 100) - i):
                 c_post = GridContainerPost(
                     f"{name_prefix}-{i}", rows, columns, can_store_samples=store_samples
                 )
@@ -95,7 +94,7 @@ class FreezerCreator:
 
         return rc
 
-    def add_to_parent_tier(self, parents, parents_per_gp, items_per_parent, items):
+    def add_to_parent_tier(self, parents, _parents_per_gp, items_per_parent, items):
         for j in range(len(parents)):
             k = items_per_parent
             rack_slice = items[j * k : (j * k) + k]
@@ -103,7 +102,7 @@ class FreezerCreator:
             self.cli.add_items_to_grid_container(parents[j], br)
 
 
-#%%
+# %%
 ### Configure the size of the freezer here ( or ask for input)
 print(
     "Please enter the number of shelves, racks, trays and boxes to create. Boxes are 12 x 8"
@@ -132,7 +131,7 @@ freezerFactory = FreezerCreator(
 freezer = freezerFactory.create_freezer(freezer_name)
 
 
-#%%
+# %%
 samples_created = 0
 total_samples_to_create = len(freezer["boxes"]) * box_cols
 print(f"Creating {total_samples_to_create} samples...", file=sys.stderr)
@@ -144,7 +143,8 @@ for box in freezer["boxes"]:
     col = 1
     samples_created = samples_created + box_cols
     print(
-        f" created {box_cols} samples / {total_samples_to_create}", file=sys.stderr,
+        f" created {box_cols} samples / {total_samples_to_create}",
+        file=sys.stderr,
     )
 
     ## we can move 12 samples at a time

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+
 import rspace_client
 
 # Parse command line parameters
@@ -28,4 +29,4 @@ client.download_export_selection(
     export_format="xml",
     item_ids=[item_id],
 )
-print("Done- downloaded to {}".format(download_file))
+print(f"Done- downloaded to {download_file}")

@@ -1,16 +1,18 @@
+import base64
+import datetime
+import io
+import json
+import math
+import re
+import sys
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
-import datetime, math
+from typing import Any, BinaryIO, Optional, TypedDict, Union
 
-import json
-import re
-import sys, io, base64
 import requests
-import pprint
-from typing import Optional, Sequence, Union, List, TypedDict, BinaryIO
 
 from rspace_client.client_base import ClientBase, Pagination
-from rspace_client.inv import quantity_unit as qu
 
 
 class DeletedItemFilter(Enum):
@@ -25,10 +27,11 @@ class BarcodeFormat(str, Enum):
 
 
 class Tag(TypedDict):
-  value: str
-  uri: str
-  ontologyName: str
-  ontologyVersion: str
+    value: str
+    uri: str | None
+    ontologyName: str | None
+    ontologyVersion: str | None
+
 
 @dataclass
 class Barcode:
@@ -36,14 +39,14 @@ class Barcode:
     format: BarcodeFormat
     description: str = ""
     newBarcodeRequest: bool = True
-    id: Optional[str] = ""
+    id: str | None = ""
 
     def to_dict(self):
-        return{
+        return {
             "data": self.data,
             "format": self.format.value,
             "description": self.description,
-            "newBarcodeRequest": self.newBarcodeRequest
+            "newBarcodeRequest": self.newBarcodeRequest,
         }
 
 
@@ -78,7 +81,7 @@ class Sample:
     def __init__(self, data: dict):
         self.data = data
 
-    def wherep(self) -> List[str]:
+    def wherep(self) -> list[str]:
         """
         Returns a list of breadcrumb names of all containers that subsamples
         of this sample are located in.
@@ -92,7 +95,7 @@ class Sample:
         for ss in self.data["subSamples"]:
             b_crumb = " -> ".join([x["name"] for x in ss["parentContainers"]][::-1])
             bcumbs.add(b_crumb)
-        return bcumbs
+        return list(bcumbs)
 
     def __repr__(self):
         return f"Sample: id = {self.data['id']}, name = {self.data['name']}, creationDate = {self.data['created']}"
@@ -103,7 +106,15 @@ class GridPlacement:
     Superclass of all grid placement strategies
     """
 
-    def __init__(self, items_to_move: str, filling_strategy: FillingStrategy):
+    # Set by AutoFit subclasses (BY_ROW / BY_COLUMN strategies)
+    column_index: int | None = None
+    row_index: int | None = None
+    total_columns: int | None = None
+    total_rows: int | None = None
+    # Set by ByLocation (EXACT strategy)
+    locations: "list[GridLocation] | None" = None
+
+    def __init__(self, items_to_move: Sequence, filling_strategy: FillingStrategy):
         ids = []
         for item in items_to_move:
             toMove = Id(item)
@@ -258,7 +269,7 @@ class ByLocation(GridPlacement):
     Place one or more items by exact location
     """
 
-    def __init__(self, locations: List[GridLocation], *items_to_move):
+    def __init__(self, locations: list[GridLocation], *items_to_move):
         if len(locations) != len(items_to_move):
             raise ValueError(
                 f"locations list (length {len(locations)}) is not the same length as items list ({len(items_to_move)})"
@@ -342,7 +353,7 @@ class Container:
 
     @staticmethod
     def _is_valid_container(container):
-        if "cType" not in container.keys():
+        if "cType" not in container:
             raise ValueError(
                 "no 'cType' container type entry - is this really a container?"
             )
@@ -370,13 +381,13 @@ class Container:
         return False
 
     def accept_subsamples(self) -> bool:
-        return self.data["canStoreSamples"] == True
+        return self.data["canStoreSamples"]
 
     def accept_containers(self) -> bool:
-        return self.data["canStoreContainers"] == True
+        return self.data["canStoreContainers"]
 
     def capacity(self) -> int:
-        pass
+        raise NotImplementedError
 
 
 class ListContainer(Container):
@@ -388,7 +399,7 @@ class ListContainer(Container):
         super().__init__(list_container)
         self._validate_type(list_container, "LIST")
 
-    def is_list() -> bool:
+    def is_list(self) -> bool:
         return True
 
     def capacity(self) -> int:
@@ -529,7 +540,7 @@ class SearchFilter:
     def __init__(
         self, deleted_item_filter=DeletedItemFilter.EXCLUDE, owned_by: str = None
     ):
-        self.data = {}
+        self.data: dict[str, Any] = {}
         if deleted_item_filter is not None:
             self.data["deletedItems"] = deleted_item_filter.name
         if owned_by is not None and len(owned_by) > 0:
@@ -597,7 +608,7 @@ class Id:
             return False
         return True
 
-    def __init__(self, value: Union[int, str, dict, Container, Workbench, Sample]):
+    def __init__(self, value: int | str | dict | Container | Workbench | Sample):
 
         if isinstance(value, str):
             if re.match(Id.Pattern, value) is None:
@@ -615,14 +626,14 @@ class Id:
             self.prefix = "IC"
             self.id = value.data["id"]
         elif isinstance(value, dict):
-            if "id" in value.keys():
+            if "id" in value:
                 self.id = value["id"]
             else:
                 raise TypeError(
                     "Could not interpet dict as an identifiable Inventory item."
                 )
 
-            if "globalId" in value.keys():
+            if "globalId" in value:
                 self.prefix = value["globalId"][0:2]
 
         elif isinstance(value, int):
@@ -651,11 +662,9 @@ class Id:
             return False
         pref_s = hasattr(self, "prefix")
         pref_o = hasattr(o, "prefix")
-        if (pref_s and pref_o and self.prefix == o.prefix) or (
+        return (pref_s and pref_o and self.prefix == o.prefix) or (
             not pref_s and not pref_o
-        ):
-            return True
-        return False
+        )
 
     def as_id(self) -> int:
         return self.id
@@ -784,7 +793,7 @@ class InventoryLink:
         self,
         relation_type: Union["RelationType", str],
         target_global_id: str,
-        version_pin: Optional[int] = None,
+        version_pin: int | None = None,
     ):
         if isinstance(relation_type, RelationType):
             self.relation_type = relation_type.value
@@ -802,7 +811,7 @@ class InventoryLink:
         self.version_pin = version_pin
 
     def _toDict(self) -> dict:
-        d = {
+        d: dict[str, Any] = {
             "relationType": self.relation_type,
             "targetGlobalId": self.target_global_id,
         }
@@ -896,7 +905,7 @@ class ExtraField:
         self,
         name: str,
         fieldType: ExtraFieldType = ExtraFieldType.TEXT,
-        content: Union[str, int, float] = "",
+        content: str | int | float = "",
         link: Optional["InventoryLink"] = None,
     ):
         if fieldType == ExtraFieldType.LINK:
@@ -918,7 +927,7 @@ class ExtraField:
         name: str,
         relation_type: Union["RelationType", str],
         target_global_id: str,
-        version_pin: Optional[int] = None,
+        version_pin: int | None = None,
     ) -> "ExtraField":
         """
         Convenience constructor for a Link extra-field.
@@ -946,8 +955,10 @@ class ExtraField:
                 f"{self.__class__.__name__} ({self.data['name']!r}, "
                 f"{self.data['type']!r}, {self.data['link']!r})"
             )
-        return f"{self.__class__.__name__} ({self.data['name']!r}, {self.data['type']!r},\
+        return (
+            f"{self.__class__.__name__} ({self.data['name']!r}, {self.data['type']!r},\
 {self.data['content']!r})"
+        )
 
 
 class ItemPost:
@@ -959,11 +970,15 @@ class ItemPost:
         self,
         name: str,
         itemType: str,
-        tags: List[Tag] = [],
-        description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        tags: list[Tag] = None,
+        description: str | None = None,
+        extra_fields: Sequence | None = None,
     ):
-        self.data = {}
+        if tags is None:
+            tags = []
+        if extra_fields is None:
+            extra_fields = []
+        self.data: dict[str, Any] = {}
         self.data["type"] = itemType
         self.data["name"] = name
         self.data["tags"] = tags
@@ -981,9 +996,9 @@ class SamplePost(ItemPost):
     def __init__(
         self,
         name: str,
-        tags: List[Tag] = [],
-        description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        tags: list[Tag] = None,
+        description: str | None = None,
+        extra_fields: Sequence | None = None,
         sample_template_id=None,
         fields=None,
         storage_temperature_min: StorageTemperature = None,
@@ -992,7 +1007,7 @@ class SamplePost(ItemPost):
         subsample_count: int = None,
         total_quantity: Quantity = None,
         attachments=None,
-        barcodes: Optional[List[Barcode]] = None,
+        barcodes: list[Barcode] | None = None,
         location: "TargetLocation" = None,
     ):
         super().__init__(name, "SAMPLE", tags, description, extra_fields)
@@ -1029,13 +1044,13 @@ class InstrumentPost(ItemPost):
     def __init__(
         self,
         name: str,
-        tags: List[Tag] = [],
-        description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        tags: list[Tag] = None,
+        description: str | None = None,
+        extra_fields: Sequence | None = None,
         instrument_template_id=None,
         fields=None,
         attachments=None,
-        barcodes: Optional[List[Barcode]] = None,
+        barcodes: list[Barcode] | None = None,
     ):
         super().__init__(name, "INSTRUMENT", tags, description, extra_fields)
         ## converts arguments into JSON POST syntax
@@ -1045,9 +1060,8 @@ class InstrumentPost(ItemPost):
         if fields is not None:
             self.data["fields"] = fields
         ## fail early
-        if attachments is not None:
-            if not isinstance(attachments, list):
-                raise ValueError("attachments must be a list of open files")
+        if attachments is not None and not isinstance(attachments, list):
+            raise ValueError("attachments must be a list of open files")
         if barcodes is not None:
             self.data["barcodes"] = [barcode.to_dict() for barcode in barcodes]
 
@@ -1058,7 +1072,7 @@ class TargetLocation:
     and not instantiate this directly.
     """
 
-    def __init__(self, target_container: Union[str, int, dict, Container]):
+    def __init__(self, target_container: str | int | dict | Container):
         """
         Parameters
         ----------
@@ -1072,7 +1086,7 @@ class TargetLocation:
         TypeError
             If type is not supported
         """
-        self.data = {}
+        self.data: dict[str, Any] = {}
         if target_container == "t":
             self.data["removeFromParentContainerRequest"] = True
         elif target_container == "w":
@@ -1101,7 +1115,7 @@ class TopLevelTargetLocation(TargetLocation):
 
 
 class ListContainerTargetLocation(TargetLocation):
-    def __init__(self, target_container: Union[str, int, dict, Container]):
+    def __init__(self, target_container: str | int | dict | Container):
         super().__init__(target_container)
 
 
@@ -1113,7 +1127,7 @@ class ImageContainerTargetLocation(TargetLocation):
 
     def __init__(
         self,
-        target_container: Union[str, int, dict, Container],
+        target_container: str | int | dict | Container,
         target_location_id: int,
     ):
         super().__init__(target_container)
@@ -1128,7 +1142,7 @@ class GridContainerTargetLocation(TargetLocation):
 
     def __init__(
         self,
-        target_container: Union[str, int, dict, Container],
+        target_container: str | int | dict | Container,
         col_index: int,
         row_index: int,
     ):
@@ -1145,13 +1159,15 @@ class ContainerPost(ItemPost):
     def __init__(
         self,
         name: str,
-        tags: List[Tag] = [],
-        description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        tags: list[Tag] = None,
+        description: str | None = None,
+        extra_fields: Sequence | None = None,
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TopLevelTargetLocation(),
+        location: TargetLocation = None,
     ):
+        if location is None:
+            location = TopLevelTargetLocation()
         super().__init__(name, "CONTAINER", tags, description, extra_fields)
         if not can_store_containers and not can_store_samples:
             raise ValueError(
@@ -1174,12 +1190,12 @@ class ListContainerPost(ContainerPost):
     def __init__(
         self,
         name: str,
-        tags: List[Tag] = [],
-        description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        tags: list[Tag] = None,
+        description: str | None = None,
+        extra_fields: Sequence | None = None,
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TopLevelTargetLocation(),
+        location: TargetLocation = None,
     ):
         super().__init__(
             name,
@@ -1205,14 +1221,14 @@ class ImageContainerPost(ContainerPost):
     def __init__(
         self,
         name: str,
-        image_file: Union[str, io.BufferedReader],
-        locations: Optional[Sequence] = [],
-        tags: List[Tag] = [],
-        description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        image_file: str | io.BufferedReader,
+        locations: Sequence | None = None,
+        tags: list[Tag] = None,
+        description: str | None = None,
+        extra_fields: Sequence | None = None,
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TopLevelTargetLocation(),
+        location: TargetLocation = None,
     ):
         """
         Parameters
@@ -1250,7 +1266,7 @@ class ImageContainerPost(ContainerPost):
                 self._setencoded(img_file)
         elif isinstance(image_file, io.BufferedReader):
             self._setencoded(image_file)
-        locs = [{"coordX": p[0], "coordY": p[1]} for p in locations]
+        locs = [{"coordX": p[0], "coordY": p[1]} for p in (locations or [])]
         self.data["locations"] = locs
         self.data["cType"] = "IMAGE"
 
@@ -1265,12 +1281,12 @@ class GridContainerPost(ContainerPost):
         name: str,
         row_count: int,
         column_count: int,
-        tags: List[Tag] = [],
-        description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        tags: list[Tag] = None,
+        description: str | None = None,
+        extra_fields: Sequence | None = None,
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TopLevelTargetLocation(),
+        location: TargetLocation = None,
     ):
         super().__init__(
             name,
@@ -1281,7 +1297,7 @@ class GridContainerPost(ContainerPost):
             can_store_samples,
             location,
         )
-        self.data["cType"] = "LIST"
+        self.data["cType"] = "GRID"
         self.data["gridLayout"] = {
             "columnsNumber": column_count,
             "rowsNumber": row_count,
@@ -1306,6 +1322,7 @@ class InventoryClient(ClientBase):
         return f"{self.rspace_url}/api/inventory/{self.API_VERSION}"
 
     MAX_BULK = 100
+
     ## Helper method for generic bulk post
     def _do_bulk(self, post_json):
         resp_json = self.retrieve_api_results(
@@ -1336,9 +1353,9 @@ class InventoryClient(ClientBase):
     def create_sample(
         self,
         name: str,
-        tags: List[Tag] = [],
-        description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        tags: list[Tag] = None,
+        description: str | None = None,
+        extra_fields: Sequence | None = None,
         sample_template_id=None,
         fields=None,
         storage_temperature_min: StorageTemperature = None,
@@ -1347,7 +1364,7 @@ class InventoryClient(ClientBase):
         subsample_count: int = None,
         total_quantity: Quantity = None,
         attachments=None,
-        barcodes: Optional[List[Barcode]] = None,
+        barcodes: list[Barcode] | None = None,
     ) -> dict:
         """
         Creates a new sample with a mandatory name, optional attributes
@@ -1370,7 +1387,7 @@ class InventoryClient(ClientBase):
             subsample_count,
             total_quantity,
             attachments,
-            barcodes
+            barcodes,
         )
 
         sample = self.retrieve_api_results(
@@ -1383,7 +1400,7 @@ class InventoryClient(ClientBase):
             sample = self.get_sample_by_id(sample["id"])
         return sample
 
-    def get_sample_by_id(self, sample_id: Union[str, int]) -> dict:
+    def get_sample_by_id(self, sample_id: str | int) -> dict:
         """
         Gets a full sample information by id or global id
         Parameters
@@ -1398,14 +1415,14 @@ class InventoryClient(ClientBase):
         s_id = Id(sample_id)
         return self.retrieve_api_results(f"/samples/{s_id.as_id()}")
 
-    def get_subsample_by_id(self, subsample_id: Union[str, int]) -> dict:
+    def get_subsample_by_id(self, subsample_id: str | int) -> dict:
         ss_id = Id(subsample_id)
         if ss_id.is_subsample is False:
             raise ValueError(f"{ss_id} is not id of a subsample")
         return self.retrieve_api_results(f"/subSamples/{ss_id.as_id()}")
 
     def list_samples(
-        self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
+        self, pagination: Pagination = None, sample_filter: SearchFilter = None
     ) -> dict:
         """
         Parameters
@@ -1419,7 +1436,7 @@ class InventoryClient(ClientBase):
         return self._do_simple_list("samples", pagination, sample_filter)
 
     def list_top_level_containers(
-        self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
+        self, pagination: Pagination = None, sample_filter: SearchFilter = None
     ) -> dict:
         """
         Parameters
@@ -1433,7 +1450,7 @@ class InventoryClient(ClientBase):
         return self._do_simple_list("containers", pagination, sample_filter)
 
     def list_subsamples(
-        self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
+        self, pagination: Pagination = None, sample_filter: SearchFilter = None
     ) -> dict:
         """
         Parameters
@@ -1447,6 +1464,8 @@ class InventoryClient(ClientBase):
         return self._do_simple_list("subSamples", pagination, sample_filter)
 
     def _do_simple_list(self, endpoint, pagination, sample_filter):
+        if pagination is None:
+            pagination = Pagination()
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
         return self.retrieve_api_results(
@@ -1456,7 +1475,7 @@ class InventoryClient(ClientBase):
         )
 
     def stream_samples(
-        self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
+        self, pagination: Pagination = None, sample_filter: SearchFilter = None
     ):
         """
         Streams all samples. Pagination argument sets batch size and ordering.
@@ -1468,12 +1487,14 @@ class InventoryClient(ClientBase):
         ------
         item : One Sample at a time
         """
+        if pagination is None:
+            pagination = Pagination()
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
         return self._stream("samples", pagination)
 
     def stream_top_level_containers(
-        self, pagination: Pagination = Pagination(), sample_filter: SearchFilter = None
+        self, pagination: Pagination = None, sample_filter: SearchFilter = None
     ):
         """
         Streams all containers. Pagination argument sets batch size and ordering.
@@ -1485,11 +1506,13 @@ class InventoryClient(ClientBase):
         ------
         item : One Container at a time
         """
+        if pagination is None:
+            pagination = Pagination()
         if sample_filter is not None:
             pagination.data.update(sample_filter.data)
         return self._stream("containers", pagination)
 
-    def rename(self, item_id: Union[str, dict], new_name: str) -> dict:
+    def rename(self, item_id: str | dict, new_name: str) -> dict:
         """
         Renames an inventory item
         Parameters
@@ -1506,7 +1529,7 @@ class InventoryClient(ClientBase):
             f"/{endpoint}/{s_id.as_id()}", request_type="PUT", params={"name": new_name}
         )
 
-    def set_image(self, item_id: Union[str, dict], file) -> dict:
+    def set_image(self, item_id: str | dict, file) -> dict:
         """
         Sets image for a sample, subsample or container
 
@@ -1531,7 +1554,7 @@ class InventoryClient(ClientBase):
             f"/{endpoint}/{s_id.as_id()}", request_type="PUT", params=data
         )
 
-    def delete_sample(self, sample_id: Union[int, str]):
+    def delete_sample(self, sample_id: int | str):
         """
         Parameters
         ----------
@@ -1548,13 +1571,13 @@ class InventoryClient(ClientBase):
     def create_instrument(
         self,
         name: str,
-        tags: List[Tag] = [],
-        description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        tags: list[Tag] = None,
+        description: str | None = None,
+        extra_fields: Sequence | None = None,
         instrument_template_id=None,
         fields=None,
         attachments=None,
-        barcodes: Optional[List[Barcode]] = None,
+        barcodes: list[Barcode] | None = None,
     ) -> dict:
         """
         Creates a new instrument with a mandatory name and optional attributes.
@@ -1584,7 +1607,7 @@ class InventoryClient(ClientBase):
             instrument = self.get_instrument_by_id(instrument["id"])
         return instrument
 
-    def get_instrument_by_id(self, instrument_id: Union[str, int]) -> dict:
+    def get_instrument_by_id(self, instrument_id: str | int) -> dict:
         """
         Gets a full instrument information by id or global id
         Parameters
@@ -1600,7 +1623,7 @@ class InventoryClient(ClientBase):
         return self.retrieve_api_results(f"/instruments/{i_id.as_id()}")
 
     def list_instruments(
-        self, pagination: Pagination = Pagination(), search_filter: SearchFilter = None
+        self, pagination: Pagination = None, search_filter: SearchFilter = None
     ) -> dict:
         """
         Parameters
@@ -1613,7 +1636,7 @@ class InventoryClient(ClientBase):
         """
         return self._do_simple_list("instruments", pagination, search_filter)
 
-    def delete_instrument(self, instrument_id: Union[int, str]):
+    def delete_instrument(self, instrument_id: int | str):
         """
         Marks an instrument as deleted, so it won't appear in Inventory UI and
         default listings.
@@ -1629,7 +1652,7 @@ class InventoryClient(ClientBase):
         id_to_delete = Id(instrument_id)
         self.doDelete("instruments", id_to_delete.as_id())
 
-    def restore_instrument(self, instrument_id: Union[int, str]) -> dict:
+    def restore_instrument(self, instrument_id: int | str) -> dict:
         """
         Restores a previously deleted instrument.
         Parameters
@@ -1647,7 +1670,7 @@ class InventoryClient(ClientBase):
             request_type="PUT",
         )
 
-    def transfer_instrument_owner(self, instrument_id: Union[int, str], new_owner: str):
+    def transfer_instrument_owner(self, instrument_id: int | str, new_owner: str):
         """
         Transfers the instrument to the new owner
         Parameters
@@ -1666,7 +1689,7 @@ class InventoryClient(ClientBase):
         return self._do_transfer_owner("instruments", i_id, new_owner)
 
     def update_instrument_to_latest_template_version(
-        self, instrument_id: Union[int, str]
+        self, instrument_id: int | str
     ) -> dict:
         """
         If the Instrument Template used to create this instrument has been updated
@@ -1688,7 +1711,7 @@ class InventoryClient(ClientBase):
             request_type="POST",
         )
 
-    def get_instrument_revisions(self, instrument_id: Union[int, str]) -> Sequence[dict]:
+    def get_instrument_revisions(self, instrument_id: int | str) -> Sequence[dict]:
         """
         Returns list of historical revisions saved for the Instrument, starting from
         the earliest revision.
@@ -1697,7 +1720,7 @@ class InventoryClient(ClientBase):
         return self.retrieve_api_results(f"/instruments/{i_id.as_id()}/revisions")
 
     def get_instrument_revision(
-        self, instrument_id: Union[int, str], revision_id: Union[int, str]
+        self, instrument_id: int | str, revision_id: int | str
     ) -> dict:
         """
         Returns full details of a historical revision saved for the Instrument.
@@ -1707,7 +1730,7 @@ class InventoryClient(ClientBase):
             f"/instruments/{i_id.as_id()}/revisions/{revision_id}"
         )
 
-    def add_extra_fields(self, item_id: Union[str, dict], *ExtraField) -> dict:
+    def add_extra_fields(self, item_id: str | dict, *ExtraField) -> dict:
         s_id = Id(item_id)
         endpoint = s_id.get_api_endpoint()
         toPut = []
@@ -1720,7 +1743,7 @@ class InventoryClient(ClientBase):
             params={"extraFields": toPut},
         )
 
-    def get_link_target_summary(self, global_id: Union[str, dict]) -> dict:
+    def get_link_target_summary(self, global_id: str | dict) -> dict:
         """
         Returns a read-time summary of an Inventory Link target: its current
         state as {globalId, name, type, deleted, readable}, permission-redacted
@@ -1741,7 +1764,7 @@ class InventoryClient(ClientBase):
         gid = Id(global_id).as_global_id()
         return self.retrieve_api_results(f"/linkTargets/{gid}/summary")
 
-    def get_referencing_items(self, global_id: Union[str, dict]) -> dict:
+    def get_referencing_items(self, global_id: str | dict) -> dict:
         """
         Returns the Inventory items whose Link extra-field points at the
         supplied target, i.e. the back-references to ``global_id``. The result
@@ -1761,7 +1784,7 @@ class InventoryClient(ClientBase):
         gid = Id(global_id).as_global_id()
         return self.retrieve_api_results(f"/referencingItems/{gid}")
 
-    def get_attachment_by_id(self, attachment_id: Union[str, int]) -> dict:
+    def get_attachment_by_id(self, attachment_id: str | int) -> dict:
         """
         Parameters
         ----------
@@ -1775,7 +1798,7 @@ class InventoryClient(ClientBase):
         """
         return self.retrieve_api_results(f"/files/{attachment_id}")
 
-    def upload_attachment(self, inventory_item: Union[str, dict], file) -> dict:
+    def upload_attachment(self, inventory_item: str | dict, file) -> dict:
         """
         Uploads an attachment file to a sample, subsample or container.
         Parameters
@@ -1798,7 +1821,7 @@ class InventoryClient(ClientBase):
             files={"file": file, "fileSettings": (None, fsStr, "application/json")},
         )
 
-    def delete_attachment_by_id(self, attachment_id: Union[str, int]) -> None:
+    def delete_attachment_by_id(self, attachment_id: str | int) -> None:
         """
         Parameters
         ----------
@@ -1811,14 +1834,20 @@ class InventoryClient(ClientBase):
         """
         self.doDelete("files", attachment_id)
 
-    def download_attachment_by_id(self, attachment_id: Union[str, int], file_path: Union[str, BinaryIO], chunk_size=128) -> None:
+    def download_attachment_by_id(
+        self,
+        attachment_id: str | int,
+        file_path: str | BinaryIO,
+        chunk_size=128,
+    ) -> None:
         url_base = self._get_api_url()
         return self.download_link_to_file(
             f"{url_base}/files/{attachment_id}/file", file_path, chunk_size
         )
 
-    def upload_attachment_by_global_id(self, record_global_id: str, file: BinaryIO,
-                                       filename: Optional[str] = None) -> dict:
+    def upload_attachment_by_global_id(
+        self, record_global_id: str, file: BinaryIO, filename: str | None = None
+    ) -> dict:
         """Attach a file to a record or an attachment field. ``filename`` overrides the name
         taken from the file object."""
         return self._post_multipart(
@@ -1827,7 +1856,9 @@ class InventoryClient(ClientBase):
             data={"fileSettings": json.dumps({"parentGlobalId": record_global_id})},
         )
 
-    def attach_gallery_file_by_global_id(self, parent_global_id: str, media_file_global_id: str) -> dict:
+    def attach_gallery_file_by_global_id(
+        self, parent_global_id: str, media_file_global_id: str
+    ) -> dict:
         """
         Attach a file that is already in the Gallery to an Inventory record or attachment field.
 
@@ -1851,13 +1882,15 @@ class InventoryClient(ClientBase):
         return self.retrieve_api_results(
             "/attachments",
             request_type="POST",
-            params={"parentGlobalId": Id(parent_global_id).as_global_id(),
-                    "mediaFileGlobalId": Id(media_file_global_id).as_global_id()},
+            params={
+                "parentGlobalId": Id(parent_global_id).as_global_id(),
+                "mediaFileGlobalId": Id(media_file_global_id).as_global_id(),
+            },
         )
 
     def split_subsample(
         self,
-        subsample: Union[int, str, dict],
+        subsample: int | str | dict,
         num_new_subsamples: int,
         quantity_per_subsample: float = None,
     ):
@@ -1936,9 +1969,7 @@ class InventoryClient(ClientBase):
             )
             return BulkOperationResult(rc)
 
-    def duplicate(
-        self, item_to_duplicate: Union[str, dict], new_name: str = None
-    ) -> dict:
+    def duplicate(self, item_to_duplicate: str | dict, new_name: str = None) -> dict:
         """
         Parameters
         ----------
@@ -1961,7 +1992,7 @@ class InventoryClient(ClientBase):
         return rc
 
     def search(
-        self, query: str, pagination=Pagination(), result_type: ResultType = None
+        self, query: str, pagination: Pagination = None, result_type: ResultType = None
     ) -> dict:
         """
         Searches by a query, optionally paginated or restricted to a particular type (container,
@@ -1981,15 +2012,15 @@ class InventoryClient(ClientBase):
             Search result summary and first page of results.
 
         """
+        if pagination is None:
+            pagination = Pagination()
         params = {"query": query}
         params.update(pagination.data)
         if result_type is not None:
             params["resultType"] = result_type.name
         return self.retrieve_api_results("/search", params=params)
 
-    def add_note_to_subsample(
-        self, subsample: Union[str, int, dict], note: str
-    ) -> dict:
+    def add_note_to_subsample(self, subsample: str | int | dict, note: str) -> dict:
         ss_id = Id(subsample)
         if not ss_id.is_subsample(True):
             raise ValueError("Supplied id is not a subsamples")
@@ -2012,7 +2043,9 @@ class InventoryClient(ClientBase):
         result = self.retrieve_api_results("/workbenches")
         return [wb for wb in result["containers"]]
 
-    def get_workbench_by_id(self, workbench_id: Union[str, int], include_content: bool = False) -> dict:
+    def get_workbench_by_id(
+        self, workbench_id: str | int, include_content: bool = False
+    ) -> dict:
         """
         Gets a workbench (bench) by id. Benches are containers but must be read through
         /workbenches: /containers/{id} answers 422 for a bench.
@@ -2025,8 +2058,10 @@ class InventoryClient(ClientBase):
             Include the bench's locations and their content (subsamples, containers).
         """
         numeric_id = self._get_numeric_record_id(workbench_id)
-        return self.retrieve_api_results(f"/workbenches/{numeric_id}",
-                                         params={"includeContent": "true" if include_content else "false"})
+        return self.retrieve_api_results(
+            f"/workbenches/{numeric_id}",
+            params={"includeContent": "true" if include_content else "false"},
+        )
 
     ## ---------------------------------------------------------------------
     ## CSV import
@@ -2036,7 +2071,7 @@ class InventoryClient(ClientBase):
     ## Instrument Templates from CSV is NOT supported by the API.
 
     def parse_csv_import_file(
-        self, file: BinaryIO, record_type: Union[str, ImportRecordType]
+        self, file: BinaryIO, record_type: str | ImportRecordType
     ) -> dict:
         """
         Uploads a CSV file for analysis prior to import, without creating
@@ -2130,9 +2165,7 @@ class InventoryClient(ClientBase):
         )
 
     @staticmethod
-    def _require_single_mapping(
-        field_mappings: dict, target: str, record: str
-    ) -> None:
+    def _require_single_mapping(field_mappings: dict, target: str, record: str) -> None:
         """
         Ensures exactly one CSV column is mapped to ``target``. Mapping zero
         columns leaves a required field unset; mapping more than one is
@@ -2172,7 +2205,7 @@ class InventoryClient(ClientBase):
         self,
         samples_file: BinaryIO,
         field_mappings: dict,
-        template_id: Union[str, int] = None,
+        template_id: str | int | None = None,
         template_info: dict = None,
     ) -> dict:
         """
@@ -2315,9 +2348,9 @@ class InventoryClient(ClientBase):
 
     def add_locations_to_image_container(
         self,
-        image_container: Union[int, str, Container, dict],
+        image_container: int | str | Container | dict,
         *locations: Sequence[tuple],
-    ) -> dict:
+    ) -> dict | None:
         """
         Adds 1 or more new locations to an existing image container.
         If locations are empty, this  method has no effect.
@@ -2334,7 +2367,7 @@ class InventoryClient(ClientBase):
             The updated image container.
         """
         if len(locations) == 0:
-            return
+            return None
         image_c_id = self._id_as_container_id(image_container)
         loci = [
             {"newLocationRequest": True, "coordX": p[0], "coordY": p[1]}
@@ -2349,7 +2382,7 @@ class InventoryClient(ClientBase):
 
     def delete_locations_from_image_container(
         self,
-        image_container: Union[int, str, Container, dict],
+        image_container: int | str | Container | dict,
         *locations: Sequence[int],
     ):
         if len(locations) == 0:
@@ -2369,12 +2402,12 @@ class InventoryClient(ClientBase):
     def create_list_container(
         self,
         name: str,
-        tags: List[Tag] = [],
-        description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        tags: list[Tag] = None,
+        description: str | None = None,
+        extra_fields: Sequence | None = None,
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TopLevelTargetLocation(),
+        location: TargetLocation = None,
     ) -> dict:
         """
         Creates a single List Container, either 'top-level',  on the Workbench,
@@ -2396,21 +2429,25 @@ class InventoryClient(ClientBase):
         )
         return container
 
-    def get_container_by_id(self, container_id: Union[str, int], include_content = False) -> dict:
+    def get_container_by_id(
+        self, container_id: str | int, include_content=False
+    ) -> dict:
         c_id = Id(container_id)
-        return self.retrieve_api_results(f"/containers/{c_id.as_id()}?includeContent={include_content}")
+        return self.retrieve_api_results(
+            f"/containers/{c_id.as_id()}?includeContent={include_content}"
+        )
 
     def create_grid_container(
         self,
         name: str,
         row_count: int,
         column_count: int,
-        tags: List[Tag] = [],
-        description: Optional[str] = None,
-        extra_fields: Optional[Sequence] = [],
+        tags: list[Tag] = None,
+        description: str | None = None,
+        extra_fields: Sequence | None = None,
         can_store_containers: bool = True,
         can_store_samples: bool = True,
-        location: TargetLocation = TopLevelTargetLocation(),
+        location: TargetLocation = None,
     ) -> dict:
         """
         Parameters
@@ -2458,7 +2495,7 @@ class InventoryClient(ClientBase):
         return container
 
     def set_as_top_level_container(
-        self, container: Union[int, str, dict, Container]
+        self, container: int | str | dict | Container
     ) -> dict:
         """
         Moves a container from its current location to be a top-level container
@@ -2526,7 +2563,7 @@ class InventoryClient(ClientBase):
 
     def add_items_to_image_container(
         self,
-        target_container_id: Union[str, int, dict],
+        target_container_id: str | int | dict,
         items_to_move: Sequence,
         location_ids: Sequence,
     ) -> BulkOperationResult:
@@ -2549,7 +2586,8 @@ class InventoryClient(ClientBase):
         self._id_as_container_id(target_container_id)
 
         loci = []
-        for (item, loc_id) in zip(items_to_move, location_ids):
+        # deliberately zip-truncates: unequal-length inputs are documented above
+        for item, loc_id in zip(items_to_move, location_ids, strict=False):
             item_id = Id(item)
             loci.append(
                 {
@@ -2563,7 +2601,7 @@ class InventoryClient(ClientBase):
 
     def add_items_to_grid_container(
         self,
-        target_container_id: Union[str, int, GridContainer],
+        target_container_id: str | int | GridContainer,
         grid_placement: GridPlacement,
     ) -> BulkOperationResult:
         """
@@ -2584,11 +2622,12 @@ class InventoryClient(ClientBase):
         list
             A list of updated items showing their current position
         """
-        if isinstance(target_container_id, GridContainer):
-            if target_container_id.free() < len(grid_placement.items_to_move):
-                raise ValueError(
-                    f"not enough space in {target_container_id.data['globalId']} to store {len(grid_placement.items_to_move)} - only {target_container_id.free()} spaces free."
-                )
+        if isinstance(
+            target_container_id, GridContainer
+        ) and target_container_id.free() < len(grid_placement.items_to_move):
+            raise ValueError(
+                f"not enough space in {target_container_id.data['globalId']} to store {len(grid_placement.items_to_move)} - only {target_container_id.free()} spaces free."
+            )
         id_target = self._id_as_container_id(target_container_id)
         ## assert there are no invalid global ids (things that are not subsamples)
 
@@ -2611,8 +2650,9 @@ class InventoryClient(ClientBase):
     def _create_bulk_move(self, grid_id: Id, gp: GridPlacement):
         coords = []  # array of x,y coords
         ##
-        if FillingStrategy.EXACT == gp.filling_strategy:
-            for (item, coord) in zip(gp.items_to_move, gp.locations):
+        if gp.filling_strategy == FillingStrategy.EXACT:
+            assert gp.locations is not None
+            for item, coord in zip(gp.items_to_move, gp.locations, strict=True):
                 coords.append(
                     {
                         "type": item.get_type(),
@@ -2632,13 +2672,12 @@ class InventoryClient(ClientBase):
                 gp.filling_strategy,
             )
             for ss_id in gp.items_to_move:
-
                 x = gp.column_index
                 y = gp.row_index
-                if FillingStrategy.BY_ROW == gp.filling_strategy:
+                if gp.filling_strategy == FillingStrategy.BY_ROW:
                     x = counter % gp.total_columns + 1
                     y = int(counter / gp.total_columns) + 1
-                elif FillingStrategy.BY_COLUMN == gp.filling_strategy:
+                elif gp.filling_strategy == FillingStrategy.BY_COLUMN:
                     x = int(counter / gp.total_rows) + 1
                     y = counter % gp.total_rows + 1
                 coords.append(
@@ -2656,7 +2695,7 @@ class InventoryClient(ClientBase):
         self,
         eln_field_id: int,
         name: str,
-        *materials: Union[str, dict],
+        *materials: str | dict,
         description: str = None,
     ) -> dict:
         """
@@ -2682,20 +2721,23 @@ class InventoryClient(ClientBase):
 
         """
         id_list = [Id(item) for item in materials]
-        materials = []
-        for item_id in id_list:
-            materials.append(
-                {"invRec": {"id": item_id.as_id(), "type": item_id.get_type()}}
-            )
+        material_records = [
+            {"invRec": {"id": item_id.as_id(), "type": item_id.get_type()}}
+            for item_id in id_list
+        ]
 
-        to_post = {"name": name, "elnFieldId": eln_field_id, "materials": materials}
+        to_post = {
+            "name": name,
+            "elnFieldId": eln_field_id,
+            "materials": material_records,
+        }
         if description is not None:
             to_post["description"] = description
         return self.retrieve_api_results(
             "/listOfMaterials", request_type="POST", params=to_post
         )
 
-    def get_list_of_materials_for_document(self, document_id: Union[str, int, dict]):
+    def get_list_of_materials_for_document(self, document_id: str | int | dict):
         """
         Gets all ListsOfMaterials belonging to one ELN document
 
@@ -2712,7 +2754,7 @@ class InventoryClient(ClientBase):
         doc_id = self._get_numeric_record_id(document_id)
         return self.retrieve_api_results(f"/listOfMaterials/forDocument/{doc_id}")
 
-    def get_list_of_materials_for_field(self, field_id: Union[str, int]):
+    def get_list_of_materials_for_field(self, field_id: str | int):
         """
         Gets all lists of materials belongong to an ELN document field
 
@@ -2763,7 +2805,7 @@ class InventoryClient(ClientBase):
             "/sampleTemplates", request_type="POST", params=sample_template_post
         )
 
-    def get_sample_template_by_id(self, sample_template_id: Union[str, int]) -> dict:
+    def get_sample_template_by_id(self, sample_template_id: str | int) -> dict:
         """
         Gets a full sampleTemplate information by id or global id
         Parameters
@@ -2778,7 +2820,7 @@ class InventoryClient(ClientBase):
         s_id = Id(sample_template_id)
         return self.retrieve_api_results(f"/sampleTemplates/{s_id.as_id()}")
 
-    def delete_sample_template(self, sample_template_id: Union[int, str]) -> None:
+    def delete_sample_template(self, sample_template_id: int | str) -> None:
         """
         Parameters
         ----------
@@ -2793,7 +2835,7 @@ class InventoryClient(ClientBase):
         id_to_delete = Id(sample_template_id)
         self.doDelete("sampleTemplates", id_to_delete.as_id())
 
-    def set_sample_template_icon(self, sample_template_id: Union[int, str], file):
+    def set_sample_template_icon(self, sample_template_id: int | str, file):
         """
         Parameters
         ----------
@@ -2813,7 +2855,7 @@ class InventoryClient(ClientBase):
         )
 
     def get_sample_template_icon(
-        self, sample_template_id: Union[int, str], icon_id: int, outfile
+        self, sample_template_id: int | str, icon_id: int, outfile
     ):
         """
         Downloads the Sample Template's icon
@@ -2838,7 +2880,7 @@ class InventoryClient(ClientBase):
         )
 
     def list_sample_templates(
-        self, pagination: Pagination = Pagination(), search_filter: SearchFilter = None
+        self, pagination: Pagination = None, search_filter: SearchFilter = None
     ):
         """
         Paginated listing of SampleTemplates, optionally filtering by username (owner) or deletion status
@@ -2858,7 +2900,7 @@ class InventoryClient(ClientBase):
         """
         return self._do_simple_list("sampleTemplates", pagination, search_filter)
 
-    def restore_sample_template(self, sample_template_id: Union[int, str]) -> dict:
+    def restore_sample_template(self, sample_template_id: int | str) -> dict:
         """
         Restores a deleted sample template so it will appear in the template listings and
         be usable to create new samples.
@@ -2879,7 +2921,7 @@ class InventoryClient(ClientBase):
         )
 
     def transfer_sample_template_owner(
-        self, sample_template_id: Union[int, str], new_owner: str
+        self, sample_template_id: int | str, new_owner: str
     ):
         """
         Transfers the sample template to the new owner
@@ -2917,9 +2959,7 @@ class InventoryClient(ClientBase):
             "/instrumentTemplates", request_type="POST", params=instrument_template_post
         )
 
-    def get_instrument_template_by_id(
-        self, instrument_template_id: Union[str, int]
-    ) -> dict:
+    def get_instrument_template_by_id(self, instrument_template_id: str | int) -> dict:
         """
         Gets a full InstrumentTemplate information by id or global id
         Parameters
@@ -2934,9 +2974,7 @@ class InventoryClient(ClientBase):
         it_id = Id(instrument_template_id)
         return self.retrieve_api_results(f"/instrumentTemplates/{it_id.as_id()}")
 
-    def delete_instrument_template(
-        self, instrument_template_id: Union[int, str]
-    ) -> None:
+    def delete_instrument_template(self, instrument_template_id: int | str) -> None:
         """
         Parameters
         ----------
@@ -2951,9 +2989,7 @@ class InventoryClient(ClientBase):
         id_to_delete = Id(instrument_template_id)
         self.doDelete("instrumentTemplates", id_to_delete.as_id())
 
-    def set_instrument_template_icon(
-        self, instrument_template_id: Union[int, str], file
-    ):
+    def set_instrument_template_icon(self, instrument_template_id: int | str, file):
         """
         Parameters
         ----------
@@ -2973,7 +3009,7 @@ class InventoryClient(ClientBase):
         )
 
     def get_instrument_template_icon(
-        self, instrument_template_id: Union[int, str], icon_id: int, outfile
+        self, instrument_template_id: int | str, icon_id: int, outfile
     ):
         """
         Downloads the Instrument Template's icon
@@ -2998,7 +3034,7 @@ class InventoryClient(ClientBase):
         )
 
     def list_instrument_templates(
-        self, pagination: Pagination = Pagination(), search_filter: SearchFilter = None
+        self, pagination: Pagination = None, search_filter: SearchFilter = None
     ):
         """
         Paginated listing of InstrumentTemplates, optionally filtering by username
@@ -3019,9 +3055,7 @@ class InventoryClient(ClientBase):
         """
         return self._do_simple_list("instrumentTemplates", pagination, search_filter)
 
-    def restore_instrument_template(
-        self, instrument_template_id: Union[int, str]
-    ) -> dict:
+    def restore_instrument_template(self, instrument_template_id: int | str) -> dict:
         """
         Restores a deleted instrument template so it will appear in the template
         listings and be usable to create new instruments.
@@ -3042,7 +3076,7 @@ class InventoryClient(ClientBase):
         )
 
     def get_instrument_template_version(
-        self, instrument_template_id: Union[int, str], version: int
+        self, instrument_template_id: int | str, version: int
     ) -> dict:
         """
         Retrieves a particular historical version of an InstrumentTemplate. Each
@@ -3055,7 +3089,7 @@ class InventoryClient(ClientBase):
         )
 
     def transfer_instrument_template_owner(
-        self, instrument_template_id: Union[int, str], new_owner: str
+        self, instrument_template_id: int | str, new_owner: str
     ):
         """
         Transfers the instrument template to the new owner
@@ -3075,7 +3109,7 @@ class InventoryClient(ClientBase):
         return self._do_transfer_owner("instrumentTemplates", it_id, new_owner)
 
     def update_instrument_template_instruments(
-        self, instrument_template_id: Union[int, str]
+        self, instrument_template_id: int | str
     ) -> dict:
         """
         Walks the current user's instruments that were created from this template at
@@ -3094,7 +3128,7 @@ class InventoryClient(ClientBase):
             request_type="POST",
         )
 
-    def transfer_sample_owner(self, sample_id: Union[int, str], new_owner: str):
+    def transfer_sample_owner(self, sample_id: int | str, new_owner: str):
         """
         Transfers the sample  to the new owner
         Parameters
@@ -3109,8 +3143,7 @@ class InventoryClient(ClientBase):
         dict
             The updated sample.
         """
-        sample_id = Id(sample_id)
-        return self._do_transfer_owner("samples", sample_id, new_owner)
+        return self._do_transfer_owner("samples", Id(sample_id), new_owner)
 
     def _do_transfer_owner(self, endpoint, item_id, new_owner):
         return self.retrieve_api_results(
@@ -3121,7 +3154,7 @@ class InventoryClient(ClientBase):
 
     def barcode(
         self,
-        global_id: Union[str, dict],
+        global_id: str | dict,
         outfile: str = None,
         barcode_type: BarcodeFormat = BarcodeFormat.BARCODE,
     ) -> bytes:
@@ -3156,7 +3189,9 @@ class InventoryClient(ClientBase):
             for entry in group:
                 if entry.get("provider") == provider:
                     return entry
-        raise ValueError(f"No settings found for provider '{provider}' in /system/settings response")
+        raise ValueError(
+            f"No settings found for provider '{provider}' in /system/settings response"
+        )
 
     def get_datacite_settings(self, provider: str = "IGSN_DATACITE") -> dict:
         """
@@ -3207,8 +3242,15 @@ class InventoryClient(ClientBase):
         dict
             The updated settings for the given provider
         """
-        if enabled and (server_url is None or username is None or password is None or repository_prefix is None):
-            raise ValueError("server_url, username, password, and repository_prefix are required when enabled=True")
+        if enabled and (
+            server_url is None
+            or username is None
+            or password is None
+            or repository_prefix is None
+        ):
+            raise ValueError(
+                "server_url, username, password, and repository_prefix are required when enabled=True"
+            )
 
         body = {"provider": provider, "enabled": str(enabled).lower()}
         if server_url is not None:
@@ -3221,9 +3263,7 @@ class InventoryClient(ClientBase):
             body["repositoryPrefix"] = repository_prefix
 
         result = self.retrieve_api_results(
-            "/system/settings",
-            request_type="PUT",
-            params=body
+            "/system/settings", request_type="PUT", params=body
         )
         return self._find_identifier_provider_settings(result, provider)
 
@@ -3241,7 +3281,11 @@ class InventoryClient(ClientBase):
         bool
             True if the connection test passes, False otherwise
         """
-        endpoint_name = "testIgsnConnection" if provider == "IGSN_DATACITE" else "testPidinstConnection"
+        endpoint_name = (
+            "testIgsnConnection"
+            if provider == "IGSN_DATACITE"
+            else "testPidinstConnection"
+        )
         url = self._get_api_url() + f"/identifiers/{endpoint_name}"
         headers = self._get_headers("application/json")
 
@@ -3252,6 +3296,7 @@ class InventoryClient(ClientBase):
             return bool(response.json())
         except (requests.exceptions.RequestException, ValueError):
             return False
+
 
 def _calculate_start_index(
     col_start, row_start, total_columns, total_rows, filling_strategy
@@ -3264,17 +3309,15 @@ def _calculate_start_index(
         )
 
     index = 0
-    if FillingStrategy.BY_ROW == filling_strategy:
+    if filling_strategy == FillingStrategy.BY_ROW:
         index = ((row_start - 1) * total_columns) + col_start
-    elif FillingStrategy.BY_COLUMN == filling_strategy:
+    elif filling_strategy == FillingStrategy.BY_COLUMN:
         index = ((col_start - 1) * total_rows) + row_start
     return index - 1
 
 
-def gen_tags(tags) -> List[Tag]:
-  return [{
-    "value": value,
-    "ontologyName": None,
-    "ontologyVersion": None,
-    "uri": None
-  } for value in tags]
+def gen_tags(tags) -> list[Tag]:
+    return [
+        {"value": value, "ontologyName": None, "ontologyVersion": None, "uri": None}
+        for value in tags
+    ]

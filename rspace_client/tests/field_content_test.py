@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Mon Jun  7 08:38:55 2021
 
 @author: richard
 """
 
+import unittest
 
 import rspace_client.eln as cli
 import rspace_client.tests.base_test as base_test
-import unittest
 
 
 class TestBasicFunction(unittest.TestCase):
@@ -27,7 +26,7 @@ class TestBasicFunction(unittest.TestCase):
         array2d = self.field.get_datatables()[0]
         self.assertEqual(12, len(array2d))
         ## all rows have same number of columns
-        self.assertEqual(1, len(set((len(row) for row in array2d))))
+        self.assertEqual(1, len(set(len(row) for row in array2d)))
 
         EXPECTED_COL_COUNT = 4
         self.assertEqual(EXPECTED_COL_COUNT, len(array2d[0]))

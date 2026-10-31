@@ -1,0 +1,16 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.3
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^(rspace_client|examples)/
+      - id: ruff-format
+        files: ^(rspace_client|examples)/
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.3.1
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-requests]
+        pass_filenames: false
+        args: [rspace_client]

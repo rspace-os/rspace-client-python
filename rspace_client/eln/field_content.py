@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Thu Jun  3 09:50:47 2021
 
 @author: richard
 """
 
-from bs4 import BeautifulSoup
 import re
+
+from bs4 import BeautifulSoup
 
 
 class FieldContent:
@@ -55,9 +55,11 @@ class FieldContent:
         divs = self.soup.find_all("div", class_="rsCalcTableDiv")
         all_tables = []
         for div in divs:
-            if search_term is not None:
-                if re.search(search_term, div.get_text(), re.IGNORECASE) is None:
-                    continue
+            if (
+                search_term is not None
+                and re.search(search_term, div.get_text(), re.IGNORECASE) is None
+            ):
+                continue
             trs = div.find_all("tr")
             all_r_data = []
 

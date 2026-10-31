@@ -1,21 +1,19 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Sat Oct  2 22:09:40 2021
 
 @author: richard
 """
-import sys, os
-import io
-import json
+
 import datetime as dt
-import pprint
+import io
+import os
 import unittest
 
 import pytest
 
 import rspace_client.tests.base_test as base
-from rspace_client.inv import inv, template_builder, sample_builder2
+from rspace_client.inv import inv, sample_builder2, template_builder
 from rspace_client.inv import quantity_unit as qu
 
 
@@ -47,7 +45,7 @@ class InventoryApiTest(base.BaseApiTest):
             expiry_date=expiry_date,
             total_quantity=amount,
             subsample_count=12,
-            attachments=[open(base.get_any_datafile(), "rb")],
+            attachments=[open(base.get_any_datafile(), "rb")],  # noqa: SIM115
         )
         self.assertEqual(sample_name, sample["name"])
         self.assertEqual(2, len(sample["extraFields"]))
@@ -56,7 +54,7 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(12, sample["subSamplesCount"])
         self.assertEqual(expiry_date.isoformat(), sample["expiryDate"])
         self.assertEqual(1, len(sample["attachments"]))
-        s_ob = inv.Sample(sample)
+        inv.Sample(sample)
 
     def test_set_image_sample(self):
         sample = self.invapi.create_sample(base.random_string(5))
@@ -65,9 +63,9 @@ class InventoryApiTest(base.BaseApiTest):
             updated_sample = self.invapi.set_image(sample, f)
 
         links = updated_sample["_links"]
-        for l in links:
-            if l["rel"] == "image":
-                self.assertFalse(l["link"].endswith("-1"))
+        for link in links:
+            if link["rel"] == "image":
+                self.assertFalse(link["link"].endswith("-1"))
 
     def test_set_image_container(self):
         sample = self.invapi.create_list_container(base.random_string(5))
@@ -76,9 +74,9 @@ class InventoryApiTest(base.BaseApiTest):
             updated_c = self.invapi.set_image(sample, f)
 
         links = updated_c["_links"]
-        for l in links:
-            if l["rel"] == "image":
-                self.assertFalse(l["link"].endswith("-1"))
+        for link in links:
+            if link["rel"] == "image":
+                self.assertFalse(link["link"].endswith("-1"))
 
     def test_create_sample_name_only(self):
         sample = self.invapi.create_sample(base.random_string(5))
@@ -184,7 +182,7 @@ class InventoryApiTest(base.BaseApiTest):
         sample_filter = inv.SearchFilter(owned_by=unknown_user)
         gen = self.invapi.stream_samples(onePerPage, sample_filter)
         result_count = 0
-        for sample in gen:
+        for _sample in gen:
             result_count += 1
         self.assertEqual(0, result_count)
 
@@ -221,7 +219,7 @@ class InventoryApiTest(base.BaseApiTest):
     def test_search_sample(self):
         name = base.random_string()
         tag = base.random_string()
-        sample = self.invapi.create_sample(name, tags=inv.gen_tags([tag]))
+        self.invapi.create_sample(name, tags=inv.gen_tags([tag]))
         results = self.invapi.search(query=name)
         ## sample and its subsample
         self.assertEqual(2, results["totalHits"])
@@ -415,13 +413,17 @@ class InventoryApiTest(base.BaseApiTest):
 
         ## create in Bench
         ct_in_wb = self.invapi.create_list_container(
-            name, tags=inv.gen_tags(["ab", "cd", "ef"]), location=inv.BenchTargetLocation()
+            name,
+            tags=inv.gen_tags(["ab", "cd", "ef"]),
+            location=inv.BenchTargetLocation(),
         )
         self.assertEqual("BE", ct_in_wb["parentContainers"][0]["globalId"][0:2])
 
         ## create in parent list container
         ct_sub_container = self.invapi.create_list_container(
-            name, tags=inv.gen_tags(["ab", "cd", "ef"]), location=inv.TargetLocation(ct["id"])
+            name,
+            tags=inv.gen_tags(["ab", "cd", "ef"]),
+            location=inv.TargetLocation(ct["id"]),
         )
         self.assertEqual(
             ct["globalId"], ct_sub_container["parentContainers"][0]["globalId"]
@@ -486,7 +488,7 @@ class InventoryApiTest(base.BaseApiTest):
     def test_add_items_to_image_container(self):
         image_post = self._createImageContainerPost()
         image_c = self.invapi.create_image_container(image_post)
-        loci = [l["id"] for l in image_c["locations"]]
+        loci = [loc["id"] for loc in image_c["locations"]]
         sample = self.invapi.create_sample("in-image", subsample_count=3)
         result = self.invapi.add_items_to_image_container(
             image_c, sample["subSamples"], loci
@@ -494,7 +496,9 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertTrue(result.is_ok())
         self.assertEqual(3, len(result.success_results()))
         ## reload:
-        image_c = inv.ImageContainer(self.invapi.get_container_by_id(image_c, include_content = True))
+        image_c = inv.ImageContainer(
+            self.invapi.get_container_by_id(image_c, include_content=True)
+        )
         self.assertEqual(0, image_c.free_locations())
         self.assertEqual(3, image_c.capacity())
 
@@ -527,7 +531,9 @@ class InventoryApiTest(base.BaseApiTest):
         )
 
         ## now reload the container, which should show subsamples
-        updated_container_json = self.invapi.get_container_by_id(grid_c["id"], include_content = True)
+        updated_container_json = self.invapi.get_container_by_id(
+            grid_c["id"], include_content=True
+        )
         container = inv.Container.of(updated_container_json)
         self.assertEqual(6, container.capacity())
         self.assertEqual(5, container.free())
@@ -574,7 +580,9 @@ class InventoryApiTest(base.BaseApiTest):
         )
         self.assertTrue(result.is_ok())
         ## get container
-        updated_container_json = self.invapi.get_container_by_id(grid_c["id"], include_content = True)
+        updated_container_json = self.invapi.get_container_by_id(
+            grid_c["id"], include_content=True
+        )
         container = inv.Container.of(updated_container_json)
         self.assertEqual(10, container.capacity())
         self.assertEqual(5, container.in_use())
@@ -608,7 +616,9 @@ class InventoryApiTest(base.BaseApiTest):
         self.assertEqual(10, len(rc.data["results"]))
 
         ## now reload the container, which should show subsamples
-        updated_container_json = self.invapi.get_container_by_id(grid_c["id"], include_content = True)
+        updated_container_json = self.invapi.get_container_by_id(
+            grid_c["id"], include_content=True
+        )
         container = inv.Container.of(updated_container_json)
         self.assertEqual(21, container.capacity())
         self.assertEqual(11, container.free())
@@ -708,9 +718,7 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_delete_samples(self):
         new_sample = self.invapi.create_sample("to_delete")
-        total_samples = self.invapi.list_samples()
 
-        total_samples_count = total_samples["totalHits"]
         total_deleted = self.invapi.list_samples(
             sample_filter=inv.SearchFilter(
                 deleted_item_filter=inv.DeletedItemFilter.DELETED_ONLY
@@ -870,9 +878,7 @@ class InventoryApiTest(base.BaseApiTest):
 
     def test_delete_restore_instrument_template(self):
         it_json = (
-            template_builder.InstrumentTemplateBuilder("toTest")
-            .text("Notes")
-            .build()
+            template_builder.InstrumentTemplateBuilder("toTest").text("Notes").build()
         )
         it = self.invapi.create_instrument_template(it_json)
 
@@ -932,9 +938,9 @@ class InventoryApiTest(base.BaseApiTest):
             updated_instrument = self.invapi.set_image(instrument, f)
 
         links = updated_instrument["_links"]
-        for l in links:
-            if l["rel"] == "image":
-                self.assertFalse(l["link"].endswith("-1"))
+        for link in links:
+            if link["rel"] == "image":
+                self.assertFalse(link["link"].endswith("-1"))
 
     def test_duplicate_instrument(self):
         instrument = self.invapi.create_instrument(base.random_string(5))
@@ -945,10 +951,7 @@ class InventoryApiTest(base.BaseApiTest):
     def test_create_instrument_from_template(self):
         builder = template_builder.InstrumentTemplateBuilder("MyMicroscope")
         it_json = (
-            builder.string("Serial Number")
-            .number("Calibration")
-            .uri("Manual")
-            .build()
+            builder.string("Serial Number").number("Calibration").uri("Manual").build()
         )
         it = self.invapi.create_instrument_template(it_json)
 
@@ -980,12 +983,31 @@ class InventoryApiTest(base.BaseApiTest):
         updated = self.invapi.add_extra_fields(instrument["globalId"], ef1)
         self.assertEqual(1, len(updated["extraFields"]))
 
+    # Usernames the DataCite tests below write, so a server they have already
+    # run against does not count as having real DataCite settings.
+    _DATACITE_TEST_USERNAMES = ("test_user", "definitely_invalid_user")
+
+    def _skip_if_datacite_configured(self):
+        """
+        The DataCite tests overwrite the server's DataCite settings. The API
+        no longer returns the stored password, so real settings could not be
+        put back afterwards: skip rather than clobber them.
+        """
+        settings = self.invapi.get_datacite_settings()
+        username = settings.get("username")
+        if settings.get("enabled") == "true" or (
+            username and username not in self._DATACITE_TEST_USERNAMES
+        ):
+            self.skipTest(
+                "DataCite is configured on this server; these tests would "
+                "overwrite its settings and cannot restore the password"
+            )
+
     def test_update_datacite_settings_enabled(self):
         """
         Test updating DataCite settings when enabling DataCite
         """
-        # Get original settings to restore later
-        original_settings = self.invapi.get_datacite_settings()
+        self._skip_if_datacite_configured()
 
         try:
             # Test with enabled DataCite settings
@@ -999,36 +1021,26 @@ class InventoryApiTest(base.BaseApiTest):
                 server_url=server_url,
                 username=username,
                 password=password,
-                repository_prefix=repository_prefix
+                repository_prefix=repository_prefix,
             )
 
             # Verify the response structure
             self.assertIsInstance(result, dict)
             self.assertEqual(result["serverUrl"], server_url)
             self.assertEqual(result["username"], username)
-            self.assertEqual(result["password"], password)
+            # No assertion on "password": newer RSpace servers treat it as
+            # write-only and return null instead of echoing it back.
             self.assertEqual(result["repositoryPrefix"], repository_prefix)
             self.assertEqual(result["enabled"], "true")
 
         finally:
-            # Restore original settings
-            if original_settings.get("enabled") == "true":
-                self.invapi.update_datacite_settings(
-                    enabled=True,
-                    server_url=original_settings.get("serverUrl", ""),
-                    username=original_settings.get("username", ""),
-                    password=original_settings.get("password", ""),
-                    repository_prefix=original_settings.get("repositoryPrefix", "")
-                )
-            else:
-                self.invapi.update_datacite_settings(enabled=False)
+            self.invapi.update_datacite_settings(enabled=False)
 
     def test_update_datacite_settings_disabled(self):
         """
         Test updating DataCite settings when disabling DataCite
         """
-        # Get original settings to restore later
-        original_settings = self.invapi.get_datacite_settings()
+        self._skip_if_datacite_configured()
 
         try:
             # Test with disabled DataCite settings - only enabled parameter needed
@@ -1038,24 +1050,13 @@ class InventoryApiTest(base.BaseApiTest):
             self.assertEqual(result["enabled"], "false")
 
         finally:
-            # Restore original settings
-            if original_settings.get("enabled") == "true":
-                self.invapi.update_datacite_settings(
-                    enabled=True,
-                    server_url=original_settings.get("serverUrl", ""),
-                    username=original_settings.get("username", ""),
-                    password=original_settings.get("password", ""),
-                    repository_prefix=original_settings.get("repositoryPrefix", "")
-                )
-            else:
-                self.invapi.update_datacite_settings(enabled=False)
+            self.invapi.update_datacite_settings(enabled=False)
 
     def test_datacite_connection_with_valid_settings(self):
         """
         Test the DataCite connection test functionality with properly configured settings
         """
-        # Get original settings to restore later
-        original_settings = self.invapi.get_datacite_settings()
+        self._skip_if_datacite_configured()
 
         try:
             # Configure DataCite with valid test settings
@@ -1064,7 +1065,7 @@ class InventoryApiTest(base.BaseApiTest):
                 server_url="https://api.test.datacite.org",
                 username="test_user",
                 password="test_password",
-                repository_prefix="10.12345"
+                repository_prefix="10.12345",
             )
 
             # Test the connection - this should return a boolean
@@ -1076,24 +1077,13 @@ class InventoryApiTest(base.BaseApiTest):
             # and whether the test credentials are valid, so we can't assert a specific value
 
         finally:
-            # Restore original settings
-            if original_settings.get("enabled") == "true":
-                self.invapi.update_datacite_settings(
-                    enabled=True,
-                    server_url=original_settings.get("serverUrl", ""),
-                    username=original_settings.get("username", ""),
-                    password=original_settings.get("password", ""),
-                    repository_prefix=original_settings.get("repositoryPrefix", "")
-                )
-            else:
-                self.invapi.update_datacite_settings(enabled=False)
+            self.invapi.update_datacite_settings(enabled=False)
 
     def test_datacite_connection_with_invalid_settings(self):
         """
         Test that DataCite connection test returns False with obviously wrong settings
         """
-        # Get original settings to restore later
-        original_settings = self.invapi.get_datacite_settings()
+        self._skip_if_datacite_configured()
 
         try:
             # Configure DataCite with obviously invalid settings
@@ -1102,7 +1092,7 @@ class InventoryApiTest(base.BaseApiTest):
                 server_url="https://invalid-nonexistent-datacite-server-12345.com",
                 username="definitely_invalid_user",
                 password="definitely_invalid_password",
-                repository_prefix="99.99999"
+                repository_prefix="99.99999",
             )
 
             # Test the connection with invalid settings
@@ -1112,17 +1102,7 @@ class InventoryApiTest(base.BaseApiTest):
             self.assertFalse(result)
 
         finally:
-            # Restore original settings
-            if original_settings.get("enabled") == "true":
-                self.invapi.update_datacite_settings(
-                    enabled=True,
-                    server_url=original_settings.get("serverUrl", ""),
-                    username=original_settings.get("username", ""),
-                    password=original_settings.get("password", ""),
-                    repository_prefix=original_settings.get("repositoryPrefix", "")
-                )
-            else:
-                self.invapi.update_datacite_settings(enabled=False)
+            self.invapi.update_datacite_settings(enabled=False)
 
     def test_get_datacite_settings(self):
         """
@@ -1146,12 +1126,12 @@ class InventoryApiTest(base.BaseApiTest):
         )
         updated = self.invapi.add_extra_fields(source["globalId"], link_ef)
         link_fields = [
-            f for f in updated["extraFields"] if f["type"] == inv.ExtraFieldType.LINK.value
+            f
+            for f in updated["extraFields"]
+            if f["type"] == inv.ExtraFieldType.LINK.value
         ]
         self.assertEqual(1, len(link_fields))
-        self.assertEqual(
-            target["globalId"], link_fields[0]["link"]["targetGlobalId"]
-        )
+        self.assertEqual(target["globalId"], link_fields[0]["link"]["targetGlobalId"])
 
     def test_create_sample_with_link_extra_field(self):
         target = self.invapi.create_sample(base.random_string())
@@ -1162,7 +1142,9 @@ class InventoryApiTest(base.BaseApiTest):
             name=base.random_string(), extra_fields=[link_ef]
         )
         link_fields = [
-            f for f in sample["extraFields"] if f["type"] == inv.ExtraFieldType.LINK.value
+            f
+            for f in sample["extraFields"]
+            if f["type"] == inv.ExtraFieldType.LINK.value
         ]
         self.assertEqual(1, len(link_fields))
 
@@ -1266,9 +1248,7 @@ class InventoryApiTest(base.BaseApiTest):
         global_id = sample["globalId"]
         result = self.invapi.import_subsamples_csv(
             self._csv(
-                "Name,Parent sample\n"
-                f"SubSample1,{global_id}\n"
-                f"SubSample2,{global_id}"
+                f"Name,Parent sample\nSubSample1,{global_id}\nSubSample2,{global_id}"
             ),
             field_mappings={
                 "Name": "name",

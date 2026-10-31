@@ -8,7 +8,6 @@ In earlier releases these lived as nested classes on ClientBase
 (e.g. ``ClientBase.ApiError``). Those names remain as aliases of the classes
 defined here and will be removed in 3.0.
 """
-from typing import Optional
 
 import requests
 
@@ -42,8 +41,8 @@ class ApiError(RSpaceError):
     def __init__(
         self,
         error_message: str,
-        response_status_code: Optional[int] = None,
-        response: Optional[requests.Response] = None,
+        response_status_code: int | None = None,
+        response: requests.Response | None = None,
     ):
         super().__init__(error_message)
         self.response_status_code = response_status_code

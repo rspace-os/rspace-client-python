@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Unit tests for the exception hierarchy and ClientBase._handle_response.
 """
+
 import json
 import unittest
 
@@ -79,16 +79,22 @@ class HandleResponseTest(unittest.TestCase):
 
     def test_a_whole_html_error_page_is_reduced_to_its_title(self):
         # RSpace answers a download of a file that does not exist with its web error page
-        page = ("<!DOCTYPE html>\n" + "\n" * 16 + '<html lang="en-US"><head>'
-                "<title>An error has occurred | ResearchSpace</title>"
-                "<script>let currentUser = '';" + "x" * 5000 + "</script></head><body>"
-                + "<nav>Workspace Gallery Inventory My RSpace Apps System</nav>" * 5
-                + "<div>Something went wrong</div></body></html>")
+        page = (
+            "<!DOCTYPE html>\n" + "\n" * 16 + '<html lang="en-US"><head>'
+            "<title>An error has occurred | ResearchSpace</title>"
+            "<script>let currentUser = '';"
+            + "x" * 5000
+            + "</script></head><body>"
+            + "<nav>Workspace Gallery Inventory My RSpace Apps System</nav>" * 5
+            + "<div>Something went wrong</div></body></html>"
+        )
         response = make_response(500, text_body=page, content_type="text/html")
         with self.assertRaises(ApiError) as cm:
             ClientBase._handle_response(response)
         message = str(cm.exception)
-        self.assertIn("HTML error page (An error has occurred | ResearchSpace)", message)
+        self.assertIn(
+            "HTML error page (An error has occurred | ResearchSpace)", message
+        )
         self.assertNotIn("currentUser", message)
         self.assertLess(len(message), 200)
         self.assertEqual(500, cm.exception.response_status_code)

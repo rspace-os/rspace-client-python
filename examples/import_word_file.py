@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-from __future__ import print_function
-import rspace_client
 import os
+
+import rspace_client
 
 # Parse command line parameters
 client = rspace_client.utils.createELNClient()

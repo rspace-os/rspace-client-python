@@ -1,23 +1,39 @@
 ## Development
 
-Python 3.9 or later is required. We aim to support only active versions of Python.
+Python 3.10 or later is required. We aim to support only active versions of Python.
 
 ### Setup
 
-Create a virtual environment with python 3.7 installed. If you use `conda`, you can do this
+Create a virtual environment with Python 3.10 or later. With `conda`, this creates one with Python 3.12:
 
 ```
 conda env create -f environment.yaml
 conda activate rspace-client
 ``` 
 
-We use `poetry` for dependency management. [Install Poetry] (https://python-poetry.org/docs/#installation)
+We use `poetry` (2.x) for dependency management. [Install Poetry](https://python-poetry.org/docs/#installation)
 
 From this directory, run 
 
 `poetry install` 
 
-to install all project dependencies into your virtual environment. 
+to install all project dependencies, including the dev tools below, into your virtual environment.
+
+### Linting, formatting and type checking
+
+We use [ruff](https://docs.astral.sh/ruff/) for linting and formatting, and [mypy](https://mypy-lang.org/) for type checking.
+
+```
+poetry run ruff check rspace_client examples
+poetry run ruff format rspace_client examples
+poetry run mypy rspace_client
+```
+
+To run these checks on every commit, install the [pre-commit](https://pre-commit.com/) hooks:
+
+```
+poetry run pre-commit install
+```
 
 ### Running tests
 
@@ -65,8 +81,11 @@ Galaxy ships an `rspace` file source built on this library's deprecated `rspace_
  
 ### Making a release
 
-- Get a clean test run 
-- Update version in README.md and pyproject.toml
-- update changelog to include the new version and required RSpace version
-- tag with syntax like 'v2.2.0'    
-- Build and submit to Pypi using `poetry publish`
+- Get a clean test run.
+- Set the new version with `poetry version <new-version>`. `pyproject.toml` is the only file that
+  holds it. `__version__` reads it from the installed package, and the README badge reads it from PyPI.
+- Add the new version and the required RSpace version to the changelog.
+- Commit, tag the commit (for example `v2.2.0`), and push the tag.
+- The tag push starts `.github/workflows/release.yml`. It runs the unit tests, stops if the tag
+  doesn't match the `pyproject.toml` version, builds the sdist and wheel, and publishes them to PyPI
+  with [Trusted Publishing](https://docs.pypi.org/trusted-publishers/), so you don't need an API token.
