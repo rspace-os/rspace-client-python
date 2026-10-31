@@ -1009,7 +1009,8 @@ class InventoryApiTest(base.BaseApiTest):
             self.assertIsInstance(result, dict)
             self.assertEqual(result["serverUrl"], server_url)
             self.assertEqual(result["username"], username)
-            self.assertEqual(result["password"], password)
+            # No assertion on "password": newer RSpace servers treat it as
+            # write-only and return null instead of echoing it back.
             self.assertEqual(result["repositoryPrefix"], repository_prefix)
             self.assertEqual(result["enabled"], "true")
 
