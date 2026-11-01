@@ -17,6 +17,15 @@ classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
+  # Poetry 1.x generated these from the python constraint; with a [project]
+  # table they must be listed by hand. Keep them in step with the CI matrix.
+  # PyPI's "Python versions" badge in the README reads them.
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: Software Development :: Libraries",
 ]
 dependencies = [
