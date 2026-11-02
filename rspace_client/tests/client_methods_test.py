@@ -11,11 +11,12 @@ import tempfile
 import unittest
 from io import BytesIO
 from unittest import mock
+from urllib.parse import parse_qs, urlparse
 
 import responses
 
 from rspace_client.eln.eln import ELNClient
-from rspace_client.inv.inv import InventoryClient
+from rspace_client.inv.inv import InventoryClient, SearchFilter
 from rspace_client.tests.exceptions_test import make_response
 
 RSPACE_URL = "https://example.com"
@@ -109,6 +110,30 @@ class InventoryClientMethodsTest(unittest.TestCase):
 
     def tearDown(self):
         self.client.close()
+
+    def _sent_params(self, call_index):
+        return parse_qs(urlparse(responses.calls[call_index].request.url).query)
+
+    @responses.activate
+    def test_list_samples_filter_does_not_leak_into_later_calls(self):
+        # regression: the filter used to be merged into a shared default Pagination
+        responses.add(responses.GET, INV_API + "/samples", json={"samples": []})
+        self.client.list_samples(sample_filter=SearchFilter(owned_by="alice"))
+        self.client.list_samples()
+        self.assertEqual(["alice"], self._sent_params(0)["ownedBy"])
+        self.assertNotIn("ownedBy", self._sent_params(1))
+        self.assertNotIn("deletedItems", self._sent_params(1))
+
+    @responses.activate
+    def test_stream_samples_filter_does_not_leak_into_later_calls(self):
+        responses.add(
+            responses.GET, INV_API + "/samples", json={"samples": [], "_links": []}
+        )
+        list(self.client.stream_samples(sample_filter=SearchFilter(owned_by="bob")))
+        list(self.client.stream_samples())
+        self.assertEqual(["bob"], self._sent_params(0)["ownedBy"])
+        self.assertNotIn("ownedBy", self._sent_params(1))
+        self.assertNotIn("deletedItems", self._sent_params(1))
 
     @responses.activate
     def test_upload_attachment_uses_the_given_filename_and_names_the_parent(self):
