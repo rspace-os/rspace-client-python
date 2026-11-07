@@ -197,9 +197,16 @@ class ClientBase:
 
     @staticmethod
     def _get_formated_error_message(json_error):
+        if not isinstance(json_error, dict):
+            # a null or non-object error body must not hide the real failure
+            json_error = {"message": json_error} if json_error else {}
+        message = json_error.get("message") or ""
+        errors = json_error.get("errors") or []
+        if not isinstance(errors, list):
+            errors = [errors]
         return "error message: {}, errors: {}".format(
-            json_error.get("message", ""),
-            ", ".join(json_error.get("errors", [])) or "no error list",
+            message,
+            ", ".join(str(e) for e in errors) or "no error list",
         )
 
     @staticmethod

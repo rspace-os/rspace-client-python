@@ -13,6 +13,10 @@ class SamplePostTest(unittest.TestCase):
         self.assertNotIn("parentLocation", post.data)
         self.assertNotIn("removeFromParentContainerRequest", post.data)
 
+    def test_sample_post_without_extra_fields_sends_an_empty_list(self):
+        for post in (inv.SamplePost("s"), inv.SamplePost("s", extra_fields=None)):
+            self.assertEqual([], post.data["extraFields"])
+
     def test_sample_post_with_list_container_location(self):
         location = inv.ListContainerTargetLocation(123)
         post = inv.SamplePost("sample", location=location)

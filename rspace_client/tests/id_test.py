@@ -5,6 +5,7 @@ Created on Mon Oct  4 19:10:42 2021
 @author: richard
 """
 
+import sys
 import unittest
 
 from rspace_client.inv.inv import Id, ListContainer, Workbench
@@ -41,6 +42,10 @@ class IdUnitTest(unittest.TestCase):
         self.assertEqual(123, c.as_id())
         self.assertEqual("BE", c.prefix)
         self.assertTrue(c.is_bench())
+
+    def test_workbench_capacity_is_unlimited(self):
+        workbench = {"id": 123, "globalId": "BE123", "cType": "WORKBENCH"}
+        self.assertEqual(sys.maxsize, Workbench(workbench).capacity())
 
     def test_repr(self):
         id_a = Id("SA1234")

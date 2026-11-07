@@ -16,6 +16,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history, to check the tag is on main
+
+      - name: Check the tagged commit is on main
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "Tag $GITHUB_REF_NAME points at $GITHUB_SHA, which is not on main"
+            exit 1
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -31,6 +42,15 @@ jobs:
 
       - name: Install dependencies
         run: poetry install --no-interaction
+
+      - name: Ruff check
+        run: poetry run ruff check rspace_client examples
+
+      - name: Ruff format check
+        run: poetry run ruff format --check rspace_client examples
+
+      - name: mypy
+        run: poetry run mypy rspace_client
 
       - name: Run unit tests
         run: poetry run pytest -m "not integration"

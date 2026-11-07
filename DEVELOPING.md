@@ -81,11 +81,19 @@ Galaxy ships an `rspace` file source built on this library's deprecated `rspace_
  
 ### Making a release
 
+Releases are made on `main`. PRs are squash-merged, so a commit tagged on a PR branch never
+reaches `main`, and the release workflow refuses any tag that isn't on `main`.
+
+- Merge everything for the release into `main`, then check out `main` and pull.
 - Get a clean test run.
-- Set the new version with `poetry version <new-version>`. `pyproject.toml` is the only file that
-  holds it. `__version__` reads it from the installed package, and the README badge reads it from PyPI.
-- Add the new version and the required RSpace version to the changelog.
-- Commit, tag the commit (for example `v2.2.0`), and push the tag.
-- The tag push starts `.github/workflows/release.yml`. It runs the unit tests, stops if the tag
-  doesn't match the `pyproject.toml` version, builds the sdist and wheel, and publishes them to PyPI
-  with [Trusted Publishing](https://docs.pypi.org/trusted-publishers/), so you don't need an API token.
+- Make sure `CHANGELOG.md` has exactly one `## Unreleased` section, and that it names the required
+  RSpace version.
+- Run `./release.sh <new-version>`, for example `./release.sh 2.8.0`. It refuses to run unless you
+  are on `main`, with no uncommitted changes and level with `origin/main`. It renames
+  `## Unreleased` to the version and date, sets the version with `poetry version` (`pyproject.toml`
+  is the only file that holds it), commits, and creates the tag `v<new-version>`.
+- Push the commit and the tag: `git push origin main && git push origin v<new-version>`.
+- The tag push starts `.github/workflows/release.yml`. It stops if the tag isn't on `main` or doesn't
+  match the `pyproject.toml` version, runs ruff, mypy and the unit tests, builds the sdist and wheel,
+  and publishes them to PyPI with [Trusted Publishing](https://docs.pypi.org/trusted-publishers/),
+  so you don't need an API token.

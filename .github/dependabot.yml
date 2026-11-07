@@ -8,6 +8,12 @@ updates:
       python-dependencies:
         patterns:
           - "*"
+        # ruff and mypy get their own PRs: a new ruff can change formatter
+        # output, which needs a reformat that shouldn't hide in a grouped bump.
+        # .pre-commit-config.yaml runs these same pinned versions via Poetry.
+        exclude-patterns:
+          - "ruff"
+          - "mypy"
 
   - package-ecosystem: "github-actions"
     directory: "/"

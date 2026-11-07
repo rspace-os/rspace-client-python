@@ -146,8 +146,8 @@ class AutoFit(GridPlacement):
                 raise ValueError("All row/column indices must be >= 1")
         if column_index > total_columns or row_index > total_rows:
             raise ValueError(
-                f"Column and row indexes({column_index},{row_index}"
-                + " must fit in dimensions ({total_columns}, {total_rows}"
+                f"Column and row indexes ({column_index}, {row_index})"
+                + f" must fit in dimensions ({total_columns}, {total_rows})"
             )
         super().__init__(items_to_move, filling_strategy)
         self.row_index = row_index
@@ -462,6 +462,12 @@ class Workbench(Container):
 
     def is_workbench(self) -> bool:
         return True
+
+    def capacity(self) -> int:
+        """
+        Unlimited capacity, returns sys.maxsize
+        """
+        return sys.maxsize
 
 
 class GridContainer(Container):
@@ -984,8 +990,7 @@ class ItemPost:
         self.data["tags"] = tags
         if description is not None:
             self.data["description"] = description
-        if extra_fields is not None:
-            self.data["extraFields"] = [ef.data for ef in extra_fields]
+        self.data["extraFields"] = [ef.data for ef in extra_fields]
 
 
 class SamplePost(ItemPost):
@@ -1463,15 +1468,27 @@ class InventoryClient(ClientBase):
         """
         return self._do_simple_list("subSamples", pagination, sample_filter)
 
+    @staticmethod
+    def _with_filter(
+        pagination: Pagination | None, search_filter: SearchFilter | None
+    ) -> Pagination:
+        """
+        Returns a new Pagination holding the pagination and filter parameters,
+        leaving the caller's Pagination unchanged so a filter can't carry over
+        into a later call that reuses it.
+        """
+        merged = Pagination()
+        if pagination is not None:
+            merged.data = dict(pagination.data)
+        if search_filter is not None:
+            merged.data.update(search_filter.data)
+        return merged
+
     def _do_simple_list(self, endpoint, pagination, sample_filter):
-        if pagination is None:
-            pagination = Pagination()
-        if sample_filter is not None:
-            pagination.data.update(sample_filter.data)
         return self.retrieve_api_results(
             f"/{endpoint}",
             request_type="GET",
-            params=pagination.data,
+            params=self._with_filter(pagination, sample_filter).data,
         )
 
     def stream_samples(
@@ -1487,11 +1504,7 @@ class InventoryClient(ClientBase):
         ------
         item : One Sample at a time
         """
-        if pagination is None:
-            pagination = Pagination()
-        if sample_filter is not None:
-            pagination.data.update(sample_filter.data)
-        return self._stream("samples", pagination)
+        return self._stream("samples", self._with_filter(pagination, sample_filter))
 
     def stream_top_level_containers(
         self, pagination: Pagination = None, sample_filter: SearchFilter = None
@@ -1506,11 +1519,7 @@ class InventoryClient(ClientBase):
         ------
         item : One Container at a time
         """
-        if pagination is None:
-            pagination = Pagination()
-        if sample_filter is not None:
-            pagination.data.update(sample_filter.data)
-        return self._stream("containers", pagination)
+        return self._stream("containers", self._with_filter(pagination, sample_filter))
 
     def rename(self, item_id: str | dict, new_name: str) -> dict:
         """

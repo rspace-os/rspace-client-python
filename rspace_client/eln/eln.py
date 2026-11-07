@@ -545,23 +545,27 @@ class ELNClient(ClientBase):
                 return file_path
             elif status_response["status"] == "FAILED":
                 msg = "Export job failed: " + self._get_formated_error_message(
-                    status_response["result"]
+                    status_response.get("result")
                 )
                 self._log_progress(progress_log, msg)
                 raise ClientBase.ApiError(msg)
             elif status_response["status"] == "ABANDONED":
-                raise ClientBase.ApiError(
-                    "Export job was abandoned: "
-                    + self._get_formated_error_message(status_response["result"])
+                msg = "Export job was abandoned: " + self._get_formated_error_message(
+                    status_response.get("result")
                 )
+                self._log_progress(progress_log, msg)
+                raise ClientBase.ApiError(msg)
             elif (
                 status_response["status"] == "RUNNING"
                 or status_response["status"] == "STARTING"
                 or status_response["status"] == "STARTED"
             ):
+                percent = status_response.get("percentComplete")
                 self._log_progress(
                     progress_log,
-                    f"Running - {status_response['percentComplete']:2.2f}% complete",
+                    "Running"
+                    if percent is None
+                    else f"Running - {percent:2.2f}% complete",
                 )
                 time.sleep(wait_between_requests)
                 continue

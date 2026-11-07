@@ -108,7 +108,7 @@ jobs:
         run: |
           poetry run pytest -m "not integration" \
             --cov=rspace_client --cov-report=term-missing --cov-report=xml \
-            --cov-fail-under=55
+            --cov-fail-under=70
 
   integration-test:
     name: integration test

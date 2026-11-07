@@ -995,9 +995,11 @@ class InventoryApiTest(base.BaseApiTest):
         """
         settings = self.invapi.get_datacite_settings()
         username = settings.get("username")
-        if settings.get("enabled") == "true" or (
-            username and username not in self._DATACITE_TEST_USERNAMES
-        ):
+        if username in self._DATACITE_TEST_USERNAMES:
+            # Left by an earlier run of these tests, perhaps one that was
+            # interrupted before it could disable DataCite again: ours to reuse.
+            return
+        if settings.get("enabled") == "true" or username:
             self.skipTest(
                 "DataCite is configured on this server; these tests would "
                 "overwrite its settings and cannot restore the password"
