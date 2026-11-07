@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Mon Oct  4 19:10:42 2021
 
 @author: richard
 """
+
 import unittest
+
 import rspace_client.inv.inv as inv
 
 
@@ -41,6 +42,16 @@ class GridPlacementUnitTest(unittest.TestCase):
         ss = make_n_items_to_move(10)
         self.assertRaises(ValueError, inv.ByColumn, 4, 1, 3, 3, *ss)
         self.assertRaises(ValueError, inv.ByColumn, 2, 3, 3, 2, *ss)
+
+    def test_out_of_range_message_shows_the_dimensions(self):
+        # regression: the second half of the message lacked its f-prefix
+        ss = make_n_items_to_move(1)
+        with self.assertRaises(ValueError) as ctx:
+            inv.ByRow(5, 1, 3, 3, *ss)
+        self.assertEqual(
+            "Column and row indexes (5, 1) must fit in dimensions (3, 3)",
+            str(ctx.exception),
+        )
 
     def test_ByLocation(self):
         coords = [inv.GridLocation(i + 1, i + 2) for i in range(10)]

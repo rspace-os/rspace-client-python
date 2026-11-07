@@ -13,12 +13,18 @@ lookup is exercised end to end.
 Paths carry no leading slash and the root is ``""``; an entry's ``name`` is its full path,
 so segments are compared through :func:`rspace_client.fs.paths.last_segment`.
 """
+
 import time
 from io import BytesIO
 
 import pytest
 
-from rspace_client.fs import GalleryFilesystem, ReadOnlyError, RemoteApiError, RSpaceFilesystem
+from rspace_client.fs import (
+    GalleryFilesystem,
+    ReadOnlyError,
+    RemoteApiError,
+    RSpaceFilesystem,
+)
 from rspace_client.fs.gallery import GallerySectionMismatch
 from rspace_client.fs.paths import last_segment
 from rspace_client.inv.template_builder import TemplateBuilder
@@ -26,17 +32,19 @@ from rspace_client.tests.base_test import BaseApiTest
 
 PNG_1x1 = bytes.fromhex(
     "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d4944415478da"
-    "6364601860fd7f0f0002870180eb47ba920000000049454e44ae426082")
+    "6364601860fd7f0f0002870180eb47ba920000000049454e44ae426082"
+)
 
 
 @pytest.mark.integration
 class UnifiedFilesystemIntegrationTest(BaseApiTest):
-
     def setUp(self):
         super().setUp()
         self.assertClientCredentials()  # skips when RSPACE_URL / RSPACE_API_KEY are unset
         self.stamp = time.strftime("%Y%m%d-%H%M%S")
-        self.rs = RSpaceFilesystem(self.rspace_url, self.rspace_apikey, writable=True, allow_delete=True)
+        self.rs = RSpaceFilesystem(
+            self.rspace_url, self.rspace_apikey, writable=True, allow_delete=True
+        )
         self.eln = self.rs.eln_client
 
     # ---------------------------------------------------------------- helpers
@@ -44,8 +52,10 @@ class UnifiedFilesystemIntegrationTest(BaseApiTest):
     def entries(self, path):
         """(segment, global id) per child. Tests address by global id so they do not depend
         on how the current path style spells a segment."""
-        return [(last_segment(e["name"]), (e.get("rspace") or {}).get("globalId") or "")
-                for e in self.rs.scandir(path)]
+        return [
+            (last_segment(e["name"]), (e.get("rspace") or {}).get("globalId") or "")
+            for e in self.rs.scandir(path)
+        ]
 
     def names(self, path):
         """The last segment of every child, what the old listdir returned."""
@@ -53,12 +63,16 @@ class UnifiedFilesystemIntegrationTest(BaseApiTest):
 
     def of_type(self, path, prefix):
         """Children whose global ID has this two-letter prefix (BE bench, SS subsample, ...)."""
-        return [(name, gid) for name, gid in self.entries(path) if gid.startswith(prefix)]
+        return [
+            (name, gid) for name, gid in self.entries(path) if gid.startswith(prefix)
+        ]
 
     # ---------------------------------------------------------------- tests
 
     def test_roots_are_browsable(self):
-        self.assertEqual(["gallery", "inventory", "workspace"], self.rs.ls("", detail=False))
+        self.assertEqual(
+            ["gallery", "inventory", "workspace"], self.rs.ls("", detail=False)
+        )
 
         gallery = self.names("gallery")
         self.assertIn("Images", gallery, gallery)
@@ -66,22 +80,33 @@ class UnifiedFilesystemIntegrationTest(BaseApiTest):
         self.assertEqual("directory", self.rs.info("gallery/Images")["type"])
 
         inventory = self.names("inventory")
-        self.assertTrue({"Containers", "Samples", "Templates"} <= set(inventory), inventory)
+        self.assertTrue(
+            {"Containers", "Samples", "Templates"} <= set(inventory), inventory
+        )
         self.assertTrue(self.of_type("inventory", "BE"), "no bench listed")
 
         workspace = self.entries("workspace")
-        self.assertFalse([n for n, gid in workspace if gid.startswith("GF")],
-                         f"the Gallery root must be hidden in the Workspace: {workspace}")
+        self.assertFalse(
+            [n for n, gid in workspace if gid.startswith("GF")],
+            f"the Gallery root must be hidden in the Workspace: {workspace}",
+        )
 
     def test_workspace_document_field_roundtrip(self):
         folder_name = f"fs-itest-{self.stamp}"
         self.rs.mkdir(f"workspace/{folder_name}")
-        (folder_gid,) = [gid for name, gid in self.entries("workspace") if name.startswith(folder_name)]
+        (folder_gid,) = [
+            gid
+            for name, gid in self.entries("workspace")
+            if name.startswith(folder_name)
+        ]
         folder_path = f"workspace/{folder_gid}"
         doc_id = None
         try:
-            doc = self.eln.create_document(name=f"{folder_name} doc", parent_folder_id=int(folder_gid[2:]),
-                                           fields=[{"content": "<p>fs itest</p>"}])
+            doc = self.eln.create_document(
+                name=f"{folder_name} doc",
+                parent_folder_id=int(folder_gid[2:]),
+                fields=[{"content": "<p>fs itest</p>"}],
+            )
             doc_id = doc["id"]
             doc_path = f"{folder_path}/{doc['globalId']}"
             ((field_name, field_gid),) = self.entries(doc_path)
@@ -89,7 +114,10 @@ class UnifiedFilesystemIntegrationTest(BaseApiTest):
             field_path = f"{doc_path}/{field_gid}"
             self.assertEqual([], self.rs.ls(field_path, detail=False))
 
-            for name, payload in ((f"{folder_name}.csv", b"a,b\n1,2\n"), (f"{folder_name}.png", PNG_1x1)):
+            for name, payload in (
+                (f"{folder_name}.csv", b"a,b\n1,2\n"),
+                (f"{folder_name}.png", PNG_1x1),
+            ):
                 self.rs.upload_fileobj(f"{field_path}/{name}", BytesIO(payload))
             linked = self.entries(field_path)
             self.assertEqual(2, len(linked), linked)
@@ -100,20 +128,28 @@ class UnifiedFilesystemIntegrationTest(BaseApiTest):
             self.rs.download_fileobj(f"{field_path}/{csv_gid}", out)
             self.assertEqual(b"a,b\n1,2\n", out.getvalue())
             content = self.eln.get_document(doc_id)["fields"][0]["content"]
-            self.assertNotIn("<fileId=", content)  # the server renders the link into markup
+            self.assertNotIn(
+                "<fileId=", content
+            )  # the server renders the link into markup
 
             for _name, gid in linked:
                 self.rs.rm_file(f"{field_path}/{gid}")  # unlink only
             self.assertEqual([], self.rs.ls(field_path, detail=False))
             for _name, gid in linked:
                 numeric = gid[2:]
-                self.assertEqual(numeric, str(self.eln.get_file_info(numeric)["id"]))  # Gallery file kept
-            self.assertIn("fs itest", self.eln.get_document(doc_id)["fields"][0]["content"])
+                self.assertEqual(
+                    numeric, str(self.eln.get_file_info(numeric)["id"])
+                )  # Gallery file kept
+            self.assertIn(
+                "fs itest", self.eln.get_document(doc_id)["fields"][0]["content"]
+            )
         finally:
             if doc_id:
                 self.eln.delete_document(doc_id)
             self.rs.rmdir(folder_path)
-        self.assertFalse([n for n, _ in self.entries("workspace") if n.startswith(folder_name)])
+        self.assertFalse(
+            [n for n, _ in self.entries("workspace") if n.startswith(folder_name)]
+        )
 
     def test_inventory_attach_and_remove_on_bench_subsample(self):
         benches = self.of_type("inventory", "BE")
@@ -127,15 +163,21 @@ class UnifiedFilesystemIntegrationTest(BaseApiTest):
 
         before = {gid for _n, gid in self.of_type(ss_path, "IF")}
         upload_name = f"fs-itest-{self.stamp}.txt"
-        self.rs.upload_fileobj(f"{ss_path}/{upload_name}", BytesIO(b"fs itest attachment"))
+        self.rs.upload_fileobj(
+            f"{ss_path}/{upload_name}", BytesIO(b"fs itest attachment")
+        )
         new = [gid for _n, gid in self.of_type(ss_path, "IF") if gid not in before]
         self.assertEqual(1, len(new), new)
 
-        self.assertEqual(b"fs itest attachment", self.rs.cat_file(f"{ss_path}/{new[0]}"))
+        self.assertEqual(
+            b"fs itest attachment", self.rs.cat_file(f"{ss_path}/{new[0]}")
+        )
         self.rs.rm_file(f"{ss_path}/{new[0]}")
         self.assertEqual(before, {gid for _n, gid in self.of_type(ss_path, "IF")})
         # the shortcut to the subsample's own sample is always there
-        self.assertTrue(any(n.startswith("sample:") for n, _gid in self.entries(ss_path)))
+        self.assertTrue(
+            any(n.startswith("sample:") for n, _gid in self.entries(ss_path))
+        )
 
     def _own_sample_with_an_attachment_field(self):
         """(sample path, field path) for a sample this test creates, from a template with one
@@ -144,11 +186,19 @@ class UnifiedFilesystemIntegrationTest(BaseApiTest):
         422; both are deleted again afterwards."""
         inv = self.rs.inventory.inv_client
         template = inv.create_sample_template(
-            TemplateBuilder(f"fs-itest-{self.stamp}", "ml").attachment("Data sheet").build())
+            TemplateBuilder(f"fs-itest-{self.stamp}", "ml")
+            .attachment("Data sheet")
+            .build()
+        )
         self.addCleanup(inv.delete_sample_template, template["id"])
-        sample = inv.create_sample(f"fs-itest-{self.stamp}", sample_template_id=template["id"],
-                                   subsample_count=1)
-        self.addCleanup(inv.delete_sample, sample["globalId"])  # runs before the template's
+        sample = inv.create_sample(
+            f"fs-itest-{self.stamp}",
+            sample_template_id=template["id"],
+            subsample_count=1,
+        )
+        self.addCleanup(
+            inv.delete_sample, sample["globalId"]
+        )  # runs before the template's
         path = f"inventory/Samples/{sample['globalId']}"
         (field_gid,) = [gid for _name, gid in self.of_type(path, "SF")]
         return path, f"{path}/{field_gid}"
@@ -177,9 +227,14 @@ class UnifiedFilesystemIntegrationTest(BaseApiTest):
         subsamples = self.of_type(sample, "SS")
         if subsamples:
             subsample = f"{sample}/{subsamples[0][1]}"
-            self.assertTrue(self._round_trip(subsample), "subsample attachment round trip")
-            self.assertEqual([], self.of_type(subsample, "SF"),
-                             "a subsample must never show an attachment field")
+            self.assertTrue(
+                self._round_trip(subsample), "subsample attachment round trip"
+            )
+            self.assertEqual(
+                [],
+                self.of_type(subsample, "SF"),
+                "a subsample must never show an attachment field",
+            )
 
         # an empty attachment field takes one file, and refuses a second
         if not self.rs.ls(field, detail=False):
@@ -199,15 +254,25 @@ class UnifiedFilesystemIntegrationTest(BaseApiTest):
         first, the refusal has to come before that, or the Gallery keeps a file nobody asked
         for and the API cannot delete it."""
         for container, what in (
-            (f"inventory/{self.of_type('inventory', 'BE')[0][1]}"
-             if self.of_type("inventory", "BE") else None, "bench"),
-            (f"inventory/Templates/{self.entries('inventory/Templates')[0][1]}"
-             if self.entries("inventory/Templates") else None, "sample template"),
+            (
+                f"inventory/{self.of_type('inventory', 'BE')[0][1]}"
+                if self.of_type("inventory", "BE")
+                else None,
+                "bench",
+            ),
+            (
+                f"inventory/Templates/{self.entries('inventory/Templates')[0][1]}"
+                if self.entries("inventory/Templates")
+                else None,
+                "sample template",
+            ),
         ):
             if container is None:
                 continue
             with self.assertRaises(NotImplementedError, msg=what) as ctx:
-                self.rs.upload_fileobj(f"{container}/fs-itest-{self.stamp}.txt", BytesIO(b"x"))
+                self.rs.upload_fileobj(
+                    f"{container}/fs-itest-{self.stamp}.txt", BytesIO(b"x")
+                )
             self.assertIn("does not accept attachments", str(ctx.exception))
 
         # and the server would indeed have refused, which is why the guard exists; the
@@ -231,57 +296,87 @@ class UnifiedFilesystemIntegrationTest(BaseApiTest):
         for label, container in targets.items():
             name = f"fs-itest-{self.stamp}-{label.replace(' ', '')}.txt"
             self.rs.upload_fileobj(f"{container}/{name}", BytesIO(b"gallery backed\n"))
-            info = next(i for i in self.rs.scandir(container) if last_segment(i["name"]) == name)
+            info = next(
+                i for i in self.rs.scandir(container) if last_segment(i["name"]) == name
+            )
             media = info["rspace"].get("mediaFileGlobalId")
-            self.assertTrue(str(media).startswith("GL"),
-                            f"{label}: expected a Gallery file, got {media!r}")
+            self.assertTrue(
+                str(media).startswith("GL"),
+                f"{label}: expected a Gallery file, got {media!r}",
+            )
             # and it really is there, readable through the Gallery branch from the folder RSpace
             # filed it in (a .txt lands in Documents/Api Inbox; a path through any other
             # folder is refused)
-            folder = self.eln.get_folder(self.eln.get_file_info(media[2:])["parentFolderId"])["globalId"]
-            self.assertEqual(name, self.rs.info(f"gallery/{folder}/{media}")["rspace"]["name"])
-            self.assertEqual(b"gallery backed\n", self.rs.cat_file(f"gallery/{folder}/{media}"))
+            folder = self.eln.get_folder(
+                self.eln.get_file_info(media[2:])["parentFolderId"]
+            )["globalId"]
+            self.assertEqual(
+                name, self.rs.info(f"gallery/{folder}/{media}")["rspace"]["name"]
+            )
+            self.assertEqual(
+                b"gallery backed\n", self.rs.cat_file(f"gallery/{folder}/{media}")
+            )
             self.rs.rm_file(f"{container}/{info['rspace']['globalId']}")
 
     def test_copying_a_gallery_file_into_rspace_links_it(self):
         """The generic copy would download and re-upload, leaving a duplicate in the Gallery
         that the API cannot delete."""
         sample, _field = self._own_sample_with_an_attachment_field()
-        source = next(((n, g) for n, g in self.entries("gallery/Images") if g.startswith("GL")), None)
+        source = next(
+            ((n, g) for n, g in self.entries("gallery/Images") if g.startswith("GL")),
+            None,
+        )
         if source is None:
             self.skipTest("no file in the Gallery Images section to link")
         name, gallery_gid = source
         before = {g for _n, g in self.entries("gallery/Images")}
 
         self.rs.cp_file(f"gallery/Images/{gallery_gid}", f"{sample}/{name}")
-        attached = next(i for i in self.rs.scandir(sample) if last_segment(i["name"]) == name)
+        attached = next(
+            i for i in self.rs.scandir(sample) if last_segment(i["name"]) == name
+        )
         self.assertEqual(gallery_gid, attached["rspace"]["mediaFileGlobalId"])
         self.rs.rm_file(f"{sample}/{attached['rspace']['globalId']}")
 
-        self.assertEqual(before, {g for _n, g in self.entries("gallery/Images")},
-                         "linking must not add a Gallery file")
+        self.assertEqual(
+            before,
+            {g for _n, g in self.entries("gallery/Images")},
+            "linking must not add a Gallery file",
+        )
 
     def test_gallery_upload_and_section_routing(self):
-        (images_gid,) = [gid for name, gid in self.entries("gallery") if name == "Images"]
+        (images_gid,) = [
+            gid for name, gid in self.entries("gallery") if name == "Images"
+        ]
         png_name = f"fs-itest-{self.stamp}.png"
-        placement = self.rs.upload_fileobj(f"gallery/{images_gid}/{png_name}", BytesIO(PNG_1x1))
+        placement = self.rs.upload_fileobj(
+            f"gallery/{images_gid}/{png_name}", BytesIO(PNG_1x1)
+        )
         self.assertFalse(placement.rerouted)
         self.assertEqual("Images", placement.section)
 
         txt_name = f"fs-itest-{self.stamp}.txt"
         with self.assertRaises(GallerySectionMismatch) as ctx:
-            self.rs.upload_fileobj(f"gallery/{images_gid}/{txt_name}", BytesIO(b"not an image"))
+            self.rs.upload_fileobj(
+                f"gallery/{images_gid}/{txt_name}", BytesIO(b"not an image")
+            )
         self.assertEqual("Images", ctx.exception.folder_section)
 
-        rerouting = GalleryFilesystem(self.rspace_url, self.rspace_apikey, writable=True, on_mismatch="reroute")
-        placement = rerouting.upload_fileobj(f"{images_gid}/{txt_name}", BytesIO(b"not an image"))
+        rerouting = GalleryFilesystem(
+            self.rspace_url, self.rspace_apikey, writable=True, on_mismatch="reroute"
+        )
+        placement = rerouting.upload_fileobj(
+            f"{images_gid}/{txt_name}", BytesIO(b"not an image")
+        )
         self.assertTrue(placement.rerouted)
         self.assertEqual("Documents", placement.section)
 
     def test_uploads_are_named_from_the_path_not_the_file_object(self):
         """What Galaxy relies on: its datasets are all called *.dat on disk, so the name has
         to come from the path or RSpace rejects the file for the section it is going into."""
-        (images_gid,) = [gid for name, gid in self.entries("gallery") if name == "Images"]
+        (images_gid,) = [
+            gid for name, gid in self.entries("gallery") if name == "Images"
+        ]
         anonymous = BytesIO(PNG_1x1)  # no .name at all
         wanted = f"fs-itest-{self.stamp}-named.png"
         placement = self.rs.upload_fileobj(f"gallery/{images_gid}/{wanted}", anonymous)
@@ -290,7 +385,9 @@ class UnifiedFilesystemIntegrationTest(BaseApiTest):
         self.assertEqual(wanted, stored["name"])
 
     def test_only_the_chosen_branches_are_mounted(self):
-        eln_only = RSpaceFilesystem(self.rspace_url, self.rspace_apikey, mounts=["workspace"])
+        eln_only = RSpaceFilesystem(
+            self.rspace_url, self.rspace_apikey, mounts=["workspace"]
+        )
         self.assertEqual(["workspace"], eln_only.ls("", detail=False))
         self.assertTrue(eln_only.ls("workspace", detail=False) is not None)
         with self.assertRaises(FileNotFoundError):

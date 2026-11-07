@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file
  - replace naming of classes and methods using 'Workbench' to 'Bench'
  - replace create_sample, create_container long argument lists with new XXXPost objects
 
-## 2.8.0 (unreleased)
+## Unreleased
 
 - New `rspace_client.fs`: RSpace as an [fsspec](https://filesystem-spec.readthedocs.io)
   filesystem. `RSpaceFilesystem` mounts `gallery/`, `inventory/` and `workspace/` (Gallery
@@ -65,7 +65,70 @@ All notable changes to this project will be documented in this file
   the Gallery root is matched by its `GF` id as well as its name, and `removedir` refuses a
   malformed listing instead of treating it as empty.
 
-## Unreleased
+- Moved `pyproject.toml` to the standard PEP 621 `[project]` table, built
+  with Poetry 2.x.
+
+  Potentially breaking:
+  - Python 3.9 is no longer supported. The minimum is now 3.10.
+
+- Added `ruff` for linting and formatting (it replaces `black`), plus
+  configuration for `mypy`, `pre-commit` and `pytest-cov`.
+
+- Fixed shared mutable default arguments (`Pagination()`, `tags=[]`,
+  `extra_fields=[]`, `TopLevelTargetLocation()`, `item_ids=[]`,
+  `typesToInclude=[]`) in several `inv` and `eln` methods. A call that used
+  the default could see state left behind by an earlier call. Passing
+  `extra_fields=None` to `SamplePost`, `ContainerPost` or `InstrumentPost` now
+  sends `"extraFields": []`, the same as leaving it out. It used to leave the
+  key out of the request.
+
+- Fixed a search filter carrying over into later calls. The `inv` list and
+  stream methods that take a `SearchFilter` (`list_samples`, `stream_samples`,
+  `list_instruments`, `list_sample_templates` and others) wrote the filter into
+  the `Pagination` they were given, so a later call reusing that `Pagination`
+  sent the old filter. They now leave it unchanged.
+
+- Fixed the `ByRow` / `ByColumn` out-of-range error message, which printed the
+  literal `{total_columns}, {total_rows}` placeholders and had unbalanced
+  parentheses.
+
+- `Workbench.capacity()` returns `sys.maxsize` (unlimited, like
+  `ListContainer`). It used to return `None`.
+
+- Fixed `Sample.wherep()` returning a `set` instead of the documented `list`.
+
+  Potentially breaking: code that calls `.add()` on the result, uses set
+  operators on it, or compares it with `== {...}` needs updating.
+
+- Fixed `GridContainerPost` sending `cType: "LIST"` instead of `"GRID"`.
+
+  Potentially breaking: the server now creates these as grid containers, not
+  list containers.
+
+- Fixed `ListContainer.is_list()` raising `TypeError` when called on an
+  instance. The method was missing `self`.
+
+- Fixed the `URL` field validator's error message. It was missing its
+  f-string prefix, so it printed the literal placeholders. The validator also
+  no longer catches unrelated exceptions with a bare `except`.
+
+- Fixed the error raised when an ELN export job fails. It dropped the
+  server's error detail and said only "Export job failed: ". An abandoned
+  export job now raises `ApiError` instead of `AttributeError`, and is written
+  to the progress log like a failed one. A null or malformed error body, or a
+  running job with no `percentComplete`, no longer crashes the export.
+
+- Added a CI lint job that runs `ruff check`, `ruff format --check` and
+  `mypy`. Unit tests in CI now report coverage and fail below 70%.
+
+- Pushing a `v*` tag now builds the package and publishes it to PyPI from a
+  GitHub Actions workflow that uses Trusted Publishing. The workflow refuses a
+  tag that is not on `main` and runs the lint checks and unit tests first.
+  `release.sh` bumps the version with `poetry version`, no longer publishes,
+  and only runs on `main` when it is level with `origin/main`.
+
+- Added Dependabot for pip and GitHub Actions updates. The pre-commit hooks
+  run the ruff and mypy pinned in `pyproject.toml`, so they always match CI.
 
 - Gallery upload routing and section-mismatch handling (PR #56): clearer
   `GallerySectionMismatch` exception, optional `on_mismatch="reroute"`

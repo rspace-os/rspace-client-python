@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Mon Oct  4 19:10:42 2021
 
 @author: richard
 """
+
 import unittest
-from rspace_client.inv.quantity_unit import QuantityUnit
+
 from rspace_client.inv.inv import Quantity
+from rspace_client.inv.quantity_unit import QuantityUnit
 
 
 class QuantityUnitTest(unittest.TestCase):

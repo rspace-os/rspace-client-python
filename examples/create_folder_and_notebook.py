@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from __future__ import print_function
 import rspace_client
 
 
@@ -37,7 +36,7 @@ print(
 )
 print("Deleting folder")
 response = client.delete_folder(response["globalId"])
-print("deleted folder {}".format(folder_id))
+print(f"deleted folder {folder_id}")
 
 print("Listing all contents of home folder")
 response = client.list_folder_tree()

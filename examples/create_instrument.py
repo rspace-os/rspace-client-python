@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Creates an Instrument Template, and an Instrument based on it.
 """
+
 import rspace_client
-from rspace_client.inv import template_builder, sample_builder2
+from rspace_client.inv import sample_builder2, template_builder
 
 inv_api = rspace_client.utils.createInventoryClient()
 

@@ -1,21 +1,22 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Mon Oct  4 19:10:42 2021
 
 @author: richard
 """
-import unittest
-from rspace_client.inv.inv import GridContainer, Container, GridLocation
-from rspace_client.tests import base_test
+
 import json
+import unittest
+
+from rspace_client.inv.inv import Container, GridContainer, GridLocation
+from rspace_client.tests import base_test
 
 
 class GridContainerTest(unittest.TestCase):
     def setUp(self):
         ## a grid container with 7 rows and 3 columns, cotaining 10 subsamples.
         path = base_test.get_datafile("container_by_id.json")
-        with open(path, "r") as container:
+        with open(path) as container:
             container_json = json.load(container)
             self.container = GridContainer(container_json)
 

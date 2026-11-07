@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Mon Jun  7 08:38:55 2021
 
 @author: richard
 """
-import os, os.path
+
+import os
+import os.path
 import tempfile
 
 import pytest
 
 import rspace_client.eln.eln as cli
-from rspace_client.eln.dcs import DocumentCreationStrategy
-
-
-from rspace_client.tests.base_test import BaseApiTest, random_string, get_datafile
 from rspace_client.client_base import Pagination
+from rspace_client.eln.dcs import DocumentCreationStrategy
+from rspace_client.tests.base_test import BaseApiTest, get_datafile, random_string
 
 
 @pytest.mark.integration
@@ -77,7 +76,9 @@ class ELNClientAPIIntegrationTest(BaseApiTest):
     def test_import_tree_include_dot_files(self):
         tree_dir = get_datafile("tree")
         folder = self.api.create_folder("tree-" + random_string(6))
-        res = self.api.import_tree(tree_dir, parent_folder_id=folder["id"], ignore_hidden_folders=False)
+        res = self.api.import_tree(
+            tree_dir, parent_folder_id=folder["id"], ignore_hidden_folders=False
+        )
         self.assertEqual("OK", res["status"])
         ## f, 2sf, and 3files in each sf + hidden
         self.assertTrue(len(res["path2Id"].keys()) >= 9)
@@ -86,7 +87,9 @@ class ELNClientAPIIntegrationTest(BaseApiTest):
         tree_dir = get_datafile("tree")
         folder = self.api.create_folder("tree-" + random_string(6))
         res = self.api.import_tree(
-            tree_dir, parent_folder_id=folder["id"], doc_creation=DocumentCreationStrategy.SUMMARY_DOC
+            tree_dir,
+            parent_folder_id=folder["id"],
+            doc_creation=DocumentCreationStrategy.SUMMARY_DOC,
         )
         self.assertEqual("OK", res["status"])
         ## original folder + summary doc
@@ -96,7 +99,9 @@ class ELNClientAPIIntegrationTest(BaseApiTest):
         tree_dir = get_datafile("tree")
         folder = self.api.create_folder("tree-" + random_string(6))
         res = self.api.import_tree(
-            tree_dir, parent_folder_id=folder["id"], doc_creation=DocumentCreationStrategy.DOC_PER_SUBFOLDER
+            tree_dir,
+            parent_folder_id=folder["id"],
+            doc_creation=DocumentCreationStrategy.DOC_PER_SUBFOLDER,
         )
         self.assertEqual("OK", res["status"])
         ## original folder + 2 sf + 2 summary docs
@@ -109,14 +114,20 @@ class ELNClientAPIIntegrationTest(BaseApiTest):
         self.assertEqual("OK", res["status"])
         ## f, 2sf, and 3files in each sf
         self.assertEqual(9, len(res["path2Id"].keys()))
-        
+
     def test_export_all_work_with_log_file(self):
         with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as f:
             file_path = f.name
         with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as f:
             log_file = f.name
         try:
-            self.api.export_and_download("html", "user", file_path, progress_log=log_file, wait_between_requests=5)
+            self.api.export_and_download(
+                "html",
+                "user",
+                file_path,
+                progress_log=log_file,
+                wait_between_requests=5,
+            )
             self.assertTrue(os.path.getsize(log_file) > 0)
             self.assertTrue(os.path.getsize(file_path) > 0)
         except Exception as e:
@@ -130,12 +141,12 @@ class ELNClientAPIIntegrationTest(BaseApiTest):
         with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as f:
             file_path = f.name
         try:
-            self.api.export_and_download("html", "user", file_path, wait_between_requests=5)
+            self.api.export_and_download(
+                "html", "user", file_path, wait_between_requests=5
+            )
             self.assertTrue(os.path.getsize(file_path) > 0)
         except Exception as e:
             self.fail("Unexpected exception" + str(e))
         finally:
             if os.path.exists(file_path):
                 os.remove(file_path)
-            
-            

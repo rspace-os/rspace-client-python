@@ -2,6 +2,7 @@
 Regression tests from the 2026-10-07 review pass over rspace_client.fs: each test pins a
 behaviour that the review found wrong against the mock RSpace server.
 """
+
 import os
 from unittest import mock
 
@@ -13,10 +14,7 @@ from rspace_client.fs.paths import last_segment
 from rspace_client.tests.mock_server_case import MockServerTestCase, names
 
 
-
-
 class ReviewRegressionTest(MockServerTestCase):
-
     def test_resolving_a_name_does_not_fetch_sizes(self):
         """A lookup lists the parent to find a name; the per-file size fetch that a listing
         pays for is wasted there. Before: 6 calls for info() of a file by name."""
@@ -36,7 +34,10 @@ class ReviewRegressionTest(MockServerTestCase):
         everything = fs.glob("**")
         self.assertIn("Images/gel.jpg", everything)
         self.assertIn("Documents/data.csv", everything)
-        self.assertEqual(["Documents/data.csv", "Documents/data [GL112].csv"], fs.glob("Documents/*data*"))
+        self.assertEqual(
+            ["Documents/data.csv", "Documents/data [GL112].csv"],
+            fs.glob("Documents/*data*"),
+        )
 
     def test_a_write_drops_the_listings_cache(self):
         fs = GalleryFilesystem(self.url, "k", writable=True, use_listings_cache=True)
@@ -55,14 +56,21 @@ class ReviewRegressionTest(MockServerTestCase):
             mount.mv("gallery/Documents/data.csv", "gallery/Documents/moved.csv")
         self.assertNotIn("moved.csv", names(mount, "gallery/Documents"))
         # where the source can be removed a move is an unlink plus a link
-        mount.mv("workspace/Project Alpha/Alpha protocol/Results/data.csv", "inventory/Containers/Freezer -80/data.csv")
+        mount.mv(
+            "workspace/Project Alpha/Alpha protocol/Results/data.csv",
+            "inventory/Containers/Freezer -80/data.csv",
+        )
         self.assertIn("data.csv", names(mount, "inventory/Containers/Freezer -80"))
-        self.assertNotIn("data.csv", names(mount, "workspace/Project Alpha/Alpha protocol/Results"))
+        self.assertNotIn(
+            "data.csv", names(mount, "workspace/Project Alpha/Alpha protocol/Results")
+        )
 
     def test_list_paths_are_accepted_where_fsspec_passes_them(self):
         fs = GalleryFilesystem(self.url, "k")
-        self.assertEqual(["Images", "Documents/data.csv"],
-                         fs._strip_protocol(["rspace-gallery://Images/", "Documents/data.csv"]))
+        self.assertEqual(
+            ["Images", "Documents/data.csv"],
+            fs._strip_protocol(["rspace-gallery://Images/", "Documents/data.csv"]),
+        )
         self.assertEqual(2, len(fs.cat(["Documents/data.csv", "Images/gel.jpg"])))
         mount = RSpaceFilesystem(self.url, "k")
         self.assertEqual(["gallery/Images"], mount._strip_protocol(["gallery/Images/"]))
@@ -71,6 +79,7 @@ class ReviewRegressionTest(MockServerTestCase):
         """fsspec's put() hands directories to put_file and expects the backend to make them."""
         import os
         import tempfile
+
         fs = RSpaceFilesystem(self.url, "k", writable=True)
         tmp = tempfile.mkdtemp()
         os.makedirs(os.path.join(tmp, "img", "sub"))
@@ -85,23 +94,40 @@ class ReviewRegressionTest(MockServerTestCase):
     def test_url_paths_come_back_without_host_or_query(self):
         host = self.url.split("//")[1]
         with mock.patch.dict(os.environ, {"RSPACE_API_KEY": "k"}):
-            fs, path = fsspec.core.url_to_fs(f"rspace://{host}/gallery/Images?scheme=http")
+            fs, path = fsspec.core.url_to_fs(
+                f"rspace://{host}/gallery/Images?scheme=http"
+            )
             self.assertEqual("gallery/Images", path)
-            self.assertEqual(["2026-09 run", "gel.jpg", "microscope.png"],
-                             sorted(last_segment(n) for n in fs.ls(path, detail=False)))
+            self.assertEqual(
+                ["2026-09 run", "gel.jpg", "microscope.png"],
+                sorted(last_segment(n) for n in fs.ls(path, detail=False)),
+            )
             mapper = fsspec.get_mapper(f"rspace://{host}/gallery/Documents?scheme=http")
             self.assertIn("data.csv", list(mapper))
-            self.assertEqual("", RSpaceFilesystem._strip_protocol(f"rspace://{host}?scheme=http"))
+            self.assertEqual(
+                "", RSpaceFilesystem._strip_protocol(f"rspace://{host}?scheme=http")
+            )
         # a record name with a dot or colon below the top level is left alone
-        self.assertEqual("gallery/v1.2:final/x", RSpaceFilesystem._strip_protocol("gallery/v1.2:final/x"))
+        self.assertEqual(
+            "gallery/v1.2:final/x",
+            RSpaceFilesystem._strip_protocol("gallery/v1.2:final/x"),
+        )
 
-    def test_a_500_with_a_server_message_is_a_remote_api_error_not_a_connection_error(self):
+    def test_a_500_with_a_server_message_is_a_remote_api_error_not_a_connection_error(
+        self,
+    ):
         fs = GalleryFilesystem(self.url, "k", writable=True)
-        fs.eln_client.get_folder = mock.Mock(side_effect=ClientBase.ApiError("Not a Valid PNG File", response_status_code=500))
+        fs.eln_client.get_folder = mock.Mock(
+            side_effect=ClientBase.ApiError(
+                "Not a Valid PNG File", response_status_code=500
+            )
+        )
         with self.assertRaises(RemoteApiError) as caught:
             fs.info("GF10")
         self.assertEqual(500, caught.exception.status)
         self.assertIn("Not a Valid PNG File", str(caught.exception))
-        fs.eln_client.get_folder = mock.Mock(side_effect=ClientBase.ApiError("gateway", response_status_code=503))
+        fs.eln_client.get_folder = mock.Mock(
+            side_effect=ClientBase.ApiError("gateway", response_status_code=503)
+        )
         with self.assertRaises(ConnectionError):
             fs.info("GF10")

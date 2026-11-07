@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Sat Oct  2 21:55:26 2021
 
 @author: richard
 """
-import unittest
+
 import os
-
-import string
 import random
-import pytest
+import string
+import unittest
 
-from dotenv import load_dotenv 
-load_dotenv() 
+import pytest
+from dotenv import load_dotenv
+
+load_dotenv()
 
 RSPACE_URL_ENV = "RSPACE_URL"
 RSPACE_APIKEY_ENV = "RSPACE_API_KEY"

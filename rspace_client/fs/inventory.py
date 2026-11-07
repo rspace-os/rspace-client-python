@@ -34,17 +34,27 @@ A record listing is one API call. A section streams: its records are fetched
 collects the list). Read-only by default: ``writable=True`` allows attaching files to any
 record, ``allow_delete=True`` allows removing attachments.
 """
+
 from __future__ import annotations
 
 import errno
-from typing import Any, BinaryIO, Iterator, Optional
+from collections.abc import Iterator
+from typing import Any, BinaryIO
 
 from rspace_client.client_base import Pagination
 from rspace_client.eln import eln
 from rspace_client.inv import inv
 
 from . import paths
-from .base import RSpaceFSBase, Target, client_or_new, deletes, make_entry, stream_pages, writes
+from .base import (
+    RSpaceFSBase,
+    Target,
+    client_or_new,
+    deletes,
+    make_entry,
+    stream_pages,
+    writes,
+)
 
 ATTACHMENT_PREFIX = "IF"
 FIELD_PREFIX = "SF"  # a template-defined field on a sample, template or instrument
@@ -82,15 +92,29 @@ class InventoryFilesystem(RSpaceFSBase):
     FILE_BEARING_FIELD_TYPES = ("attachment",)
     CAN_LINK = True
 
-    def __init__(self, server: Optional[str] = None, api_key: Optional[str] = None, *,
-                 inv_client: Optional[inv.InventoryClient] = None,
-                 eln_client: Optional[eln.ELNClient] = None, writable: bool = False,
-                 allow_delete: bool = False, path_style: str = "name",
-                 page_size: int = 100, via_gallery: Optional[bool] = None,
-                 **storage_options: Any) -> None:
-        super().__init__(writable=writable, allow_delete=allow_delete, path_style=path_style,
-                         **storage_options)
-        self.inv_client = client_or_new(inv_client, inv.InventoryClient, server, api_key, "InventoryFilesystem")
+    def __init__(
+        self,
+        server: str | None = None,
+        api_key: str | None = None,
+        *,
+        inv_client: inv.InventoryClient | None = None,
+        eln_client: eln.ELNClient | None = None,
+        writable: bool = False,
+        allow_delete: bool = False,
+        path_style: str = "name",
+        page_size: int = 100,
+        via_gallery: bool | None = None,
+        **storage_options: Any,
+    ) -> None:
+        super().__init__(
+            writable=writable,
+            allow_delete=allow_delete,
+            path_style=path_style,
+            **storage_options,
+        )
+        self.inv_client = client_or_new(
+            inv_client, inv.InventoryClient, server, api_key, "InventoryFilesystem"
+        )
         #: Put uploaded bytes in the Gallery and link them, rather than creating a file that
         #: exists only inside Inventory. See ``upload_fileobj``. Needs an ELN client as well
         #: as an Inventory one; left as None it turns itself on whenever one can be had, and
@@ -102,7 +126,8 @@ class InventoryFilesystem(RSpaceFSBase):
             raise ValueError(
                 "via_gallery=True needs an ELN client as well as an Inventory one: pass "
                 "eln_client=, or server and api_key, or via_gallery=False to create files "
-                "that exist only inside Inventory")
+                "that exist only inside Inventory"
+            )
         self.via_gallery = bool(eln_client) if via_gallery is None else via_gallery
         #: how many records to fetch per API request while streaming a listing; a
         #: performance knob, not something a user of the filesystem sees.
@@ -114,9 +139,9 @@ class InventoryFilesystem(RSpaceFSBase):
         if paths.is_root(path):
             return Target("root")
         segments = paths.segments(path)
-        section: Optional[str] = None
-        previous_gid: Optional[str] = None
-        target: Optional[Target] = None
+        section: str | None = None
+        previous_gid: str | None = None
+        target: Target | None = None
         first = 0
         if segments[0] in SECTIONS:
             section = segments[0]
@@ -137,9 +162,15 @@ class InventoryFilesystem(RSpaceFSBase):
                 continue
             if prefix not in RECORD_GETTERS:
                 raise FileNotFoundError(errno.ENOENT, f"{path!r} not found", path)
-            shortcut = prefix == "SA" and previous_gid is not None and previous_gid.startswith("SS")
+            shortcut = (
+                prefix == "SA"
+                and previous_gid is not None
+                and previous_gid.startswith("SS")
+            )
             previous_gid = gid
-            target = Target("shortcut" if shortcut else "record", gid=gid, section=section)
+            target = Target(
+                "shortcut" if shortcut else "record", gid=gid, section=section
+            )
         if target is None:
             raise FileNotFoundError(errno.ENOENT, f"{path!r} not found", path)
         return target
@@ -160,16 +191,18 @@ class InventoryFilesystem(RSpaceFSBase):
     def _section_items(self, section: str) -> Iterator[dict]:
         """Stream a section's records, fetching the next API page only when it is reached."""
         method, key = SECTION_LISTERS[section]
-        first_page = getattr(self.inv_client, method)(Pagination(page_number=0, page_size=self.page_size))
+        first_page = getattr(self.inv_client, method)(
+            Pagination(page_number=0, page_size=self.page_size)
+        )
         return stream_pages(self.inv_client, first_page, key)
 
     # ------------------------------------------------------------ entry builders
 
-    def _file_entry(self, attachment: dict, gid: Optional[str] = None) -> dict:
+    def _file_entry(self, attachment: dict, gid: str | None = None) -> dict:
         return self._entry(attachment, False, gid)
 
     @staticmethod
-    def _virtual_dir(name: str, extra: Optional[dict] = None) -> dict:
+    def _virtual_dir(name: str, extra: dict | None = None) -> dict:
         raw = {"name": name, "virtual": True}
         raw.update(extra or {})
         return make_entry(name, True, raw=raw)
@@ -180,7 +213,11 @@ class InventoryFilesystem(RSpaceFSBase):
         return self._entry(raw, True)
 
     def _shortcut_entry(self, sample: dict) -> dict:
-        return self._entry(dict(sample, shortcut="sample"), True, name=f"sample: {sample.get('name', '')}")
+        return self._entry(
+            dict(sample, shortcut="sample"),
+            True,
+            name=f"sample: {sample.get('name', '')}",
+        )
 
     # ------------------------------------------------------------ children of a directory
 
@@ -188,7 +225,9 @@ class InventoryFilesystem(RSpaceFSBase):
         if target.kind == "root":
             return self._root_children()
         if target.kind == "section":
-            return (self._entry(item, True) for item in self._section_items(target.section))
+            return (
+                self._entry(item, True) for item in self._section_items(target.section)
+            )
         if target.kind == "field":
             attachment = self._field(target.parent_gid, target.gid).get("attachment")
             return iter([self._file_entry(attachment)] if attachment else [])
@@ -243,9 +282,14 @@ class InventoryFilesystem(RSpaceFSBase):
         (for a shortcut, the sample). A replaced field attachment is kept by the server as
         deleted, and is not there either."""
         attachment = self.inv_client.get_attachment_by_id(target.gid[2:])
-        if attachment.get("parentGlobalId") != target.parent_gid or attachment.get("deleted"):
+        if attachment.get("parentGlobalId") != target.parent_gid or attachment.get(
+            "deleted"
+        ):
             raise FileNotFoundError(
-                errno.ENOENT, f"{path!r}: {target.gid} is not attached to {target.parent_gid or 'this folder'}", path)
+                errno.ENOENT,
+                f"{path!r}: {target.gid} is not attached to {target.parent_gid or 'this folder'}",
+                path,
+            )
         return attachment
 
     def _require_empty_field(self, target: Target, container: str) -> None:
@@ -259,14 +303,18 @@ class InventoryFilesystem(RSpaceFSBase):
                 errno.EEXIST,
                 f"{container!r} already holds {existing.get('name')!r}; an attachment field "
                 f"takes a single file and adding another would replace it. Remove the existing "
-                f"file first.", container)
+                f"file first.",
+                container,
+            )
 
     @deletes
     def rm_file(self, path: str) -> None:
         path = self._strip_protocol(path)
         target = self._resolve(path)
         if target.kind != "attachment":
-            raise IsADirectoryError(errno.EISDIR, f"{path!r} is not an attachment", path)
+            raise IsADirectoryError(
+                errno.EISDIR, f"{path!r} is not an attachment", path
+            )
         self.inv_client.delete_attachment_by_id(target.gid[2:])
         self.invalidate_cache()
 
@@ -294,14 +342,16 @@ class InventoryFilesystem(RSpaceFSBase):
             self._require_empty_field(target, container)
         elif target.kind not in ("record", "shortcut"):
             raise NotImplementedError(
-                f"{container!r}: files attach to a record or one of its attachment fields")
+                f"{container!r}: files attach to a record or one of its attachment fields"
+            )
         if target.gid[:2] not in ATTACHABLE_PREFIXES:
             # Checked before the Gallery upload: the server would refuse the link afterwards
             # and the uploaded file could never be deleted.
             raise NotImplementedError(
                 f"{container!r}: RSpace does not accept attachments on "
                 f"{'a bench' if target.gid[:2] == 'BE' else 'a sample template'}. "
-                f"Attach to a container, sample, subsample or instrument instead.")
+                f"Attach to a container, sample, subsample or instrument instead."
+            )
         result = self._attach(target.gid, file, name)
         self.invalidate_cache()
         return result
@@ -311,13 +361,16 @@ class InventoryFilesystem(RSpaceFSBase):
         ``via_gallery`` is off."""
         if not self.via_gallery:
             return self.inv_client.upload_attachment_by_global_id(
-                parent_gid, file, **self._upload_kwargs(name))
+                parent_gid, file, **self._upload_kwargs(name)
+            )
         # No folder id: the Gallery files it into the section its media type belongs to, so
         # this cannot hit the section-mismatch rule that a chosen folder would.
         uploaded = self.eln_client.upload_file(file, **self._upload_kwargs(name))
         # by global id, not through link(): a field global id does not resolve as a path on
         # its own, because a field is only addressable underneath its record.
-        return self.inv_client.attach_gallery_file_by_global_id(parent_gid, uploaded["globalId"])
+        return self.inv_client.attach_gallery_file_by_global_id(
+            parent_gid, uploaded["globalId"]
+        )
 
     @writes
     def link(self, path: str, media_file_gid: str) -> dict:
@@ -327,9 +380,13 @@ class InventoryFilesystem(RSpaceFSBase):
         path = self._strip_protocol(path)
         target = self._resolve(path)
         if target.kind not in ("record", "shortcut", "field"):
-            raise NotImplementedError(f"{path!r}: a Gallery file links to a record or an attachment field")
+            raise NotImplementedError(
+                f"{path!r}: a Gallery file links to a record or an attachment field"
+            )
         if target.kind == "field":
             self._require_empty_field(target, path)
-        result = self.inv_client.attach_gallery_file_by_global_id(target.gid, media_file_gid)
+        result = self.inv_client.attach_gallery_file_by_global_id(
+            target.gid, media_file_gid
+        )
         self.invalidate_cache()
         return result

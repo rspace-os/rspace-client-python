@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-from __future__ import print_function
-import rspace_client
 import sys
 from datetime import date, timedelta
+
+import rspace_client
 
 # Parse command line parameters
 # Parse command line parameters
@@ -16,9 +16,7 @@ response = client.get_activity(
 )
 
 print(
-    "All activity related to documents being created or modified from {} to now:".format(
-        date_from.isoformat()
-    )
+    f"All activity related to documents being created or modified from {date_from.isoformat()} to now:"
 )
 for activity in response["activities"]:
     print(activity)
@@ -28,6 +26,6 @@ print("Document ID to get all activity for (for example, SD123456)?")
 document_id = sys.stdin.readline().strip()
 response = client.get_activity(global_id=document_id)
 
-print("Activities for document {}:".format(document_id))
+print(f"Activities for document {document_id}:")
 for activity in response["activities"]:
     print(activity)

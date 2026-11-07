@@ -19,18 +19,19 @@ later ones, so every segment in a listing stays unique and addressable.
 Each filesystem adds its own vocabulary on top of this (the Inventory sections, for
 instance); what lives here is only what all of them share.
 """
+
 from __future__ import annotations
 
 import re
-from typing import Optional, Tuple
-
 from posixpath import basename
 
 GLOBAL_ID = re.compile(r"^[A-Z]{2}\d+$")
 LABELLED = re.compile(r"^(?P<label>.*) \[(?P<gid>[A-Z]{2}\d+)\]$", re.S)
 #: 'data [GL112].csv': the same thing with the extension moved back to the end, so that a
 #: disambiguated file name still tells a consumer what kind of file it is.
-LABELLED_EXT = re.compile(r"^(?P<stem>.*) \[(?P<gid>[A-Z]{2}\d+)\](?P<ext>\.[A-Za-z0-9]{1,8})$", re.S)
+LABELLED_EXT = re.compile(
+    r"^(?P<stem>.*) \[(?P<gid>[A-Z]{2}\d+)\](?P<ext>\.[A-Za-z0-9]{1,8})$", re.S
+)
 EXTENSION = re.compile(r"^(?P<stem>.+)(?P<ext>\.[A-Za-z0-9]{1,8})$")
 
 ROOT_PATHS = ("", "/", ".", "./")
@@ -51,7 +52,7 @@ def last_segment(path: str) -> str:
     return basename(path.rstrip("/")) if not is_root(path) else ""
 
 
-def parse_segment(segment: str) -> Tuple[Optional[str], Optional[str]]:
+def parse_segment(segment: str) -> tuple[str | None, str | None]:
     """
     Split a segment into (global_id, label).
     ``'GF12'`` -> ('GF12', None); ``'Images [GF12]'`` -> ('GF12', 'Images');
@@ -126,7 +127,11 @@ def mark_read_only(segment: str) -> str:
 def unmarked(segment: str) -> str:
     """The segment without its read-only marker, so a path stored before a document was
     signed still resolves afterwards."""
-    return segment[:-len(READ_ONLY_MARKER)] if segment.endswith(READ_ONLY_MARKER) else segment
+    return (
+        segment[: -len(READ_ONLY_MARKER)]
+        if segment.endswith(READ_ONLY_MARKER)
+        else segment
+    )
 
 
 def segment_for(style: str, name, gid: str) -> str:
@@ -135,8 +140,14 @@ def segment_for(style: str, name, gid: str) -> str:
         return gid
     if style == "labelled":
         return _labelled_segment(name, gid)
-    label = _sanitise_label(name) or gid  # "name": the bare name, falling back to the id
+    label = (
+        _sanitise_label(name) or gid
+    )  # "name": the bare name, falling back to the id
     # A name that would itself parse as an address ('GL9', 'report [GL111].csv') must not be
     # listed as one: it would resolve to that other record. Give it its real id, the way a
     # colliding sibling gets one, so the listed segment says what it addresses.
-    return disambiguated_segment(name, gid) if parse_segment(label)[0] is not None else label
+    return (
+        disambiguated_segment(name, gid)
+        if parse_segment(label)[0] is not None
+        else label
+    )

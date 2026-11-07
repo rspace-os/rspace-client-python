@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Demonstrates Inventory "Link" extra-fields: typed, versioned links between
 inventory items (and to ELN records).
@@ -7,6 +6,7 @@ inventory items (and to ELN records).
 Requires an RSpace server that supports Inventory Link fields
 (server PR #803 / RSDEV-1131).
 """
+
 import rspace_client
 from rspace_client.inv.inv import ExtraField, RelationType
 from rspace_client.inv.template_builder import TemplateBuilder

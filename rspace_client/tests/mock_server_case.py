@@ -7,19 +7,19 @@ begins each test from the stock fixtures (``server.reset()``). One server rather
 per class, because the suite used to spend most of its wall time in ``serve_forever``
 shutdowns.
 """
+
 import atexit
 import unittest
-from typing import Optional, Tuple
 
 import requests
 
 from rspace_client.fs.paths import last_segment
 from rspace_client.tests.mock_rspace.server import MockRSpaceServer, run_in_thread
 
-_server: Optional[Tuple[MockRSpaceServer, str]] = None
+_server: tuple[MockRSpaceServer, str] | None = None
 
 
-def shared_server() -> Tuple[MockRSpaceServer, str]:
+def shared_server() -> tuple[MockRSpaceServer, str]:
     global _server
     if _server is None:
         _server = run_in_thread()
@@ -39,7 +39,6 @@ def segments(entries):
 
 
 class MockServerTestCase(unittest.TestCase):
-
     server: MockRSpaceServer
     url: str
 

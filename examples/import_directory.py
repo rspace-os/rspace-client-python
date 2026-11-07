@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
-import sys, pprint
+import pprint
+import sys
+
 import rspace_client
 from rspace_client.eln import filetree_importer
 from rspace_client.eln.dcs import DocumentCreationStrategy as DCS

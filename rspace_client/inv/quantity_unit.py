@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Sun Oct  3 11:11:05 2021
 Some content
@@ -65,5 +64,5 @@ class QuantityUnit:
         return [x for x in QuantityUnit.data if x["label"] == label]
 
     @staticmethod
-    def unit_labels() -> tuple:
+    def unit_labels() -> list:
         return [x["label"] for x in QuantityUnit.data]

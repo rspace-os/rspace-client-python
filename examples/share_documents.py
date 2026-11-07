@@ -4,12 +4,11 @@ In order to use this example the account of your API key must belong to a group
 so that you can share items
 """
 
-from __future__ import print_function
 import rspace_client
 
 
 def printSharedItemNames(response):
-    names = [l["shareItemName"] for l in response["shares"]]
+    names = [share["shareItemName"] for share in response["shares"]]
     print(",".join(names))
 
 
@@ -56,9 +55,7 @@ print("The shared resource ID is {}".format(shared["shareInfos"][0]["id"]))
 print(
     """You can see the shared item in RSpace webapp\
  in Shared->Lab Groups->{}_SHARED
- """.format(
-        groups[0]["name"]
-    )
+ """.format(groups[0]["name"])
 )
 
 print("Listing shared items")

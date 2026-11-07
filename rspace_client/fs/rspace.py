@@ -35,12 +35,14 @@ the ``RSPACE_API_KEY`` environment variable; a URL with ``user:password@`` is re
 plain http is accepted for loopback hosts only, because a URL is often supplied by someone
 other than the person whose environment it is opened in.
 """
+
 from __future__ import annotations
 
 import errno
 import io
 import os
-from typing import Any, Collection, Dict, Iterator, Optional, Tuple
+from collections.abc import Collection, Iterator
+from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 from fsspec.spec import AbstractFileSystem
@@ -61,14 +63,16 @@ _TRUE = ("1", "true", "yes", "on")
 LOOPBACK_HOSTS = ("localhost", "127.0.0.1", "::1")
 
 
-def _delegate(name: str, guard: Optional[str] = None):
+def _delegate(name: str, guard: str | None = None):
     """A method that hands ``path`` and the remaining arguments to the branch the path
     names. ``guard`` names the operation in the refusal for the fixed top level."""
+
     def method(self, path, *args, **kwargs):
         if guard:
             self._reject_root_write(path, guard)
         _, branch, rest = self._route(path)
         return getattr(branch, name)(rest, *args, **kwargs)
+
     method.__name__ = name
     return method
 
@@ -80,13 +84,21 @@ class RSpaceFilesystem(AbstractFileSystem):
     root_marker = ""
     cachable = False
 
-    def __init__(self, server: Optional[str] = None, api_key: Optional[str] = None, *,
-                 eln_client: Optional[eln.ELNClient] = None,
-                 inv_client: Optional[inv.InventoryClient] = None,
-                 writable: bool = False, allow_delete: bool = False,
-                 path_style: str = "name", on_mismatch: str = ON_MISMATCH_RAISE,
-                 mounts: Collection[str] = MOUNTS, fetch_sizes: bool = True,
-                 **storage_options: Any) -> None:
+    def __init__(
+        self,
+        server: str | None = None,
+        api_key: str | None = None,
+        *,
+        eln_client: eln.ELNClient | None = None,
+        inv_client: inv.InventoryClient | None = None,
+        writable: bool = False,
+        allow_delete: bool = False,
+        path_style: str = "name",
+        on_mismatch: str = ON_MISMATCH_RAISE,
+        mounts: Collection[str] = MOUNTS,
+        fetch_sizes: bool = True,
+        **storage_options: Any,
+    ) -> None:
         storage_options.setdefault("use_listings_cache", False)
         super().__init__(**storage_options)
         # keep the canonical order however they were listed, so ls('') is stable
@@ -101,14 +113,20 @@ class RSpaceFilesystem(AbstractFileSystem):
             # variable that leaves the machine
             api_key = os.environ.get(KEY_ENV)
             if not api_key:
-                raise ValueError(f"no API key: pass api_key= or set the {KEY_ENV} environment variable")
+                raise ValueError(
+                    f"no API key: pass api_key= or set the {KEY_ENV} environment variable"
+                )
         # Only the clients the chosen branches use are required: every branch needs the ELN
         # client (Inventory uploads go through the Gallery), Inventory alone needs the other.
         can_build = bool(server and api_key)
         if eln_client is None and not can_build:
-            raise ValueError("RSpaceFilesystem needs server and api_key, or an eln_client")
+            raise ValueError(
+                "RSpaceFilesystem needs server and api_key, or an eln_client"
+            )
         if "inventory" in chosen and inv_client is None and not can_build:
-            raise ValueError("RSpaceFilesystem needs server and api_key, or an inv_client, to mount inventory")
+            raise ValueError(
+                "RSpaceFilesystem needs server and api_key, or an inv_client, to mount inventory"
+            )
         self.server = server
         self.writable = writable
         self.allow_delete = allow_delete
@@ -122,21 +140,44 @@ class RSpaceFilesystem(AbstractFileSystem):
         #: does not accept it: "raise" (default) or "reroute" (let RSpace place it correctly).
         #: A single upload can override it with ``upload_fileobj(..., on_mismatch=...)``.
         self.on_mismatch = check_policy(on_mismatch)
-        posture = dict(writable=writable, allow_delete=allow_delete, path_style=path_style,
-                       use_listings_cache=self.dircache.use_listings_cache,
-                       listings_expiry_time=self.dircache.listings_expiry_time,
-                       max_paths=self.dircache.max_paths)
+        posture = dict(
+            writable=writable,
+            allow_delete=allow_delete,
+            path_style=path_style,
+            use_listings_cache=self.dircache.use_listings_cache,
+            listings_expiry_time=self.dircache.listings_expiry_time,
+            max_paths=self.dircache.max_paths,
+        )
         #: each branch, or None when it was not mounted
-        self.gallery = GalleryFilesystem(eln_client=self.eln_client, on_mismatch=on_mismatch,
-                                         fetch_sizes=fetch_sizes, **posture) if "gallery" in chosen else None
-        self.inventory = InventoryFilesystem(inv_client=inv_client, eln_client=self.eln_client,
-                                             **posture) if "inventory" in chosen else None
-        self.workspace = WorkspaceFilesystem(eln_client=self.eln_client, **posture) if "workspace" in chosen else None
+        self.gallery = (
+            GalleryFilesystem(
+                eln_client=self.eln_client,
+                on_mismatch=on_mismatch,
+                fetch_sizes=fetch_sizes,
+                **posture,
+            )
+            if "gallery" in chosen
+            else None
+        )
+        self.inventory = (
+            InventoryFilesystem(
+                inv_client=inv_client, eln_client=self.eln_client, **posture
+            )
+            if "inventory" in chosen
+            else None
+        )
+        self.workspace = (
+            WorkspaceFilesystem(eln_client=self.eln_client, **posture)
+            if "workspace" in chosen
+            else None
+        )
         #: mount name -> branch, in listing order
-        self.branches: Dict[str, RSpaceFSBase] = {name: getattr(self, name) for name in chosen}
+        self.branches: dict[str, RSpaceFSBase] = {
+            name: getattr(self, name) for name in chosen
+        }
 
     @property
-    def mount_names(self) -> Tuple[str, ...]:
+    def mount_names(self) -> tuple[str, ...]:
         """Which RSpace branches this filesystem exposes, in listing order."""
         return tuple(self.branches)
 
@@ -158,7 +199,7 @@ class RSpaceFilesystem(AbstractFileSystem):
         return super()._strip_protocol(path).strip("/")
 
     @staticmethod
-    def _get_kwargs_from_urls(url: str) -> Dict[str, Any]:
+    def _get_kwargs_from_urls(url: str) -> dict[str, Any]:
         """Connection options from ``rspace://host[:port]/path?writable=1&scheme=http``."""
         parts = urlsplit(url)
         if parts.scheme != "rspace":
@@ -166,21 +207,25 @@ class RSpaceFilesystem(AbstractFileSystem):
         if parts.username or parts.password:
             raise ValueError(
                 f"rspace:// URLs must not contain credentials; put the API key in the "
-                f"{KEY_ENV} environment variable instead")
+                f"{KEY_ENV} environment variable instead"
+            )
         host = parts.netloc
         if not host:
             raise ValueError("rspace:// URL needs a host, e.g. rspace://my.rspace.host")
         params = {k: v[-1] for k, v in parse_qs(parts.query).items()}
         if "api_key" in params or "api_key_env" in params:
-            raise ValueError(f"rspace:// URLs cannot carry or choose the API key; it is read from {KEY_ENV} only")
+            raise ValueError(
+                f"rspace:// URLs cannot carry or choose the API key; it is read from {KEY_ENV} only"
+            )
         scheme = params.get("scheme", "https")
         if scheme not in ("http", "https"):
             raise ValueError(f"scheme must be http or https, got {scheme!r}")
         if scheme == "http" and (parts.hostname or "") not in LOOPBACK_HOSTS:
             raise ValueError(
                 f"scheme=http is only accepted for a local development server "
-                f"({', '.join(LOOPBACK_HOSTS)}); {host!r} would receive the API key in clear text")
-        kwargs: Dict[str, Any] = {"server": f"{scheme}://{host}"}
+                f"({', '.join(LOOPBACK_HOSTS)}); {host!r} would receive the API key in clear text"
+            )
+        kwargs: dict[str, Any] = {"server": f"{scheme}://{host}"}
         for flag in ("writable", "allow_delete"):
             if flag in params:
                 kwargs[flag] = params[flag].lower() in _TRUE
@@ -192,13 +237,17 @@ class RSpaceFilesystem(AbstractFileSystem):
 
     # ------------------------------------------------------------ routing
 
-    def _route(self, path: str) -> Tuple[str, RSpaceFSBase, str]:
+    def _route(self, path: str) -> tuple[str, RSpaceFSBase, str]:
         """``(mount name, branch, path inside the branch)`` for a path below the top level."""
         path = self._strip_protocol(path)
         head, _, rest = path.partition("/")
         branch = self.branches.get(head)
         if branch is None:
-            raise FileNotFoundError(errno.ENOENT, f"{path!r}: the top level holds {list(self.mount_names)}", path)
+            raise FileNotFoundError(
+                errno.ENOENT,
+                f"{path!r}: the top level holds {list(self.mount_names)}",
+                path,
+            )
         return head, branch, rest
 
     def _is_top(self, path: str) -> bool:
@@ -213,8 +262,10 @@ class RSpaceFilesystem(AbstractFileSystem):
     def _reject_root_write(self, path: str, op: str) -> None:
         if self._is_top(path):
             raise ReadOnlyError(
-                errno.EROFS, f"{op}: the top level of an RSpaceFilesystem is fixed ({', '.join(self.mount_names)})",
-                str(path))
+                errno.EROFS,
+                f"{op}: the top level of an RSpaceFilesystem is fixed ({', '.join(self.mount_names)})",
+                str(path),
+            )
 
     @property
     def read_only(self) -> bool:
@@ -233,13 +284,18 @@ class RSpaceFilesystem(AbstractFileSystem):
         head, branch, rest = self._route(path)
         return (self._lift(head, entry) for entry in branch.scandir(rest))
 
-    def ls(self, path: str, detail: bool = True, refresh: bool = False, **kwargs) -> list:
+    def ls(
+        self, path: str, detail: bool = True, refresh: bool = False, **kwargs
+    ) -> list:
         path = self._strip_protocol(path)
         if not path:
             out = [self._mount_entry(name) for name in self.mount_names]
         else:
             head, branch, rest = self._route(path)
-            out = [self._lift(head, entry) for entry in branch.ls(rest, detail=True, refresh=refresh, **kwargs)]
+            out = [
+                self._lift(head, entry)
+                for entry in branch.ls(rest, detail=True, refresh=refresh, **kwargs)
+            ]
         return out if detail else [entry["name"] for entry in out]
 
     def info(self, path: str, **kwargs) -> dict:
@@ -251,13 +307,16 @@ class RSpaceFilesystem(AbstractFileSystem):
             return self._mount_entry(head)
         return self._lift(head, branch.info(rest, **kwargs))
 
-    def glob(self, path: str, maxdepth: Optional[int] = None, **kwargs):
+    def glob(self, path: str, maxdepth: int | None = None, **kwargs):
         path = self._strip_protocol(path)
         head, _, rest = path.partition("/")
         if head in self.branches and rest:
             found = self.branches[head].glob(rest, maxdepth=maxdepth, **kwargs)
             if isinstance(found, dict):
-                return {f"{head}/{name}": self._lift(head, entry) for name, entry in found.items()}
+                return {
+                    f"{head}/{name}": self._lift(head, entry)
+                    for name, entry in found.items()
+                }
             return [f"{head}/{name}" for name in found]
         return super().glob(path, maxdepth=maxdepth, **kwargs)
 
@@ -266,15 +325,30 @@ class RSpaceFilesystem(AbstractFileSystem):
 
     # ------------------------------------------------------------ files
 
-    def _open(self, path: str, mode: str = "rb", block_size=None, autocommit: bool = True,
-              cache_options=None, **kwargs):
+    def _open(
+        self,
+        path: str,
+        mode: str = "rb",
+        block_size=None,
+        autocommit: bool = True,
+        cache_options=None,
+        **kwargs,
+    ):
         if self._is_top(path):
             if mode.startswith("r"):
-                raise IsADirectoryError(errno.EISDIR, f"{path!r} is a directory", str(path))
+                raise IsADirectoryError(
+                    errno.EISDIR, f"{path!r} is a directory", str(path)
+                )
             self._reject_root_write(path, "open")
         _, branch, rest = self._route(path)
-        return branch._open(rest, mode=mode, block_size=block_size, autocommit=autocommit,
-                            cache_options=cache_options, **kwargs)
+        return branch._open(
+            rest,
+            mode=mode,
+            block_size=block_size,
+            autocommit=autocommit,
+            cache_options=cache_options,
+            **kwargs,
+        )
 
     cat_file = _delegate("cat_file")
 
@@ -291,13 +365,17 @@ class RSpaceFilesystem(AbstractFileSystem):
     #: override the Gallery section policy for this call.
     upload_fileobj = _delegate("upload_fileobj", "upload")
 
-    def get_file(self, rpath: str, lpath, callback=None, outfile=None, **kwargs) -> None:
+    def get_file(
+        self, rpath: str, lpath, callback=None, outfile=None, **kwargs
+    ) -> None:
         if self._is_top(rpath):
             return
         _, branch, rest = self._route(rpath)
         branch.get_file(rest, lpath, callback=callback, outfile=outfile, **kwargs)
 
-    def put_file(self, lpath, rpath: str, callback=None, mode: str = "overwrite", **kwargs) -> None:
+    def put_file(
+        self, lpath, rpath: str, callback=None, mode: str = "overwrite", **kwargs
+    ) -> None:
         self._reject_root_write(rpath, "put")
         _, branch, rest = self._route(rpath)
         branch.put_file(lpath, rest, callback=callback, mode=mode, **kwargs)
@@ -313,17 +391,17 @@ class RSpaceFilesystem(AbstractFileSystem):
     rmdir = _delegate("rmdir", "rmdir")
     rm_file = _delegate("rm_file", "rm")
 
-    def rm(self, path, recursive: bool = False, maxdepth: Optional[int] = None) -> None:
+    def rm(self, path, recursive: bool = False, maxdepth: int | None = None) -> None:
         if recursive:
             raise NotImplementedError("recursive removal is not supported on RSpace")
-        for one in ([path] if isinstance(path, str) else path):
+        for one in [path] if isinstance(path, str) else path:
             self._reject_root_write(one, "rm")
             _, branch, rest = self._route(one)
             branch.rm(rest)
 
     # ------------------------------------------------------------ copy and move
 
-    def _gallery_file_behind(self, path: str) -> Optional[Tuple[str, Optional[str]]]:
+    def _gallery_file_behind(self, path: str) -> tuple[str, str | None] | None:
         """``(global id, name)`` of the Gallery file a path resolves to, or None.
 
         Not only paths under ``gallery``: a file in an ELN document field *is* a Gallery
@@ -372,12 +450,20 @@ class RSpaceFilesystem(AbstractFileSystem):
                     return
         branch.upload_fileobj(rest, io.BytesIO(self.cat_file(path1)))
 
-    def mv(self, path1: str, path2: str, recursive: bool = False, maxdepth: Optional[int] = None,
-           **kwargs) -> None:
+    def mv(
+        self,
+        path1: str,
+        path2: str,
+        recursive: bool = False,
+        maxdepth: int | None = None,
+        **kwargs,
+    ) -> None:
         """As in the branches: refuse before copying when the source cannot be removed."""
         self._reject_root_write(path2, "move")
         if self._is_top(path1):
-            raise IsADirectoryError(errno.EISDIR, f"{path1!r} is a directory", str(path1))
+            raise IsADirectoryError(
+                errno.EISDIR, f"{path1!r} is a directory", str(path1)
+            )
         _, source, inner = self._route(path1)
         source._require_movable(path1, recursive)
         self.cp_file(path1, path2)
@@ -391,7 +477,7 @@ class RSpaceFilesystem(AbstractFileSystem):
         for branch in self.branches.values():
             branch.clear_name_cache()
 
-    def invalidate_cache(self, path: Optional[str] = None) -> None:
+    def invalidate_cache(self, path: str | None = None) -> None:
         super().invalidate_cache(path)
         self.dircache.clear()
         for branch in self.branches.values():

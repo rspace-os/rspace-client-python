@@ -1,23 +1,39 @@
 ## Development
 
-Python 3.9 or later is required. We aim to support only active versions of Python.
+Python 3.10 or later is required. We aim to support only active versions of Python.
 
 ### Setup
 
-Create a virtual environment with python 3.7 installed. If you use `conda`, you can do this
+Create a virtual environment with Python 3.10 or later. With `conda`, this creates one with Python 3.12:
 
 ```
 conda env create -f environment.yaml
 conda activate rspace-client
 ``` 
 
-We use `poetry` for dependency management. [Install Poetry] (https://python-poetry.org/docs/#installation)
+We use `poetry` (2.x) for dependency management. [Install Poetry](https://python-poetry.org/docs/#installation)
 
 From this directory, run 
 
 `poetry install` 
 
-to install all project dependencies into your virtual environment. 
+to install all project dependencies, including the dev tools below, into your virtual environment.
+
+### Linting, formatting and type checking
+
+We use [ruff](https://docs.astral.sh/ruff/) for linting and formatting, and [mypy](https://mypy-lang.org/) for type checking.
+
+```
+poetry run ruff check rspace_client examples
+poetry run ruff format rspace_client examples
+poetry run mypy rspace_client
+```
+
+To run these checks on every commit, install the [pre-commit](https://pre-commit.com/) hooks:
+
+```
+poetry run pre-commit install
+```
 
 ### Running tests
 
@@ -65,8 +81,19 @@ Galaxy ships an `rspace` file source built on this library's deprecated `rspace_
  
 ### Making a release
 
-- Get a clean test run 
-- Update version in README.md and pyproject.toml
-- update changelog to include the new version and required RSpace version
-- tag with syntax like 'v2.2.0'    
-- Build and submit to Pypi using `poetry publish`
+Releases are made on `main`. PRs are squash-merged, so a commit tagged on a PR branch never
+reaches `main`, and the release workflow refuses any tag that isn't on `main`.
+
+- Merge everything for the release into `main`, then check out `main` and pull.
+- Get a clean test run.
+- Make sure `CHANGELOG.md` has exactly one `## Unreleased` section, and that it names the required
+  RSpace version.
+- Run `./release.sh <new-version>`, for example `./release.sh 2.8.0`. It refuses to run unless you
+  are on `main`, with no uncommitted changes and level with `origin/main`. It renames
+  `## Unreleased` to the version and date, sets the version with `poetry version` (`pyproject.toml`
+  is the only file that holds it), commits, and creates the tag `v<new-version>`.
+- Push the commit and the tag: `git push origin main && git push origin v<new-version>`.
+- The tag push starts `.github/workflows/release.yml`. It stops if the tag isn't on `main` or doesn't
+  match the `pyproject.toml` version, runs ruff, mypy and the unit tests, builds the sdist and wheel,
+  and publishes them to PyPI with [Trusted Publishing](https://docs.pypi.org/trusted-publishers/),
+  so you don't need an API token.

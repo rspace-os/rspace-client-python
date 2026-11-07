@@ -1,0 +1,24 @@
+# The hooks run the ruff and mypy pinned in pyproject.toml (via Poetry), so the
+# versions here, in CI and in Dependabot's updates are always the same.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff check
+        entry: poetry run ruff check --fix --force-exclude
+        language: system
+        types: [python]
+        files: ^(rspace_client|examples)/
+      - id: ruff-format
+        name: ruff format
+        entry: poetry run ruff format --force-exclude
+        language: system
+        types: [python]
+        files: ^(rspace_client|examples)/
+      - id: mypy
+        name: mypy
+        entry: poetry run mypy rspace_client
+        language: system
+        # also run when only the mypy settings in pyproject.toml change
+        files: ^(rspace_client/.*\.py|pyproject\.toml)$
+        pass_filenames: false

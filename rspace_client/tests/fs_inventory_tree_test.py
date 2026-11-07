@@ -1,5 +1,6 @@
 """Inventory as a browsable tree (root, sections, pagination, records, attachment fields,
 the sample shortcut) and its uploads, against the embedded mock server."""
+
 import unittest
 from io import BytesIO
 from itertools import islice
@@ -7,13 +8,11 @@ from itertools import islice
 from rspace_client.fs import GalleryFilesystem, InventoryFilesystem, RemoteApiError
 from rspace_client.fs.inventory import Target
 from rspace_client.fs.paths import last_segment
+
 from .mock_server_case import MockServerTestCase, names
 
 
-
-
 class InventoryTreeTest(MockServerTestCase):
-
     def fs(self, **kw):
         return InventoryFilesystem(self.url, "k", **kw)
 
@@ -23,9 +22,14 @@ class InventoryTreeTest(MockServerTestCase):
         self.assertEqual(Target("section", section="Samples"), fs._resolve("Samples"))
         t = fs._resolve("Containers/Freezer -80 [IC200]/Rack A [IC201]")
         self.assertEqual(("record", "IC201", "Containers"), (t.kind, t.gid, t.section))
-        self.assertEqual("shortcut", fs._resolve("IC200/IC201/SS300/sample: x [SA1000]").kind)
+        self.assertEqual(
+            "shortcut", fs._resolve("IC200/IC201/SS300/sample: x [SA1000]").kind
+        )
         self.assertEqual("record", fs._resolve("Samples/Plasmid [SA1000]").kind)
-        self.assertEqual(("attachment", "IF500"), (fs._resolve("IC200/IF500").kind, fs._resolve("IC200/IF500").gid))
+        self.assertEqual(
+            ("attachment", "IF500"),
+            (fs._resolve("IC200/IF500").kind, fs._resolve("IC200/IF500").gid),
+        )
         for bad in ("Nope", "IC200/IF500/x", "Containers/page-0", "GL1"):
             with self.assertRaises(FileNotFoundError, msg=bad):
                 fs._resolve(bad)
@@ -33,23 +37,37 @@ class InventoryTreeTest(MockServerTestCase):
     def test_root_and_sections(self):
         fs = self.fs()
         before = self.calls()
-        self.assertEqual(["WB user1a", "Containers", "Samples", "Templates"], names(fs, ""))
-        self.assertEqual(1, self.calls() - before)  # workbenches only; sections are virtual
+        self.assertEqual(
+            ["WB user1a", "Containers", "Samples", "Templates"], names(fs, "")
+        )
+        self.assertEqual(
+            1, self.calls() - before
+        )  # workbenches only; sections are virtual
         self.assertEqual("directory", fs.info("Containers")["type"])
-        self.assertEqual(["Plasmid", "Bacterial strain"], names(fs, "Templates"))  # small: flat
+        self.assertEqual(
+            ["Plasmid", "Bacterial strain"], names(fs, "Templates")
+        )  # small: flat
 
     def test_sections_stream_without_exposing_pages(self):
         """A section simply contains its records; API paging is invisible (no page-N folders)."""
         fs = self.fs(page_size=5)
         listed = names(fs, "Containers")
-        self.assertEqual(13, len(listed))  # 13 top-level containers, fetched 5 at a time
+        self.assertEqual(
+            13, len(listed)
+        )  # 13 top-level containers, fetched 5 at a time
         self.assertFalse(any(n.startswith("page-") for n in listed))
         self.assertEqual(15, len(names(fs, "Samples")))
         before = self.calls()
-        first_two = [last_segment(e["name"]) for e in islice(fs.scandir("Containers"), 2)]
+        first_two = [
+            last_segment(e["name"]) for e in islice(fs.scandir("Containers"), 2)
+        ]
         self.assertEqual(2, len(first_two))
-        self.assertEqual(1, self.calls() - before)  # a slice costs one batch, not the whole section
-        self.assertEqual(13, len(names(self.fs(page_size=50), "Containers")))  # one batch
+        self.assertEqual(
+            1, self.calls() - before
+        )  # a slice costs one batch, not the whole section
+        self.assertEqual(
+            13, len(names(self.fs(page_size=50), "Containers"))
+        )  # one batch
         with self.assertRaises(FileNotFoundError):
             fs.ls("Containers/page-0")
 
@@ -58,29 +76,42 @@ class InventoryTreeTest(MockServerTestCase):
         before = self.calls()
         rows = list(fs.scandir("Containers/Freezer -80 [IC200]"))
         self.assertEqual(1, self.calls() - before)
-        self.assertEqual(["Rack A", "Rack B", "freezer_manual.pdf"], [last_segment(r["name"]) for r in rows])
+        self.assertEqual(
+            ["Rack A", "Rack B", "freezer_manual.pdf"],
+            [last_segment(r["name"]) for r in rows],
+        )
         self.assertEqual(["directory", "directory", "file"], [r["type"] for r in rows])
-        self.assertEqual(["Plasmid pUC19 #1", "Plasmid pUC19 #2"],
-                         names(fs, "Freezer -80 [IC200]/Rack A [IC201]"))
+        self.assertEqual(
+            ["Plasmid pUC19 #1", "Plasmid pUC19 #2"],
+            names(fs, "Freezer -80 [IC200]/Rack A [IC201]"),
+        )
         # by name too, from a parent the record is actually listed in; a segment carrying a
         # global ID resolves from anywhere, a bare name only where it appears
-        self.assertEqual(["sample: Plasmid pUC19", "qc_gel.png"],  # folders first
-                         names(fs, "Containers/Freezer -80/Rack A/Plasmid pUC19 #1"))
+        self.assertEqual(
+            ["sample: Plasmid pUC19", "qc_gel.png"],  # folders first
+            names(fs, "Containers/Freezer -80/Rack A/Plasmid pUC19 #1"),
+        )
         with self.assertRaises(FileNotFoundError):
             fs.ls("Freezer -80")  # top-level containers live under Containers
-        self.assertEqual(["Bench box", "Buffer stock #1", "Confocal microscope"],
-                         names(fs, "WB user1a"))
+        self.assertEqual(
+            ["Bench box", "Buffer stock #1", "Confocal microscope"],
+            names(fs, "WB user1a"),
+        )
 
     def test_bench_is_read_through_the_workbench_endpoint(self):
         # GET /containers/{id} answers 422 for a bench, on real servers and on the mock
-        self.assertEqual(["Bench box", "Buffer stock #1", "Confocal microscope"],
-                         names(self.fs(), "WB user1a [BE1]"))
+        self.assertEqual(
+            ["Bench box", "Buffer stock #1", "Confocal microscope"],
+            names(self.fs(), "WB user1a [BE1]"),
+        )
 
     def test_instruments_on_a_bench_are_browsable(self):
         """Instruments (IN) sit on benches like subsamples and carry attachments."""
         fs = self.fs()
         self.assertIn("Confocal microscope", names(fs, "WB user1a [BE1]"))
-        self.assertEqual(["calibration.pdf"], names(fs, "WB user1a/Confocal microscope"))
+        self.assertEqual(
+            ["calibration.pdf"], names(fs, "WB user1a/Confocal microscope")
+        )
         self.assertEqual("directory", fs.info("IN2")["type"])
         out = BytesIO()
         fs.download_fileobj("IN2/calibration.pdf [IF504]", out)
@@ -89,20 +120,27 @@ class InventoryTreeTest(MockServerTestCase):
     def test_sample_shortcut_shows_attachments_only(self):
         fs = self.fs()
         shortcut = "IC200/IC201/SS300/sample: Plasmid pUC19 [SA1000]"
-        self.assertEqual(["plasmid_map.gb"], names(fs, shortcut))  # no subsamples: no cycle
+        self.assertEqual(
+            ["plasmid_map.gb"], names(fs, shortcut)
+        )  # no subsamples: no cycle
         info = fs.info(shortcut)
         self.assertEqual("directory", info["type"])
         self.assertEqual("sample", info["rspace"]["shortcut"])
         # the real sample folder still shows its subsamples
-        self.assertEqual(["Plasmid pUC19 #1", "Plasmid pUC19 #2", "Safety Data", "plasmid_map.gb"],
-                         names(fs, "Samples/Plasmid pUC19"))
+        self.assertEqual(
+            ["Plasmid pUC19 #1", "Plasmid pUC19 #2", "Safety Data", "plasmid_map.gb"],
+            names(fs, "Samples/Plasmid pUC19"),
+        )
         out = BytesIO()
         fs.download_fileobj(shortcut + "/plasmid_map.gb [IF501]", out)
         self.assertTrue(out.getvalue().startswith(b"LOCUS"))
-        self.assertTrue(fs.cat_file(shortcut + "/plasmid_map.gb [IF501]").startswith(b"LOCUS"))
+        self.assertTrue(
+            fs.cat_file(shortcut + "/plasmid_map.gb [IF501]").startswith(b"LOCUS")
+        )
 
     def test_tree_helper_marks_shortcuts(self):
         from rspace_client.fs import format_tree
+
         text = format_tree(self.fs(), "WB user1a [BE1]")
         self.assertIn("sample: E. coli DH5a/", text)
         self.assertIn("sample: Buffer stock/", text)
@@ -113,9 +151,9 @@ class InventoryTreeTest(MockServerTestCase):
         fs = self.fs()
         sample = "Samples/Plasmid pUC19 [SA1000]"
         entries = names(fs, sample)
-        self.assertIn("Safety Data", entries)               # attachment field -> folder
-        self.assertIn("plasmid_map.gb", entries)            # the record's own attachment -> file
-        self.assertNotIn("Concentration", entries)          # a number field cannot hold a file
+        self.assertIn("Safety Data", entries)  # attachment field -> folder
+        self.assertIn("plasmid_map.gb", entries)  # the record's own attachment -> file
+        self.assertNotIn("Concentration", entries)  # a number field cannot hold a file
         info = fs.info(f"{sample}/Safety Data")
         self.assertEqual("directory", info["type"])
         self.assertEqual("attachment", info["rspace"]["fieldType"])
@@ -134,9 +172,9 @@ class InventoryTreeTest(MockServerTestCase):
         fs = self.fs(writable=True, allow_delete=True)
         payload = BytesIO(b"sheet")
         payload.name = "sheet.pdf"
-        fs.upload_fileobj(empty + "/sheet.pdf", payload)                     # empty field: accepted
+        fs.upload_fileobj(empty + "/sheet.pdf", payload)  # empty field: accepted
         self.assertEqual(1, len(names(fs, empty)))
-        for f in (self.fs(writable=True), fs):                # even with allow_delete
+        for f in (self.fs(writable=True), fs):  # even with allow_delete
             with self.assertRaises(FileExistsError) as ctx:
                 f.upload_fileobj(occupied + "/y.txt", BytesIO(b"y"))
             self.assertIn("msds.pdf", str(ctx.exception))
@@ -154,6 +192,7 @@ class InventoryTreeTest(MockServerTestCase):
         """Linking replaces the file in an attachment field just as an upload does, so the
         link (and a cross-branch copy, which links) is refused while the field is occupied."""
         from rspace_client.fs import RSpaceFilesystem
+
         occupied = "Samples/Plasmid pUC19/Safety Data"
         fs = self.fs(writable=True)
         before = names(fs, occupied)
@@ -162,7 +201,9 @@ class InventoryTreeTest(MockServerTestCase):
         self.assertIn("Remove the existing file first", str(ctx.exception))
         rs = RSpaceFilesystem(self.url, "k", writable=True)
         with self.assertRaises(FileExistsError):
-            rs.cp_file("gallery/Images/microscope.png", f"inventory/{occupied}/microscope.png")
+            rs.cp_file(
+                "gallery/Images/microscope.png", f"inventory/{occupied}/microscope.png"
+            )
         self.assertEqual(before, names(fs, occupied))
         empty = "Samples/E. coli DH5a/Datasheet"
         fs.link(empty, "GL100")  # an empty field still takes one
@@ -179,7 +220,9 @@ class InventoryTreeTest(MockServerTestCase):
             with self.assertRaises(FileNotFoundError, msg=path):
                 fs.info(path)
         self.assertTrue(fs.cat_file("SA1000/IF501"))
-        self.assertTrue(fs.cat_file("SS300/SA1000/IF501"))  # through the shortcut: the sample's own
+        self.assertTrue(
+            fs.cat_file("SS300/SA1000/IF501")
+        )  # through the shortcut: the sample's own
 
     def test_a_gallery_file_id_must_sit_in_the_folder_it_is_reached_through(self):
         gallery = GalleryFilesystem(self.url, "k")
@@ -191,35 +234,49 @@ class InventoryTreeTest(MockServerTestCase):
                 gallery.info(path)
 
     def _media_gid(self, container, name):
-        return next((e["rspace"].get("mediaFileGlobalId")
-                     for e in self.fs().scandir(container) if last_segment(e["name"]) == name),
-                    "no such entry")
+        return next(
+            (
+                e["rspace"].get("mediaFileGlobalId")
+                for e in self.fs().scandir(container)
+                if last_segment(e["name"]) == name
+            ),
+            "no such entry",
+        )
 
     def test_an_attachment_becomes_a_gallery_item(self):
         """An Inventory file can exist only inside Inventory, invisible in the Gallery and
         reusable nowhere. Uploading through the Gallery and linking the result is what the
         web interface does, and it is what an ELN upload already did."""
         fs = self.fs(writable=True)
-        for container in ("Samples/Plasmid pUC19",
-                          "Samples/Plasmid pUC19/Plasmid pUC19 #1",
-                          "Samples/E. coli DH5a/Datasheet"):
-            attachment = fs.upload_fileobj(f"{container}/via-gallery.png", BytesIO(b"bytes"))
+        for container in (
+            "Samples/Plasmid pUC19",
+            "Samples/Plasmid pUC19/Plasmid pUC19 #1",
+            "Samples/E. coli DH5a/Datasheet",
+        ):
+            attachment = fs.upload_fileobj(
+                f"{container}/via-gallery.png", BytesIO(b"bytes")
+            )
             self.assertEqual("via-gallery.png", attachment["name"])
             media = self._media_gid(container, "via-gallery.png")
-            self.assertTrue(str(media).startswith("GL"),
-                            f"{container} attachment should point at a Gallery file, got {media!r}")
+            self.assertTrue(
+                str(media).startswith("GL"),
+                f"{container} attachment should point at a Gallery file, got {media!r}",
+            )
 
     def test_the_inventory_only_upload_is_still_reachable(self):
         """The API offers both, and the deprecated class depends on the older one."""
         fs = self.fs(writable=True, via_gallery=False)
         fs.upload_fileobj("Samples/Plasmid pUC19/inventory-only.png", BytesIO(b"bytes"))
-        self.assertIsNone(self._media_gid("Samples/Plasmid pUC19", "inventory-only.png"))
+        self.assertIsNone(
+            self._media_gid("Samples/Plasmid pUC19", "inventory-only.png")
+        )
 
     def test_via_gallery_needs_an_eln_client_and_says_so(self):
         """It needs a second client. Left unset it turns itself on when one can be had;
         asking for it explicitly when one cannot is an error, not a silent downgrade to
         writing files that land somewhere other than the caller asked for."""
         from unittest.mock import MagicMock
+
         self.assertFalse(InventoryFilesystem(inv_client=MagicMock()).via_gallery)
         self.assertTrue(self.fs().via_gallery)  # built from a url and key
         with self.assertRaises(ValueError):
@@ -232,13 +289,19 @@ class InventoryTreeTest(MockServerTestCase):
         fs = self.fs(writable=True)
         gallery = GalleryFilesystem(self.url, "k")
         gallery_before = sum(len(files) for _, _, files in gallery.walk(""))
-        for path, what in (("WB user1a/x.txt", "bench"), ("Templates/Plasmid/x.txt", "template")):
+        for path, what in (
+            ("WB user1a/x.txt", "bench"),
+            ("Templates/Plasmid/x.txt", "template"),
+        ):
             with self.assertRaises(NotImplementedError, msg=what) as ctx:
                 fs.upload_fileobj(path, BytesIO(b"x"))
             self.assertIn("does not accept attachments", str(ctx.exception))
         gallery.clear_name_cache()
-        self.assertEqual(gallery_before, sum(len(files) for _, _, files in gallery.walk("")),
-                         "nothing may reach the Gallery")
+        self.assertEqual(
+            gallery_before,
+            sum(len(files) for _, _, files in gallery.walk("")),
+            "nothing may reach the Gallery",
+        )
 
     def test_linking_an_existing_gallery_file_copies_no_bytes(self):
         fs = self.fs(writable=True)
@@ -269,10 +332,16 @@ class InventoryTreeTest(MockServerTestCase):
         fs = self.fs(writable=True, allow_delete=True)
         payload = BytesIO(b"x")
         payload.name = "qc.txt"
-        fs.upload_fileobj("Containers/Freezer -80/Rack A/Plasmid pUC19 #1/qc.txt", payload)
+        fs.upload_fileobj(
+            "Containers/Freezer -80/Rack A/Plasmid pUC19 #1/qc.txt", payload
+        )
         self.assertIn("qc.txt", names(fs, "IC201/SS300"))
-        fs.upload_fileobj("IC201/SS300/sample: Plasmid pUC19/extra.txt", BytesIO(b"y"))  # attaches to the sample
-        self.assertEqual(2, len([e for e in fs.scandir("SA1000") if e["type"] != "directory"]))
+        fs.upload_fileobj(
+            "IC201/SS300/sample: Plasmid pUC19/extra.txt", BytesIO(b"y")
+        )  # attaches to the sample
+        self.assertEqual(
+            2, len([e for e in fs.scandir("SA1000") if e["type"] != "directory"])
+        )
         with self.assertRaises(NotImplementedError):
             fs.upload_fileobj("Containers/z.txt", BytesIO(b"z"))
         with self.assertRaises(NotImplementedError):

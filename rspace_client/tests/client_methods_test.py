@@ -1,19 +1,23 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Unit tests for the ELN and Inventory client methods added or changed for the filesystems:
 the URLs, query parameters, bodies and multipart parts they send. No server needed; requests
 are intercepted by responses or by mocking the shared session.
 """
+
 import json
+import os
+import tempfile
 import unittest
 from io import BytesIO
 from unittest import mock
+from urllib.parse import parse_qs, urlparse
 
 import responses
 
+from rspace_client.client_base import Pagination
 from rspace_client.eln.eln import ELNClient
-from rspace_client.inv.inv import InventoryClient
+from rspace_client.inv.inv import InventoryClient, SearchFilter
 from rspace_client.tests.exceptions_test import make_response
 
 RSPACE_URL = "https://example.com"
@@ -51,7 +55,9 @@ class ELNClientMethodsTest(unittest.TestCase):
         responses.add(responses.DELETE, ELN_API + "/forms/3", status=204)
         self.client.doDelete("/forms", 3)
         self.client.doDelete("forms", "FM3")
-        self.assertEqual([ELN_API + "/forms/3"] * 2, [c.request.url for c in responses.calls])
+        self.assertEqual(
+            [ELN_API + "/forms/3"] * 2, [c.request.url for c in responses.calls]
+        )
 
     @responses.activate
     def test_upload_file_uses_the_given_filename(self):
@@ -76,6 +82,76 @@ class ELNClientMethodsTest(unittest.TestCase):
         self.assertIn("pageSize=5", with_size)
         self.assertNotIn("pageSize", without)
 
+    def test_failed_export_job_reports_the_servers_error_details(self):
+        # regression: the FAILED branch used to drop the message and errors list
+        failed = {
+            "status": "FAILED",
+            "result": {"message": "disk full", "errors": ["e1", "e2"]},
+        }
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            mock.patch.object(self.client, "get_job_status", return_value=failed),
+        ):
+            log = os.path.join(tmp, "progress.log")
+            with self.assertRaises(ELNClient.ApiError) as ctx:
+                self.client._wait_till_complete_then_download(
+                    1, tmp, wait_between_requests=0, progress_log=log
+                )
+            with open(log) as f:
+                logged = f.read()
+        for text in (str(ctx.exception), logged):
+            self.assertIn("Export job failed", text)
+            self.assertIn("disk full", text)
+            self.assertIn("e1, e2", text)
+
+    def _run_export_job(self, *statuses):
+        """
+        Polls an export job that reports the given statuses in turn, and
+        returns the raised ApiError and the progress log's contents.
+        """
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            mock.patch.object(self.client, "get_job_status", side_effect=statuses),
+        ):
+            log = os.path.join(tmp, "progress.log")
+            with self.assertRaises(ELNClient.ApiError) as ctx:
+                self.client._wait_till_complete_then_download(
+                    1, tmp, wait_between_requests=0, progress_log=log
+                )
+            with open(log) as f:
+                return ctx.exception, f.read()
+
+    def test_abandoned_export_job_without_a_result_raises_api_error(self):
+        # the server sets no result for ABANDONED jobs
+        error, logged = self._run_export_job({"status": "ABANDONED", "result": None})
+        for text in (str(error), logged):
+            self.assertIn("Export job was abandoned", text)
+
+    def test_failed_export_job_with_a_null_error_list(self):
+        error, logged = self._run_export_job(
+            {"status": "FAILED", "result": {"message": "disk full", "errors": None}}
+        )
+        for text in (str(error), logged):
+            self.assertIn("disk full", text)
+            self.assertIn("no error list", text)
+
+    def test_failed_export_job_with_a_non_object_result(self):
+        error, _ = self._run_export_job({"status": "FAILED", "result": "disk full"})
+        self.assertIn("disk full", str(error))
+
+    def test_running_export_job_without_a_percentage_keeps_polling(self):
+        error, logged = self._run_export_job(
+            {"status": "STARTING"},
+            {"status": "RUNNING", "percentComplete": None},
+            {"status": "RUNNING", "percentComplete": 40.0},
+            {"status": "FAILED", "result": {"message": "disk full"}},
+        )
+        self.assertEqual(
+            ["Running", "Running", "Running - 40.00% complete"],
+            logged.splitlines()[:3],
+        )
+        self.assertIn("disk full", str(error))
+
 
 class InventoryClientMethodsTest(unittest.TestCase):
     def setUp(self):
@@ -84,11 +160,57 @@ class InventoryClientMethodsTest(unittest.TestCase):
     def tearDown(self):
         self.client.close()
 
+    def _sent_params(self, call_index):
+        return parse_qs(urlparse(responses.calls[call_index].request.url).query)
+
+    @responses.activate
+    def test_list_samples_filter_does_not_leak_into_later_calls(self):
+        # regression: the filter used to be merged into a shared default Pagination
+        responses.add(responses.GET, INV_API + "/samples", json={"samples": []})
+        self.client.list_samples(sample_filter=SearchFilter(owned_by="alice"))
+        self.client.list_samples()
+        self.assertEqual(["alice"], self._sent_params(0)["ownedBy"])
+        self.assertNotIn("ownedBy", self._sent_params(1))
+        self.assertNotIn("deletedItems", self._sent_params(1))
+
+    @responses.activate
+    def test_stream_samples_filter_does_not_leak_into_later_calls(self):
+        responses.add(
+            responses.GET, INV_API + "/samples", json={"samples": [], "_links": []}
+        )
+        list(self.client.stream_samples(sample_filter=SearchFilter(owned_by="bob")))
+        list(self.client.stream_samples())
+        self.assertEqual(["bob"], self._sent_params(0)["ownedBy"])
+        self.assertNotIn("ownedBy", self._sent_params(1))
+        self.assertNotIn("deletedItems", self._sent_params(1))
+
+    @responses.activate
+    def test_filter_does_not_leak_into_a_callers_pagination(self):
+        responses.add(responses.GET, INV_API + "/samples", json={"samples": []})
+        responses.add(
+            responses.GET,
+            INV_API + "/containers",
+            json={"containers": [], "_links": []},
+        )
+        p = Pagination(page_size=50)
+        self.client.list_samples(p, SearchFilter(owned_by="alice"))
+        self.client.list_samples(p)
+        list(self.client.stream_top_level_containers(p, SearchFilter(owned_by="bob")))
+        list(self.client.stream_top_level_containers(p))
+        self.assertEqual({"pageNumber": 0, "pageSize": 50}, p.data)
+        self.assertEqual(["alice"], self._sent_params(0)["ownedBy"])
+        self.assertEqual(["bob"], self._sent_params(2)["ownedBy"])
+        for call in (1, 3):
+            self.assertEqual(["50"], self._sent_params(call)["pageSize"])
+            self.assertNotIn("ownedBy", self._sent_params(call))
+            self.assertNotIn("deletedItems", self._sent_params(call))
+
     @responses.activate
     def test_upload_attachment_uses_the_given_filename_and_names_the_parent(self):
         responses.add(responses.POST, INV_API + "/files", json={"id": 1})
-        self.client.upload_attachment_by_global_id("SA1", named_file("/tmp/original.bin"),
-                                                   filename="x.txt")
+        self.client.upload_attachment_by_global_id(
+            "SA1", named_file("/tmp/original.bin"), filename="x.txt"
+        )
         body = sent_body(responses.calls[0])
         self.assertIn(b'filename="x.txt"', body)
         self.assertIn(json.dumps({"parentGlobalId": "SA1"}).encode(), body)
@@ -101,21 +223,29 @@ class InventoryClientMethodsTest(unittest.TestCase):
         self.client.get_workbench_by_id(64)
         self.client.get_workbench_by_id(64, include_content=True)
         self.assertEqual(
-            [url + "?includeContent=false", url + "?includeContent=false",
-             url + "?includeContent=true"],
-            [c.request.url for c in responses.calls])
+            [
+                url + "?includeContent=false",
+                url + "?includeContent=false",
+                url + "?includeContent=true",
+            ],
+            [c.request.url for c in responses.calls],
+        )
 
     @responses.activate
     def test_attach_gallery_file_posts_both_global_ids(self):
         responses.add(responses.POST, INV_API + "/attachments", json={"id": 1})
         self.client.attach_gallery_file_by_global_id("SA1", "GL2")
-        self.assertEqual({"parentGlobalId": "SA1", "mediaFileGlobalId": "GL2"},
-                         json.loads(responses.calls[0].request.body))
+        self.assertEqual(
+            {"parentGlobalId": "SA1", "mediaFileGlobalId": "GL2"},
+            json.loads(responses.calls[0].request.body),
+        )
 
     def test_csv_parse_goes_through_the_shared_session(self):
         ok = make_response(200, json_body={})
-        with mock.patch.object(self.client._session, "post", return_value=ok) as post, \
-                mock.patch("requests.post") as bare_post:
+        with (
+            mock.patch.object(self.client._session, "post", return_value=ok) as post,
+            mock.patch("requests.post") as bare_post,
+        ):
             self.client.parse_csv_import_file(named_file("samples.csv"), "SAMPLES")
         post.assert_called_once()
         self.assertEqual(INV_API + "/import/parseFile", post.call_args.args[0])

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Imports samples, subsamples and containers into Inventory from CSV files.
 
@@ -18,6 +17,7 @@ A field mapping maps a CSV column name to an RSpace field name, e.g. "name",
 "parent container import id", "parent container global id",
 "parent sample import id", "parent sample global id".
 """
+
 import io
 
 import rspace_client
@@ -56,9 +56,7 @@ print(f"Containers import status: {container_result['status']}")
 # Import subsamples into a pre-existing sample, referencing it by Global Id
 sample = inv_api.create_sample("Sample for CSV subsamples")
 subsamples_csv = (
-    "Name,Parent\n"
-    f"Aliquot 1,{sample['globalId']}\n"
-    f"Aliquot 2,{sample['globalId']}"
+    f"Name,Parent\nAliquot 1,{sample['globalId']}\nAliquot 2,{sample['globalId']}"
 )
 subsample_result = inv_api.import_subsamples_csv(
     csv_stream(subsamples_csv),
